@@ -1,6 +1,8 @@
 package main
 
-type SystemTime int32
+type SystemTime struct{
+	MicroSecond int32
+}
 func (s *SystemTime) Component() string {
 	return "SystemTime"
 }
