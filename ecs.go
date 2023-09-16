@@ -9,20 +9,26 @@ type Component interface {
 	Component() string
 }
 type Components map[string]Component
+
+type System struct {
+	Name     string
+	Function func(*ECS)
+}
+
 type ECS struct {
 	Entities map[string]Components
-	System   map[string]func(*ECS)
+	Systems  []System
 }
 
 func NewEcs() *ECS {
 	return &ECS{
 		Entities: make(map[string]Components),
-		System:   make(map[string]func(*ECS)),
+		Systems:  make([]System, 0),
 	}
 }
 
 func (e *ECS) AddSystem(name string, f func(*ECS)) {
-	e.System[name] = f
+	e.Systems = append(e.Systems, System{Name: name, Function: f})
 
 }
 
@@ -62,9 +68,23 @@ func (ecs *ECS) ComponentTick(name string, f func(ecs *ECS, entity string, compo
 
 }
 
+func (ecs *ECS) GetComponetOfEntity(entityNeed, componentNeed string) (ret Component, ok bool) {
+	for e, components := range ecs.Entities {
+		if e != entityNeed {
+			continue
+		}
+		for n, c := range components {
+			if n == componentNeed {
+				return c, true
+			}
+		}
+	}
+	return nil, false
+}
+
 func (e *ECS) Update() {
-	for _, f := range e.System {
-		f(e)
+	for _, system := range e.Systems {
+		system.Function(e)
 	}
 }
 

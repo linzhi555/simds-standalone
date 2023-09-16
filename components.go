@@ -50,6 +50,7 @@ type Message struct {
 	To       string
 	Content  string
 	LeftTime int
+	Body     interface{}
 }
 
 type MessageQueue struct {
@@ -85,7 +86,7 @@ func (mch *MessageQueue) Dequeue() (*Message, error) {
 
 type Network struct {
 	Waittings map[string]*Message
-	Ins       *MessageQueue
+	Ins       map[string]*MessageQueue
 	Outs      map[string]*MessageQueue
 }
 
@@ -96,7 +97,7 @@ func (n *Network) Component() string {
 func NewNetWork() *Network {
 	return &Network{
 		Waittings: make(map[string]*Message),
-		Ins:       NewMessageQueue(),
+		Ins:       make(map[string]*MessageQueue),
 		Outs:      make(map[string]*MessageQueue),
 	}
 }
@@ -110,18 +111,23 @@ func (n *Network) String() string {
 		}
 		res += fmt.Sprintln(v)
 	}
+	res += "Routes: \n"
+	for k := range n.Outs {
+		res += fmt.Sprintln(k)
+	}
+
 	return res
 }
 
 type NetCard struct {
-	Host string
+	Addr string
 	In   *MessageQueue
 	Out  *MessageQueue
 }
 
 func NewNetCard(name string) *NetCard {
 	return &NetCard{
-		Host: name,
+		Addr: name,
 	}
 
 }
@@ -130,8 +136,35 @@ func (nc *NetCard) Component() string {
 	return "NetCard"
 }
 
+type TaskGen struct {
+	Net *NetCard
+}
+
+func NewTaskGen(hostname string) *TaskGen {
+	return &TaskGen{
+		Net: NewNetCard(hostname + ":" + "TaskGen"),
+	}
+}
+func (t *TaskGen) Component() string {
+	return "TaskGen"
+}
+
 func (nc *NetCard) JoinNetWork(net *Network) {
 	nc.In = NewMessageQueue()
-	net.Outs[nc.Host] = nc.In
-	nc.Out = net.Ins
+	nc.Out = NewMessageQueue()
+	net.Outs[nc.Addr] = nc.In
+	net.Ins[nc.Addr] = nc.Out
+}
+
+type Scheduler struct {
+	Net *NetCard
+}
+
+func NewScheduler(hostname string) *Scheduler {
+	return &Scheduler{
+		Net: NewNetCard(hostname + ":" + "Scheduler"),
+	}
+}
+func (t *Scheduler) Component() string {
+	return "Scheduler"
 }
