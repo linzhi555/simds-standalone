@@ -101,33 +101,6 @@ func NewNetWork() *Network {
 	}
 }
 
-func NetworkUpdate(c Component) {
-
-	n := c.(*Network)
-
-	for !n.Ins.Empty() {
-		newM, err := n.Ins.Dequeue()
-		if err != nil {
-			panic(err)
-		}
-		n.Waittings[newM.From] = newM
-
-	}
-
-	for from, v := range n.Waittings {
-		if v == nil {
-			return
-		}
-		if v.LeftTime == 0 {
-			n.Outs[v.To].InQueue(v)
-			delete(n.Waittings, from)
-		} else {
-			v.LeftTime -= 1
-		}
-	}
-
-}
-
 func (n *Network) String() string {
 	var res string
 	res += "Waittings: \n"
@@ -155,14 +128,6 @@ func NewNetCard(name string) *NetCard {
 
 func (nc *NetCard) Component() string {
 	return "NetCard"
-}
-
-func NetCardTicks(c Component) {
-	nc := c.(*NetCard)
-	if nc.In.Empty() != true {
-		newMessage, _ := nc.In.Dequeue()
-		fmt.Println("receive new message", newMessage)
-	}
 }
 
 func (nc *NetCard) JoinNetWork(net *Network) {

@@ -11,17 +11,17 @@ type Component interface {
 type Components map[string]Component
 type ECS struct {
 	Entities map[string]Components
-	System   map[string]func(Component)
+	System   map[string]func(*ECS)
 }
 
 func NewEcs() *ECS {
 	return &ECS{
 		Entities: make(map[string]Components),
-		System:   make(map[string]func(Component)),
+		System:   make(map[string]func(*ECS)),
 	}
 }
 
-func (e *ECS) AddSystem(name string, f func(Component)) {
+func (e *ECS) AddSystem(name string, f func(*ECS)) {
 	e.System[name] = f
 
 }
@@ -51,16 +51,20 @@ func (e *ECS) AddComponetsToEntity(entity string, cs ...Component) error {
 	return nil
 }
 
-func (e *ECS) Ticks() {
-	for _, Components := range e.Entities {
-		for componentName, Component := range Components {
-			tickFunc, ok := e.System[componentName]
-			if !ok {
-				panic("ComponentName: " + componentName + " has no corresponding func")
-			} else {
-				tickFunc(Component)
+func (ecs *ECS) ComponentTick(name string, f func(ecs *ECS, entity string, component Component)) {
+	for e, components := range ecs.Entities {
+		for n, c := range components {
+			if n == name {
+				f(ecs, e, c)
 			}
 		}
+	}
+
+}
+
+func (e *ECS) Update() {
+	for _, f := range e.System {
+		f(e)
 	}
 }
 

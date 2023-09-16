@@ -20,30 +20,24 @@ func NewClusterSimulator() *ECS {
 	simulator.AddComponetsToEntity("worker1", &SystemTime{MicroSecond: 0}, netcard1)
 	simulator.AddEntities("worker2")
 	simulator.AddComponetsToEntity("worker2", &SystemTime{MicroSecond: 0}, netcard2)
-
-	simulator.AddSystem("SystemTime", func(c Component) {
-		t := c.(*SystemTime)
-		t.MicroSecond += 1
-	})
-
-	simulator.AddSystem("NetCard", NetCardTicks)
-
-	simulator.AddSystem("Network", NetworkUpdate)
+	AddAllsystemToEcs(simulator)
 	return simulator
+
 }
 
-const Debug = false
+const Debug = true
 
 func main() {
 	s := NewClusterSimulator()
 
 	for i := 0; i < 10; i++ {
-		s.Ticks()
 		if Debug {
-
-			fmt.Println("vvvvvvvvvvvvvvvv")
+			s.Update()
+			fmt.Println("*************************")
+			fmt.Println("*************************")
 			fmt.Println(s)
-			fmt.Println("^^^^^^^^^^^^^^^^")
+			fmt.Println("*************************")
+			fmt.Println("*************************")
 
 		}
 	}
