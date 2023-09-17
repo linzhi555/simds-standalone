@@ -14,6 +14,7 @@ func (s *SystemTime) Component() string {
 }
 
 type TaskInfo struct {
+	Id            string
 	CpuRequest    int32
 	MemoryRequest int32
 	StartTime     int32
@@ -34,7 +35,7 @@ type NodeInfo struct {
 }
 
 func (n *NodeInfo) Component() string {
-	return "Node"
+	return "NodeInfo"
 }
 
 type TaskList struct {
@@ -174,12 +175,14 @@ func (t *Scheduler) Component() string {
 }
 
 type ResourceManager struct {
-	Net *NetCard
+	Tasks map[string]*TaskInfo
+	Net   *NetCard
 }
 
 func NewResourceManager(host string) *ResourceManager {
 	return &ResourceManager{
-		Net: NewNetCard(host + ":" + "ResourceManager"),
+		Tasks: make(map[string]*TaskInfo),
+		Net:   NewNetCard(host + ":" + "ResourceManager"),
 	}
 }
 func (t *ResourceManager) Component() string {

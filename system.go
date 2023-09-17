@@ -29,6 +29,14 @@ func NetworkUpdateSystem(ecs *ECS) {
 	ecs.ComponentTick("Network", NetworkUpdate)
 }
 
+func LogInfo(ecs *ECS, entity string, ins ...interface{}) {
+	fmt.Print(GetEntityTime(ecs, entity)," ","Info"," ",entity," ")
+	for _,item := range ins {
+		fmt.Print(item," ")
+	}
+	fmt.Println()
+}
+
 func NetworkUpdate(ecs *ECS, entity string, c Component) {
 
 	n := c.(*Network)
@@ -41,7 +49,7 @@ func NetworkUpdate(ecs *ECS, entity string, c Component) {
 				panic(err)
 			}
 
-			fmt.Println(GetEntityTime(ecs, entity), entity, ": new message waitting to be send", newM)
+			LogInfo(ecs, entity, ": new message waitting to be send", newM)
 			n.Waittings[fmt.Sprint(GetEntityTime(ecs, entity))+"_"+newM.From] = newM
 
 		}
@@ -50,7 +58,7 @@ func NetworkUpdate(ecs *ECS, entity string, c Component) {
 
 	for name, v := range n.Waittings {
 		if v.LeftTime == 0 {
-			fmt.Println(GetEntityTime(ecs, entity), entity, ": new message sended", v)
+			LogInfo(ecs, entity, ": new message sended", v)
 			n.Outs[v.To].InQueue(v)
 			delete(n.Waittings, name)
 		} else {
@@ -76,14 +84,16 @@ func TaskGenTicks(ecs *ECS, entity string, c Component) {
 	t := GetEntityTime(ecs, entity)
 	taskgenComponet := c.(*TaskGen)
 	if t%100 == 1 && t < 10000 {
-		fmt.Println(t, entity, " : send task to master1:Scheduler ")
+		LogInfo(ecs, entity, " : send task to master1:Scheduler ")
 		taskgenComponet.Net.Out.InQueue(&Message{
 			From:    taskgenComponet.Net.Addr,
 			To:      "master1:Scheduler",
 			Content: "TaskSubmit",
 			Body: &TaskInfo{
+				Id:            fmt.Sprintf("task%d", t/100),
 				CpuRequest:    1,
 				MemoryRequest: 1,
+				LifeTime:      1000,
 			},
 		})
 	}
@@ -107,7 +117,7 @@ func SchedulerTicks(ecs *ECS, entity string, c Component) {
 
 		addr := keys[rand.Intn(len(keys))]
 
-		fmt.Println(GetEntityTime(ecs, entity), scheduler.Net.Addr, "received message:", newMessage)
+		LogInfo(ecs, entity, scheduler.Net.Addr, "received message:", newMessage)
 		newMessage.From = scheduler.Net.Addr
 		newMessage.To = addr
 
@@ -122,12 +132,48 @@ func ResourceManagerUpdateSystem(ecs *ECS) {
 }
 func ResourceManagerTicks(ecs *ECS, entity string, c Component) {
 	rm := c.(*ResourceManager)
+	hostTime := GetEntityTime(ecs, entity)
 	if !rm.Net.In.Empty() {
 		newMessage, err := rm.Net.In.Dequeue()
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(GetEntityTime(ecs, entity), rm.Net.Addr, "received message:", newMessage)
 
+		LogInfo(ecs, entity, rm.Net.Addr, "received message:", newMessage)
+		newTask := newMessage.Body.(*TaskInfo)
+		newTask.StartTime = hostTime
+		rm.Tasks[newTask.Id] = newTask
 	}
+
+	for id, t := range rm.Tasks {
+		if t.StartTime+t.LifeTime < GetEntityTime(ecs, entity) {
+			delete(rm.Tasks, id)
+		}
+	}
+
+	var allcpu int32 = 0
+	var allmemory int32 = 0
+
+	for _, t := range rm.Tasks {
+		allcpu += t.CpuRequest
+		allmemory += t.MemoryRequest
+	}
+
+	UpdateNodeInfo(ecs, entity, allcpu, allmemory)
+}
+
+func UpdateNodeInfo(ecs *ECS, entity string, cpu, memory int32) {
+	c, ok := ecs.GetComponetOfEntity(entity, "NodeInfo")
+	if ok != true {
+		panic("the " + fmt.Sprint(entity) + " should have Node component")
+	}
+
+	nodeinfo := c.(*NodeInfo)
+
+	if nodeinfo.CpuAllocted != cpu || nodeinfo.MemoryAllocted != memory {
+		nodeinfo.CpuAllocted = cpu
+		nodeinfo.MemoryAllocted = memory
+		LogInfo(ecs, entity, ":node resource status", cpu, memory)
+	}
+
 }

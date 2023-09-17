@@ -73,6 +73,7 @@ func main() {
 	//s := NewClusterSimulator()
 	s := InitCenterSimulator()
 
+	fmt.Println(s.Entities)
 	for i := 0; i < 10000; i++ {
 		s.Update()
 		if *Debug && i%120 == 0 {
