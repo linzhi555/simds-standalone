@@ -49,7 +49,7 @@ type Message struct {
 	From     string
 	To       string
 	Content  string
-	LeftTime int
+	LeftTime int32
 	Body     interface{}
 }
 
@@ -85,20 +85,22 @@ func (mch *MessageQueue) Dequeue() (*Message, error) {
 }
 
 type Network struct {
-	Waittings map[string]*Message
-	Ins       map[string]*MessageQueue
-	Outs      map[string]*MessageQueue
+	NetLatency int32
+	Waittings  map[string]*Message
+	Ins        map[string]*MessageQueue
+	Outs       map[string]*MessageQueue
 }
 
 func (n *Network) Component() string {
 	return "Network"
 }
 
-func NewNetWork() *Network {
+func NewNetWork(latency int32) *Network {
 	return &Network{
-		Waittings: make(map[string]*Message),
-		Ins:       make(map[string]*MessageQueue),
-		Outs:      make(map[string]*MessageQueue),
+		NetLatency: latency,
+		Waittings:  make(map[string]*Message),
+		Ins:        make(map[string]*MessageQueue),
+		Outs:       make(map[string]*MessageQueue),
 	}
 }
 
@@ -157,14 +159,29 @@ func (nc *NetCard) JoinNetWork(net *Network) {
 }
 
 type Scheduler struct {
-	Net *NetCard
+	Net     *NetCard
+	Workers map[string]*NodeInfo
 }
 
 func NewScheduler(hostname string) *Scheduler {
 	return &Scheduler{
-		Net: NewNetCard(hostname + ":" + "Scheduler"),
+		Net:     NewNetCard(hostname + ":" + "Scheduler"),
+		Workers: make(map[string]*NodeInfo),
 	}
 }
 func (t *Scheduler) Component() string {
 	return "Scheduler"
+}
+
+type ResourceManager struct {
+	Net *NetCard
+}
+
+func NewResourceManager(host string) *ResourceManager {
+	return &ResourceManager{
+		Net: NewNetCard(host + ":" + "ResourceManager"),
+	}
+}
+func (t *ResourceManager) Component() string {
+	return "ResourceManager"
 }
