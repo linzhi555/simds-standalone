@@ -37,6 +37,7 @@ func LogInfo(ecs *ECS, entity string, ins ...interface{}) {
 	fmt.Println()
 }
 
+
 func NetworkUpdate(ecs *ECS, entity string, c Component) {
 
 	n := c.(*Network)
@@ -118,7 +119,13 @@ func SchedulerTicks(ecs *ECS, entity string, c Component) {
 			scheduler.Tasks[task.Id] = task
 			LogInfo(ecs, entity, scheduler.Net.Addr, "received task submit", task)
 		}
-		//scheduler.Net.Out.InQueue(newMessage)
+
+		if newMessage.Content == "WorkerUpdate" {
+			nodeinfo := newMessage.Body.(*NodeInfo)
+			scheduler.Workers[newMessage.From]= &(*nodeinfo)
+			LogInfo(ecs, entity, scheduler.Net.Addr, "received workUpdate", newMessage.From,*nodeinfo)
+		}
+
 	}
 
 	for _, task := range scheduler.Tasks {
@@ -160,6 +167,12 @@ func ResourceManagerUpdateSystem(ecs *ECS) {
 func ResourceManagerTicks(ecs *ECS, entity string, c Component) {
 	rm := c.(*ResourceManager)
 	hostTime := GetEntityTime(ecs, entity)
+	tmp,ok := ecs.GetComponetOfEntity(entity,"NodeInfo")
+	if ok !=true {
+		panic("can not find the NodeInfo")
+	}
+	nodeinfo := tmp.(*NodeInfo)
+
 	if !rm.Net.In.Empty() {
 		newMessage, err := rm.Net.In.Dequeue()
 		if err != nil {
@@ -171,6 +184,18 @@ func ResourceManagerTicks(ecs *ECS, entity string, c Component) {
 		newTask.StartTime = hostTime
 		rm.Tasks[newTask.Id] = newTask
 	}
+
+	if hostTime % 1000==99 {
+		nodeinfoCopy := *nodeinfo
+		rm.Net.Out.InQueue(&Message{
+			From:rm.Net.Addr,
+			To: "master1:Scheduler",
+			Content: "WorkerUpdate",
+			Body: &nodeinfoCopy,
+		})
+		LogInfo(ecs, entity, rm.Net.Addr, "WorkerUpdate", nodeinfoCopy)
+	}
+
 
 	for id, t := range rm.Tasks {
 		if t.StartTime+t.LifeTime < GetEntityTime(ecs, entity) {
@@ -188,6 +213,7 @@ func ResourceManagerTicks(ecs *ECS, entity string, c Component) {
 
 	UpdateNodeInfo(ecs, entity, allcpu, allmemory)
 }
+
 
 func UpdateNodeInfo(ecs *ECS, entity string, cpu, memory int32) {
 	c, ok := ecs.GetComponetOfEntity(entity, "NodeInfo")

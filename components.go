@@ -5,6 +5,12 @@ import (
 	"fmt"
 )
 
+
+func init(){
+	fmt.Println("hellocomponent")
+}
+
+
 type SystemTime struct {
 	MicroSecond int32
 }
