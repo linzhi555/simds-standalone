@@ -30,9 +30,9 @@ func NetworkUpdateSystem(ecs *ECS) {
 }
 
 func LogInfo(ecs *ECS, entity string, ins ...interface{}) {
-	fmt.Print(GetEntityTime(ecs, entity)," ","Info"," ",entity," ")
-	for _,item := range ins {
-		fmt.Print(item," ")
+	fmt.Print(GetEntityTime(ecs, entity), " ", "Info", " ", entity, " ")
+	for _, item := range ins {
+		fmt.Print(item, " ")
 	}
 	fmt.Println()
 }
@@ -74,7 +74,6 @@ func GetEntityTime(ecs *ECS, entity string) int32 {
 		panic("the " + fmt.Sprint(entity) + " should have time component")
 	}
 	return timeComponent.(*SystemTime).MicroSecond
-
 }
 
 func TaskGenUpdateSystem(ecs *ECS) {
@@ -104,27 +103,55 @@ func SchedulerUpdateSystem(ecs *ECS) {
 }
 func SchedulerTicks(ecs *ECS, entity string, c Component) {
 	scheduler := c.(*Scheduler)
+	timeNow := GetEntityTime(ecs, entity)
+
 	if !scheduler.Net.In.Empty() {
 		newMessage, err := scheduler.Net.In.Dequeue()
 		if err != nil {
 			panic(err)
 		}
 
-		keys := make([]string, 0, len(scheduler.Workers))
-		for k := range scheduler.Workers {
-			keys = append(keys, k)
+		if newMessage.Content == "TaskSubmit" {
+			task := newMessage.Body.(*TaskInfo)
+			task.InQueneTime = timeNow
+			task.Status = "Scheduling"
+			scheduler.Tasks[task.Id] = task
+			LogInfo(ecs, entity, scheduler.Net.Addr, "received task submit", task)
 		}
-
-		addr := keys[rand.Intn(len(keys))]
-
-		LogInfo(ecs, entity, scheduler.Net.Addr, "received message:", newMessage)
-		newMessage.From = scheduler.Net.Addr
-		newMessage.To = addr
-
-		scheduler.Net.Out.InQueue(newMessage)
-
+		//scheduler.Net.Out.InQueue(newMessage)
 	}
 
+	for _, task := range scheduler.Tasks {
+		if task.Status == "Scheduling" {
+			if timeNow-task.InQueneTime > 500 {
+				task.Status = "Scheduled"
+			}
+
+		}
+		if task.Status == "Scheduled" {
+			dstWorker := schdulingAlgorithm(scheduler)
+			newMessage := &Message{
+				From:    scheduler.Net.Addr,
+				To:      dstWorker,
+				Content: "TaskDispense",
+				Body:    task,
+			}
+			scheduler.Net.Out.InQueue(newMessage)
+			task.Status = "Allocated"
+			LogInfo(ecs, entity, scheduler.Net.Addr, "sendtask to", dstWorker, task)
+		}
+	}
+
+}
+
+func schdulingAlgorithm(scheduler *Scheduler) string {
+	keys := make([]string, 0, len(scheduler.Workers))
+	for k := range scheduler.Workers {
+		keys = append(keys, k)
+	}
+
+	addr := keys[rand.Intn(len(keys))]
+	return addr
 }
 
 func ResourceManagerUpdateSystem(ecs *ECS) {
@@ -175,5 +202,4 @@ func UpdateNodeInfo(ecs *ECS, entity string, cpu, memory int32) {
 		nodeinfo.MemoryAllocted = memory
 		LogInfo(ecs, entity, ":node resource status", cpu, memory)
 	}
-
 }

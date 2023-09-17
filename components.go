@@ -17,6 +17,8 @@ type TaskInfo struct {
 	Id            string
 	CpuRequest    int32
 	MemoryRequest int32
+	SubmitTime    int32
+	InQueneTime   int32
 	StartTime     int32
 	LifeTime      int32
 	Status        string
@@ -162,12 +164,14 @@ func (nc *NetCard) JoinNetWork(net *Network) {
 type Scheduler struct {
 	Net     *NetCard
 	Workers map[string]*NodeInfo
+	Tasks   map[string]*TaskInfo
 }
 
 func NewScheduler(hostname string) *Scheduler {
 	return &Scheduler{
 		Net:     NewNetCard(hostname + ":" + "Scheduler"),
 		Workers: make(map[string]*NodeInfo),
+		Tasks:   make(map[string]*TaskInfo),
 	}
 }
 func (t *Scheduler) Component() string {
