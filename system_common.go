@@ -28,14 +28,19 @@ func init() { addCommonSystem(SNetworkUpdate, NetworkUpdateSystem) }
 func NetworkUpdateSystem(ecs *ECS) {
 	ecs.ApplyToAllComponent("Network", NetworkUpdate)
 }
+
 func NetworkUpdate(ecs *ECS, entity EntityName, c Component) {
 
 	n := c.(*Network)
-
 	for _, in := range n.Ins {
 		for !in.Empty() {
 			newM, err := in.Dequeue()
-			newM.LeftTime = n.NetLatency
+			if IsSameHost(newM.To, newM.From) {
+				newM.LeftTime = 0
+			} else {
+				newM.LeftTime = n.NetLatency
+			}
+
 			if err != nil {
 				panic(err)
 			}
