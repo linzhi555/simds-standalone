@@ -23,7 +23,7 @@ func InitCenterSimulator() *ECS {
 	simulator.AddEntities("user1", &SystemTime{Time: 0}, newTaskgen)
 
 	// init taskGen
-	const WorkerNum = 3
+	const WorkerNum = 20
 	for i := 0; i < WorkerNum; i++ {
 		workerName := fmt.Sprintf("worker%d", i)
 		newResourceManager := NewResourceManager(workerName)
@@ -35,12 +35,42 @@ func InitCenterSimulator() *ECS {
 		simulator.AddEntities(EntityName(workerName), &SystemTime{Time: 0}, newResourceManager, &nodeinfo)
 	}
 
-	RegisteAllsystemToEcs(simulator)
+	RegisteCentralizedsystemToEcs(simulator)
+	return simulator
+
+}
+
+func InitDcssSimulator() *ECS {
+	simulator := NewEcs()
+
+	// init network
+	newNet := NewNetWork(10 * MiliSecond)
+	simulator.AddEntities("network1", &SystemTime{Time: 0}, newNet)
+
+	// init taskGen
+	newTaskgen := NewTaskGen("user1")
+	newTaskgen.Net.JoinNetWork(newNet)
+	simulator.AddEntities("user1", &SystemTime{Time: 0}, newTaskgen)
+
+	// init nodes these nodes are scheduler and worker in same time.
+	const nodeNum = 20
+	for i := 0; i < nodeNum; i++ {
+		nodeName := fmt.Sprintf("node%d", i)
+		newResourceManager := NewResourceManager(nodeName)
+		newScheduler := NewScheduler(nodeName)
+		nodeinfo := NodeInfo{10, 10, 0, 0}
+		newScheduler.Net.JoinNetWork(newNet)
+		newResourceManager.Net.JoinNetWork(newNet)
+		simulator.AddEntities(EntityName(nodeName), &SystemTime{Time: 0}, newResourceManager, newScheduler, &nodeinfo)
+	}
+
+	RegisteDcssSystemToEcs(simulator)
 	return simulator
 
 }
 
 var Debug = flag.Bool("debug", false, "run as debug mode")
+var Dcss = flag.Bool("dcss", false, "run dcss")
 
 func init() {
 	flag.Parse()
@@ -48,7 +78,12 @@ func init() {
 
 func main() {
 	//s := NewClusterSimulator()
-	s := InitCenterSimulator()
+	var s *ECS
+	if *Dcss {
+		s = InitDcssSimulator()
+	} else {
+		s = InitCenterSimulator()
+	}
 
 	fmt.Println(s.Entities)
 	for i := 0; i < 10000; i++ {

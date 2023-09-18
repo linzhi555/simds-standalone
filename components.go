@@ -119,12 +119,14 @@ func (nc *NetCard) Component() ComponentName {
 const CTaskGen = "NetCard"
 
 type TaskGen struct {
-	Net *NetCard
+	CurTaskId int
+	Net       *NetCard
 }
 
 func NewTaskGen(hostname string) *TaskGen {
 	return &TaskGen{
-		Net: NewNetCard(hostname + ":" + "TaskGen"),
+		CurTaskId: 0,
+		Net:       NewNetCard(hostname + ":" + "TaskGen"),
 	}
 }
 func (t *TaskGen) Component() ComponentName {
