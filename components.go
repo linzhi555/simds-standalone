@@ -49,6 +49,14 @@ func (n *NodeInfo) Component() ComponentName {
 	return CNodeInfo
 }
 
+func (n *NodeInfo) CanAllocate(taskCpu, taskMemory int32) bool {
+	if n.Cpu-n.CpuAllocted >= taskCpu && n.Memory-n.MemoryAllocted >= taskMemory {
+		return true
+	} else {
+		return false
+	}
+}
+
 const CTaskList = "TaskList"
 
 type TaskList struct {

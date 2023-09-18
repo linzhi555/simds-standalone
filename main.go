@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math/rand"
 )
 
 func InitCenterSimulator() *ECS {
@@ -60,6 +61,7 @@ func InitDcssSimulator() *ECS {
 		newScheduler := NewScheduler(nodeName)
 		nodeinfo := NodeInfo{10, 10, 0, 0}
 		newScheduler.Net.JoinNetWork(newNet)
+		initNeiborhood(newScheduler, nodeNum, nodeNum/3)
 		newResourceManager.Net.JoinNetWork(newNet)
 		simulator.AddEntities(EntityName(nodeName), &SystemTime{Time: 0}, newResourceManager, newScheduler, &nodeinfo)
 	}
@@ -67,6 +69,28 @@ func InitDcssSimulator() *ECS {
 	RegisteDcssSystemToEcs(simulator)
 	return simulator
 
+}
+
+func initNeiborhood(scheduler *Scheduler, allNodeNum int, neiborNum int) {
+
+	var neibors []string
+	// add self in the first for convernience, and ignore the first when actually register neibor
+	neibors = append(neibors, scheduler.Net.Addr)
+	for len(neibors) != neiborNum+1 {
+		newNeibor := fmt.Sprintf("node%d:Scheduler", rand.Intn(allNodeNum))
+		alreadyExisted := false
+		for _, n := range neibors {
+			if n == newNeibor {
+				alreadyExisted = true
+			}
+		}
+		if !alreadyExisted {
+			neibors = append(neibors, newNeibor)
+		}
+	}
+	for _, n := range neibors[1:] {
+		scheduler.Workers[n] = &NodeInfo{10, 10, 0, 0}
+	}
 }
 
 var Debug = flag.Bool("debug", false, "run as debug mode")
@@ -92,6 +116,7 @@ func main() {
 			fmt.Println("*************************")
 			fmt.Println("*************************")
 			fmt.Println(s)
+
 			fmt.Println("*************************")
 			fmt.Println("*************************")
 
