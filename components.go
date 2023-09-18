@@ -4,11 +4,14 @@ import (
 	"fmt"
 )
 
+const MiliSecond int32 = 1
+const Second int32 = 1000
+
 // SystemTime Component, a entity can know it when it has this obecjt
 const CSystemTime ComponentName = "SystemTime"
 
 type SystemTime struct {
-	MicroSecond int32
+	Time int32
 }
 
 func (s *SystemTime) Component() ComponentName {

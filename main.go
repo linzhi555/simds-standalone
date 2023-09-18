@@ -9,18 +9,18 @@ func InitCenterSimulator() *ECS {
 	simulator := NewEcs()
 
 	// init network
-	newNet := NewNetWork(100)
-	simulator.AddEntities("network1", &SystemTime{MicroSecond: 0}, newNet)
+	newNet := NewNetWork(10 * MiliSecond)
+	simulator.AddEntities("network1", &SystemTime{Time: 0}, newNet)
 
 	// init master
 	newScheduler := NewScheduler("master1")
 	newScheduler.Net.JoinNetWork(newNet)
-	simulator.AddEntities("master1", &SystemTime{MicroSecond: 0}, newScheduler)
+	simulator.AddEntities("master1", &SystemTime{Time: 0}, newScheduler)
 
 	// init taskGen
 	newTaskgen := NewTaskGen("user1")
 	newTaskgen.Net.JoinNetWork(newNet)
-	simulator.AddEntities("user1", &SystemTime{MicroSecond: 0}, newTaskgen)
+	simulator.AddEntities("user1", &SystemTime{Time: 0}, newTaskgen)
 
 	// init taskGen
 	const WorkerNum = 3
@@ -32,7 +32,7 @@ func InitCenterSimulator() *ECS {
 		nodeCopy := nodeinfo
 		newScheduler.Workers[newResourceManager.Net.Addr] = &nodeCopy
 		newResourceManager.Net.JoinNetWork(newNet)
-		simulator.AddEntities(EntityName(workerName), &SystemTime{MicroSecond: 0}, newResourceManager, &nodeinfo)
+		simulator.AddEntities(EntityName(workerName), &SystemTime{Time: 0}, newResourceManager, &nodeinfo)
 	}
 
 	RegisteAllsystemToEcs(simulator)
@@ -53,7 +53,7 @@ func main() {
 	fmt.Println(s.Entities)
 	for i := 0; i < 10000; i++ {
 		s.Update()
-		if *Debug && i%120 == 0 {
+		if *Debug && i == 1000 {
 			fmt.Println("*************************")
 			fmt.Println("*************************")
 			fmt.Println(s)

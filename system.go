@@ -24,7 +24,7 @@ func SystemTimeUpdate(e *ECS) {
 		for componentName, Component := range Components {
 			if componentName == "SystemTime" {
 				st := Component.(*SystemTime)
-				st.MicroSecond += 1
+				st.Time += 1
 			}
 		}
 	}
@@ -69,7 +69,7 @@ func NetworkUpdate(ecs *ECS, entity EntityName, c Component) {
 
 func GetEntityTime(ecs *ECS, entity EntityName) int32 {
 	timeComponent := ecs.GetComponet(entity, CSystemTime)
-	return timeComponent.(*SystemTime).MicroSecond
+	return timeComponent.(*SystemTime).Time
 }
 
 const STaskGenUpdate = "TaskGenUpdateSystem"
@@ -78,22 +78,28 @@ func init() { addSystem(STaskGenUpdate, TaskGenUpdateSystem) }
 func TaskGenUpdateSystem(ecs *ECS) {
 	ecs.ApplyToAllComponent(CTaskGen, TaskGenTicks)
 }
+
+var taskid = 0
+
 func TaskGenTicks(ecs *ECS, entity EntityName, c Component) {
 	t := GetEntityTime(ecs, entity)
 	taskgenComponet := c.(*TaskGen)
-	if t%100 == 1 && t < 10000 {
+
+	period := 100 * MiliSecond
+	if t%(period) == 1 && t < 10*Second {
 		LogInfo(ecs, entity, " : send task to master1:Scheduler ")
 		taskgenComponet.Net.Out.InQueue(&Message{
 			From:    taskgenComponet.Net.Addr,
 			To:      "master1:Scheduler",
 			Content: "TaskSubmit",
 			Body: &TaskInfo{
-				Id:            fmt.Sprintf("task%d", t/100),
+				Id:            fmt.Sprintf("task%d", taskid),
 				CpuRequest:    1,
 				MemoryRequest: 1,
-				LifeTime:      2000,
+				LifeTime:      1 * Second,
 			},
 		})
+		taskid += 1
 	}
 }
 
@@ -131,7 +137,7 @@ func SchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 
 	for _, task := range scheduler.Tasks {
 		if task.Status == "Scheduling" {
-			if timeNow-task.InQueneTime > 500 {
+			if timeNow-task.InQueneTime > 10*MiliSecond {
 				task.Status = "Scheduled"
 			}
 
@@ -179,14 +185,18 @@ func ResourceManagerTicks(ecs *ECS, entity EntityName, c Component) {
 		if err != nil {
 			panic(err)
 		}
-
 		LogInfo(ecs, entity, rm.Net.Addr, "received message:", newMessage)
-		newTask := newMessage.Body.(*TaskInfo)
-		newTask.StartTime = hostTime
-		rm.Tasks[newTask.Id] = newTask
+
+		if newMessage.Content == "TaskDispense" {
+			newTask := newMessage.Body.(*TaskInfo)
+			newTask.StartTime = hostTime
+			rm.Tasks[newTask.Id] = newTask
+			LogInfo(ecs, entity, rm.Net.Addr, "get task:", newTask)
+		}
+
 	}
 
-	if hostTime%1000 == 99 {
+	if hostTime%(500*MiliSecond) == 1 {
 		nodeinfoCopy := *nodeinfo
 		rm.Net.Out.InQueue(&Message{
 			From:    rm.Net.Addr,
