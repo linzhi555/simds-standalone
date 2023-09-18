@@ -5,16 +5,21 @@ import (
 	"math/rand"
 )
 
-func AddAllsystemToEcs(e *ECS) {
-	e.AddSystem("SystemTimeUpdate", SystemTimeUpdateSystem)
-	e.AddSystem("NetworkUpdate", NetworkUpdateSystem)
-	//e.AddSystem("NetcardUpdateSystem", NetcardUpdateSystem)
-	e.AddSystem("TaskGenUpdateSystem", TaskGenUpdateSystem)
-	e.AddSystem("SchedulerUpdateSystem", SchedulerUpdateSystem)
-	e.AddSystem("ResourceManagerUpdateSystem", ResourceManagerUpdateSystem)
+var allSystem []System
+
+func addSystem(n SystemName, f func(*ECS)) {
+	allSystem = append(allSystem, System{n, f})
+}
+func RegisteAllsystemToEcs(e *ECS) {
+	for _, s := range allSystem {
+		e.AddSystem(s.Name, s.Function)
+	}
 }
 
-func SystemTimeUpdateSystem(e *ECS) {
+const SSystemTimeUpdate = "SystemTimeUpdate"
+
+func init() { addSystem(SSystemTimeUpdate, SystemTimeUpdate) }
+func SystemTimeUpdate(e *ECS) {
 	for _, Components := range e.Entities {
 		for componentName, Component := range Components {
 			if componentName == "SystemTime" {
@@ -25,20 +30,13 @@ func SystemTimeUpdateSystem(e *ECS) {
 	}
 }
 
+const SNetworkUpdate = "NetworkUpdateSystem"
+
+func init() { addSystem(SNetworkUpdate, NetworkUpdateSystem) }
 func NetworkUpdateSystem(ecs *ECS) {
-	ecs.ComponentTick("Network", NetworkUpdate)
+	ecs.ApplyToAllComponent("Network", NetworkUpdate)
 }
-
-func LogInfo(ecs *ECS, entity string, ins ...interface{}) {
-	fmt.Print(GetEntityTime(ecs, entity), " ", "Info", " ", entity, " ")
-	for _, item := range ins {
-		fmt.Print(item, " ")
-	}
-	fmt.Println()
-}
-
-
-func NetworkUpdate(ecs *ECS, entity string, c Component) {
+func NetworkUpdate(ecs *ECS, entity EntityName, c Component) {
 
 	n := c.(*Network)
 
@@ -69,18 +67,18 @@ func NetworkUpdate(ecs *ECS, entity string, c Component) {
 
 }
 
-func GetEntityTime(ecs *ECS, entity string) int32 {
-	timeComponent, ok := ecs.GetComponetOfEntity(entity, "SystemTime")
-	if ok != true {
-		panic("the " + fmt.Sprint(entity) + " should have time component")
-	}
+func GetEntityTime(ecs *ECS, entity EntityName) int32 {
+	timeComponent := ecs.GetComponet(entity, CSystemTime)
 	return timeComponent.(*SystemTime).MicroSecond
 }
 
+const STaskGenUpdate = "TaskGenUpdateSystem"
+
+func init() { addSystem(STaskGenUpdate, TaskGenUpdateSystem) }
 func TaskGenUpdateSystem(ecs *ECS) {
-	ecs.ComponentTick("TaskGen", TaskGenTicks)
+	ecs.ApplyToAllComponent(CTaskGen, TaskGenTicks)
 }
-func TaskGenTicks(ecs *ECS, entity string, c Component) {
+func TaskGenTicks(ecs *ECS, entity EntityName, c Component) {
 	t := GetEntityTime(ecs, entity)
 	taskgenComponet := c.(*TaskGen)
 	if t%100 == 1 && t < 10000 {
@@ -93,16 +91,19 @@ func TaskGenTicks(ecs *ECS, entity string, c Component) {
 				Id:            fmt.Sprintf("task%d", t/100),
 				CpuRequest:    1,
 				MemoryRequest: 1,
-				LifeTime:      1000,
+				LifeTime:      2000,
 			},
 		})
 	}
 }
 
+const SSchedulerUpdate = "SchedulerUpdateSystem"
+
+func init() { addSystem(SSchedulerUpdate, SchedulerUpdateSystem) }
 func SchedulerUpdateSystem(ecs *ECS) {
-	ecs.ComponentTick("Scheduler", SchedulerTicks)
+	ecs.ApplyToAllComponent("Scheduler", SchedulerTicks)
 }
-func SchedulerTicks(ecs *ECS, entity string, c Component) {
+func SchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 	scheduler := c.(*Scheduler)
 	timeNow := GetEntityTime(ecs, entity)
 
@@ -122,8 +123,8 @@ func SchedulerTicks(ecs *ECS, entity string, c Component) {
 
 		if newMessage.Content == "WorkerUpdate" {
 			nodeinfo := newMessage.Body.(*NodeInfo)
-			scheduler.Workers[newMessage.From]= &(*nodeinfo)
-			LogInfo(ecs, entity, scheduler.Net.Addr, "received workUpdate", newMessage.From,*nodeinfo)
+			scheduler.Workers[newMessage.From] = &(*nodeinfo)
+			LogInfo(ecs, entity, scheduler.Net.Addr, "received WorkerUpdate", newMessage.From, *nodeinfo)
 		}
 
 	}
@@ -161,16 +162,16 @@ func schdulingAlgorithm(scheduler *Scheduler) string {
 	return addr
 }
 
+const SResourceManagerUpdate = "ResourceManagerUpdateSystem"
+
+func init() { addSystem(SResourceManagerUpdate, ResourceManagerUpdateSystem) }
 func ResourceManagerUpdateSystem(ecs *ECS) {
-	ecs.ComponentTick("ResourceManager", ResourceManagerTicks)
+	ecs.ApplyToAllComponent(CResouceManger, ResourceManagerTicks)
 }
-func ResourceManagerTicks(ecs *ECS, entity string, c Component) {
+func ResourceManagerTicks(ecs *ECS, entity EntityName, c Component) {
 	rm := c.(*ResourceManager)
 	hostTime := GetEntityTime(ecs, entity)
-	tmp,ok := ecs.GetComponetOfEntity(entity,"NodeInfo")
-	if ok !=true {
-		panic("can not find the NodeInfo")
-	}
+	tmp := ecs.GetComponet(entity, CNodeInfo)
 	nodeinfo := tmp.(*NodeInfo)
 
 	if !rm.Net.In.Empty() {
@@ -185,17 +186,16 @@ func ResourceManagerTicks(ecs *ECS, entity string, c Component) {
 		rm.Tasks[newTask.Id] = newTask
 	}
 
-	if hostTime % 1000==99 {
+	if hostTime%1000 == 99 {
 		nodeinfoCopy := *nodeinfo
 		rm.Net.Out.InQueue(&Message{
-			From:rm.Net.Addr,
-			To: "master1:Scheduler",
+			From:    rm.Net.Addr,
+			To:      "master1:Scheduler",
 			Content: "WorkerUpdate",
-			Body: &nodeinfoCopy,
+			Body:    &nodeinfoCopy,
 		})
 		LogInfo(ecs, entity, rm.Net.Addr, "WorkerUpdate", nodeinfoCopy)
 	}
-
 
 	for id, t := range rm.Tasks {
 		if t.StartTime+t.LifeTime < GetEntityTime(ecs, entity) {
@@ -214,13 +214,8 @@ func ResourceManagerTicks(ecs *ECS, entity string, c Component) {
 	UpdateNodeInfo(ecs, entity, allcpu, allmemory)
 }
 
-
-func UpdateNodeInfo(ecs *ECS, entity string, cpu, memory int32) {
-	c, ok := ecs.GetComponetOfEntity(entity, "NodeInfo")
-	if ok != true {
-		panic("the " + fmt.Sprint(entity) + " should have Node component")
-	}
-
+func UpdateNodeInfo(ecs *ECS, entity EntityName, cpu, memory int32) {
+	c := ecs.GetComponet(entity, CNodeInfo)
 	nodeinfo := c.(*NodeInfo)
 
 	if nodeinfo.CpuAllocted != cpu || nodeinfo.MemoryAllocted != memory {

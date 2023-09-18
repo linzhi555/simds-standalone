@@ -5,29 +5,6 @@ import (
 	"fmt"
 )
 
-func NewClusterSimulator() *ECS {
-
-	simulator := NewEcs()
-
-	newNet := NewNetWork(10)
-	netcard1 := NewNetCard("worker1")
-	netcard1.JoinNetWork(newNet)
-	netcard2 := NewNetCard("worker2")
-	netcard2.JoinNetWork(newNet)
-
-	simulator.AddEntities("network1")
-	newNet.Waittings["worker1"] = &Message{From: "worker1", To: "worker2", Content: "newtask cpu1 ram2", LeftTime: 5}
-	simulator.AddComponetsToEntity("network1", newNet)
-
-	simulator.AddEntities("worker1")
-	simulator.AddComponetsToEntity("worker1", &SystemTime{MicroSecond: 0}, netcard1)
-	simulator.AddEntities("worker2")
-	simulator.AddComponetsToEntity("worker2", &SystemTime{MicroSecond: 0}, netcard2)
-	AddAllsystemToEcs(simulator)
-	return simulator
-
-}
-
 func InitCenterSimulator() *ECS {
 	simulator := NewEcs()
 
@@ -46,7 +23,7 @@ func InitCenterSimulator() *ECS {
 	simulator.AddEntities("user1", &SystemTime{MicroSecond: 0}, newTaskgen)
 
 	// init taskGen
-	const WorkerNum = 10
+	const WorkerNum = 3
 	for i := 0; i < WorkerNum; i++ {
 		workerName := fmt.Sprintf("worker%d", i)
 		newResourceManager := NewResourceManager(workerName)
@@ -55,10 +32,10 @@ func InitCenterSimulator() *ECS {
 		nodeCopy := nodeinfo
 		newScheduler.Workers[newResourceManager.Net.Addr] = &nodeCopy
 		newResourceManager.Net.JoinNetWork(newNet)
-		simulator.AddEntities(workerName, &SystemTime{MicroSecond: 0}, newResourceManager, &nodeinfo)
+		simulator.AddEntities(EntityName(workerName), &SystemTime{MicroSecond: 0}, newResourceManager, &nodeinfo)
 	}
 
-	AddAllsystemToEcs(simulator)
+	RegisteAllsystemToEcs(simulator)
 	return simulator
 
 }

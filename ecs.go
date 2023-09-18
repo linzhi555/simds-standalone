@@ -5,34 +5,37 @@ import (
 	"fmt"
 )
 
-type Component interface {
-	Component() string
-}
-type Components map[string]Component
+type EntityName string
+type ComponentName string
 
+type Component interface {
+	Component() ComponentName
+}
+type Components map[ComponentName]Component
+
+type SystemName string
 type System struct {
-	Name     string
+	Name     SystemName
 	Function func(*ECS)
 }
 
 type ECS struct {
-	Entities map[string]Components
+	Entities map[EntityName]Components
 	Systems  []System
 }
 
 func NewEcs() *ECS {
 	return &ECS{
-		Entities: make(map[string]Components),
+		Entities: make(map[EntityName]Components),
 		Systems:  make([]System, 0),
 	}
 }
 
-func (e *ECS) AddSystem(name string, f func(*ECS)) {
+func (e *ECS) AddSystem(name SystemName, f func(*ECS)) {
 	e.Systems = append(e.Systems, System{Name: name, Function: f})
-
 }
 
-func (e *ECS) AddEntities(name string, cs ...Component) error {
+func (e *ECS) AddEntities(name EntityName, cs ...Component) error {
 	if _, alreadyHas := e.Entities[name]; alreadyHas {
 		return errors.New("the ecs has already this entity")
 	}
@@ -44,7 +47,7 @@ func (e *ECS) AddEntities(name string, cs ...Component) error {
 	return nil
 }
 
-func (e *ECS) AddComponetsToEntity(entity string, cs ...Component) error {
+func (e *ECS) AddComponetsToEntity(entity EntityName, cs ...Component) error {
 
 	if _, has := e.Entities[entity]; !has {
 		return errors.New("the entity can not be found")
@@ -57,7 +60,7 @@ func (e *ECS) AddComponetsToEntity(entity string, cs ...Component) error {
 	return nil
 }
 
-func (ecs *ECS) ComponentTick(name string, f func(ecs *ECS, entity string, component Component)) {
+func (ecs *ECS) ApplyToAllComponent(name ComponentName, f func(ecs *ECS, entity EntityName, component Component)) {
 	for e, components := range ecs.Entities {
 		for n, c := range components {
 			if n == name {
@@ -68,18 +71,19 @@ func (ecs *ECS) ComponentTick(name string, f func(ecs *ECS, entity string, compo
 
 }
 
-func (ecs *ECS) GetComponetOfEntity(entityNeed, componentNeed string) (ret Component, ok bool) {
+func (ecs *ECS) GetComponet(entityNeed EntityName, componentNeed ComponentName) (ret Component) {
 	for e, components := range ecs.Entities {
 		if e != entityNeed {
 			continue
 		}
 		for n, c := range components {
 			if n == componentNeed {
-				return c, true
+				return c
 			}
 		}
 	}
-	return nil, false
+	panic("the entity" + string(entityNeed) + "dones not have" + string(componentNeed))
+	return nil
 }
 
 func (e *ECS) Update() {
@@ -91,9 +95,9 @@ func (e *ECS) Update() {
 func (e *ECS) String() string {
 	var s = ""
 	for name, Components := range e.Entities {
-		s += name + "\n"
+		s += string(name) + "\n"
 		for componentName, Component := range Components {
-			s += componentName + "\n"
+			s += string(componentName) + "\n"
 			s += fmt.Sprint(Component) + "\n"
 		}
 	}

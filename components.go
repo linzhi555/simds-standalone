@@ -1,23 +1,21 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 )
 
-
-func init(){
-	fmt.Println("hellocomponent")
-}
-
+// SystemTime Component, a entity can know it when it has this obecjt
+const CSystemTime ComponentName = "SystemTime"
 
 type SystemTime struct {
 	MicroSecond int32
 }
 
-func (s *SystemTime) Component() string {
-	return "SystemTime"
+func (s *SystemTime) Component() ComponentName {
+	return CSystemTime
 }
+
+const CTaskInfo = "TaskInfo"
 
 type TaskInfo struct {
 	Id            string
@@ -30,10 +28,12 @@ type TaskInfo struct {
 	Status        string
 }
 
-func (t *TaskInfo) Component() string {
-	return "TaskInfo"
+func (t *TaskInfo) Component() ComponentName {
+	return CTaskInfo
 
 }
+
+const CNodeInfo = "NodeInfo"
 
 type NodeInfo struct {
 	Cpu            int32
@@ -42,56 +42,21 @@ type NodeInfo struct {
 	MemoryAllocted int32
 }
 
-func (n *NodeInfo) Component() string {
-	return "NodeInfo"
+func (n *NodeInfo) Component() ComponentName {
+	return CNodeInfo
 }
+
+const CTaskList = "TaskList"
 
 type TaskList struct {
 	AllTasks []*TaskInfo
 }
 
-func (n *TaskList) Component() string {
-	return "TaskList"
+func (n *TaskList) Component() ComponentName {
+	return CTaskList
 }
 
-type Message struct {
-	From     string
-	To       string
-	Content  string
-	LeftTime int32
-	Body     interface{}
-}
-
-type MessageQueue struct {
-	buffers []*Message
-}
-
-func NewMessageQueue() *MessageQueue {
-	return &MessageQueue{
-		buffers: make([]*Message, 0),
-	}
-}
-
-func (mch *MessageQueue) Empty() bool {
-	return mch.Len() == 0
-
-}
-func (mch *MessageQueue) Len() int {
-	return len(mch.buffers)
-}
-
-func (mch *MessageQueue) InQueue(m *Message) {
-	mch.buffers = append(mch.buffers, m)
-}
-
-func (mch *MessageQueue) Dequeue() (*Message, error) {
-	if mch.Empty() == true {
-		return nil, errors.New("the queue is Empty")
-	}
-	res := mch.buffers[0]
-	mch.buffers = mch.buffers[1:mch.Len()]
-	return res, nil
-}
+const CNetWork ComponentName = "Network"
 
 type Network struct {
 	NetLatency int32
@@ -100,8 +65,8 @@ type Network struct {
 	Outs       map[string]*MessageQueue
 }
 
-func (n *Network) Component() string {
-	return "Network"
+func (n *Network) Component() ComponentName {
+	return CNetWork
 }
 
 func NewNetWork(latency int32) *Network {
@@ -130,6 +95,8 @@ func (n *Network) String() string {
 	return res
 }
 
+const CNetCard = "NetCard"
+
 type NetCard struct {
 	Addr string
 	In   *MessageQueue
@@ -142,10 +109,11 @@ func NewNetCard(name string) *NetCard {
 	}
 
 }
-
-func (nc *NetCard) Component() string {
-	return "NetCard"
+func (nc *NetCard) Component() ComponentName {
+	return CNetCard
 }
+
+const CTaskGen = "NetCard"
 
 type TaskGen struct {
 	Net *NetCard
@@ -156,8 +124,8 @@ func NewTaskGen(hostname string) *TaskGen {
 		Net: NewNetCard(hostname + ":" + "TaskGen"),
 	}
 }
-func (t *TaskGen) Component() string {
-	return "TaskGen"
+func (t *TaskGen) Component() ComponentName {
+	return CTaskGen
 }
 
 func (nc *NetCard) JoinNetWork(net *Network) {
@@ -166,6 +134,8 @@ func (nc *NetCard) JoinNetWork(net *Network) {
 	net.Outs[nc.Addr] = nc.In
 	net.Ins[nc.Addr] = nc.Out
 }
+
+const CScheduler ComponentName = "Scheduler"
 
 type Scheduler struct {
 	Net     *NetCard
@@ -180,9 +150,11 @@ func NewScheduler(hostname string) *Scheduler {
 		Tasks:   make(map[string]*TaskInfo),
 	}
 }
-func (t *Scheduler) Component() string {
-	return "Scheduler"
+func (t *Scheduler) Component() ComponentName {
+	return CScheduler
 }
+
+const CResouceManger ComponentName = "ResourceManager"
 
 type ResourceManager struct {
 	Tasks map[string]*TaskInfo
@@ -195,6 +167,6 @@ func NewResourceManager(host string) *ResourceManager {
 		Net:   NewNetCard(host + ":" + "ResourceManager"),
 	}
 }
-func (t *ResourceManager) Component() string {
-	return "ResourceManager"
+func (t *ResourceManager) Component() ComponentName {
+	return CResouceManger
 }
