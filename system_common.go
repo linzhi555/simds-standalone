@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"math/rand"
+)
 
 var commonSystem []System
 
@@ -36,6 +39,7 @@ func NetworkUpdate(ecs *ECS, entity EntityName, c Component) {
 		var receivedNum = 0
 		for !in.Empty() {
 			newM, err := in.Dequeue()
+			//AssertTypeIsNotPointer(newM.Body)
 			if IsSameHost(newM.To, newM.From) {
 				newM.LeftTime = 0
 			} else {
@@ -133,5 +137,51 @@ func UpdateNodeInfo(ecs *ECS, entity EntityName, cpu, memory int32) {
 		nodeinfo.CpuAllocted = cpu
 		nodeinfo.MemoryAllocted = memory
 		LogInfo(ecs, entity, ":node resource status", cpu, memory)
+	}
+}
+
+const STaskGenUpdate SystemName = "TaskGenUpdateSystem"
+
+func init() { addCommonSystem(STaskGenUpdate, TaskGenUpdateSystem) }
+func TaskGenUpdateSystem(ecs *ECS) {
+	ecs.ApplyToAllComponent(CTaskGen, TaskGenTicks)
+}
+
+func TaskGenTicks(ecs *ECS, entity EntityName, c Component) {
+	t := GetEntityTime(ecs, entity)
+	taskgen := c.(*TaskGen)
+
+	if t == 1 {
+		nodes := ecs.GetEntitiesHasComponenet(CScheduler)
+		for _, n := range nodes {
+			newReceiver := string(n) + ":" + "Scheduler"
+			taskgen.Receivers = append(taskgen.Receivers, newReceiver)
+			LogInfo(ecs, entity, fmt.Sprintf(": newReceiver %s", newReceiver))
+		}
+		return
+	}
+
+	period := 10 * MiliSecond
+	if t%(period) == 2 && t < 10*Second {
+		dstAddr := taskgen.Receivers[taskgen.CurTaskId%(len(taskgen.Receivers))]
+
+		newtask := &TaskInfo{
+			Id:            fmt.Sprintf("task%d", taskgen.CurTaskId),
+			CpuRequest:    1 + int32(rand.Intn(4)),
+			MemoryRequest: 1 + int32(rand.Intn(4)),
+			LifeTime:      (1000 + int32(rand.Intn(5000))) * MiliSecond,
+			Status:        "submit",
+		}
+
+		newMessage := &Message{
+			From:    taskgen.Net.Addr,
+			To:      dstAddr,
+			Content: "TaskDispense",
+			Body:    newtask,
+		}
+		taskgen.Net.Out.InQueue(newMessage)
+		TaskEventLog(t, newtask, entity)
+		LogInfo(ecs, entity, fmt.Sprintf(": send task to %s %v", dstAddr, newMessage.Body))
+		taskgen.CurTaskId += 1
 	}
 }

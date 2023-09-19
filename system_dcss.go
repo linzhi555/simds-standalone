@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 )
 
 var dcssSystem []System
@@ -17,52 +16,6 @@ func RegisteDcssSystemToEcs(e *ECS) {
 	}
 	for _, s := range dcssSystem {
 		e.AddSystem(s.Name, s.Function)
-	}
-}
-
-const SDcssTaskGenUpdate = "DcssTaskGenUpdateSystem"
-
-func init() { addDcssSystem(SDcssTaskGenUpdate, DcssTaskGenUpdateSystem) }
-func DcssTaskGenUpdateSystem(ecs *ECS) {
-	ecs.ApplyToAllComponent(CTaskGen, DcssTaskGenTicks)
-}
-
-func DcssTaskGenTicks(ecs *ECS, entity EntityName, c Component) {
-	t := GetEntityTime(ecs, entity)
-	taskgen := c.(*TaskGen)
-
-	if t == 1 {
-		nodes := ecs.GetEntitiesHasComponenet(CScheduler)
-		for _, n := range nodes {
-			newReceiver := string(n) + ":" + "Scheduler"
-			taskgen.Receivers = append(taskgen.Receivers, newReceiver)
-			LogInfo(ecs, entity, fmt.Sprintf(": newReceiver %s", newReceiver))
-		}
-		return
-	}
-
-	period := 10 * MiliSecond
-	if t%(period) == 2 && t < 10*Second {
-		dstAddr := taskgen.Receivers[taskgen.CurTaskId%(len(taskgen.Receivers))]
-
-		newtask := &TaskInfo{
-			Id:            fmt.Sprintf("task%d", taskgen.CurTaskId),
-			CpuRequest:    1 + int32(rand.Intn(4)),
-			MemoryRequest: 1 + int32(rand.Intn(4)),
-			LifeTime:      (1000 + int32(rand.Intn(5000))) * MiliSecond,
-			Status:        "submit",
-		}
-
-		newMessage := &Message{
-			From:    taskgen.Net.Addr,
-			To:      dstAddr,
-			Content: "TaskDispense",
-			Body:    newtask,
-		}
-		taskgen.Net.Out.InQueue(newMessage)
-		TaskEventLog(t, newtask, entity)
-		LogInfo(ecs, entity, fmt.Sprintf(": send task to %s %v", dstAddr, newMessage.Body))
-		taskgen.CurTaskId += 1
 	}
 }
 

@@ -69,7 +69,7 @@ func InitDcssSimulator() *ECS {
 		newScheduler := NewScheduler(nodeName)
 		nodeinfo := NodeInfo{10, 10, 0, 0}
 		newScheduler.Net.JoinNetWork(newNet)
-		initNeiborhood(newScheduler, nodeNum, 12)
+		initNeiborhood(newScheduler, nodeNum, 8)
 		newResourceManager.Net.JoinNetWork(newNet)
 		simulator.AddEntities(EntityName(nodeName), &SystemTime{Time: 0}, newResourceManager, newScheduler, &nodeinfo)
 	}
@@ -109,7 +109,6 @@ func main() {
 	} else {
 		s = InitCenterSimulator()
 	}
-
 	fmt.Println(s.Entities)
 	for i := 0; i < 12000; i++ {
 		s.Update()

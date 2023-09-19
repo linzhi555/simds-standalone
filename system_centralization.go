@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 )
 
@@ -16,41 +15,6 @@ func RegisteCentralizedsystemToEcs(e *ECS) {
 	}
 	for _, s := range centralizedSystem {
 		e.AddSystem(s.Name, s.Function)
-	}
-}
-
-const STaskGenUpdate = "TaskGenUpdateSystem"
-
-func init() { addCentralizedSystem(STaskGenUpdate, TaskGenUpdateSystem) }
-func TaskGenUpdateSystem(ecs *ECS) {
-	ecs.ApplyToAllComponent(CTaskGen, TaskGenTicks)
-}
-
-var taskid = 0
-
-func TaskGenTicks(ecs *ECS, entity EntityName, c Component) {
-	t := GetEntityTime(ecs, entity)
-	taskgenComponet := c.(*TaskGen)
-
-	period := 10 * MiliSecond
-	if t%(period) == 1 && t < 10*Second {
-		LogInfo(ecs, entity, " : send task to master1:Scheduler ")
-		newMessage := &Message{
-			From:    taskgenComponet.Net.Addr,
-			To:      "master1:Scheduler",
-			Content: "TaskSubmit",
-			Body: &TaskInfo{
-				Id:            fmt.Sprintf("task%d", taskid),
-				CpuRequest:    1,
-				MemoryRequest: 1,
-				LifeTime:      1 * Second,
-				Status:        "submit",
-			},
-		}
-
-		TaskEventLog(t, newMessage.Body.(*TaskInfo), entity)
-		taskgenComponet.Net.Out.InQueue(newMessage)
-		taskid += 1
 	}
 }
 
@@ -70,7 +34,7 @@ func SchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 			panic(err)
 		}
 
-		if newMessage.Content == "TaskSubmit" {
+		if newMessage.Content == "TaskDispense" {
 			task := newMessage.Body.(*TaskInfo)
 			task.InQueneTime = timeNow
 			task.Status = "Scheduling"

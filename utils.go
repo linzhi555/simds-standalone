@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -58,4 +59,10 @@ func init() {
 func TaskEventLog(t int32, task *TaskInfo, host EntityName) {
 	timestr := fmt.Sprint(startTime.Add(time.Duration(t) * time.Millisecond).Format(time.RFC3339Nano))
 	AppendLineCsvFile("./test.log", []string{timestr, task.Id, task.Status, string(host), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest)})
+}
+func AssertTypeIsNotPointer(v interface{}) {
+	typestr := fmt.Sprint(reflect.TypeOf(v))
+	if strings.HasPrefix(typestr, "*") {
+		panic(typestr + " is ponter type")
+	}
 }
