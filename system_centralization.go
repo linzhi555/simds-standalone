@@ -35,7 +35,7 @@ func TaskGenTicks(ecs *ECS, entity EntityName, c Component) {
 	period := 10 * MiliSecond
 	if t%(period) == 1 && t < 10*Second {
 		LogInfo(ecs, entity, " : send task to master1:Scheduler ")
-		taskgenComponet.Net.Out.InQueue(&Message{
+		newMessage := &Message{
 			From:    taskgenComponet.Net.Addr,
 			To:      "master1:Scheduler",
 			Content: "TaskSubmit",
@@ -44,8 +44,12 @@ func TaskGenTicks(ecs *ECS, entity EntityName, c Component) {
 				CpuRequest:    1,
 				MemoryRequest: 1,
 				LifeTime:      1 * Second,
+				Status:        "submit",
 			},
-		})
+		}
+
+		TaskEventLog(t, newMessage.Body.(*TaskInfo), entity)
+		taskgenComponet.Net.Out.InQueue(newMessage)
 		taskid += 1
 	}
 }
@@ -60,7 +64,7 @@ func SchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 	scheduler := c.(*Scheduler)
 	timeNow := GetEntityTime(ecs, entity)
 
-	if !scheduler.Net.In.Empty() {
+	for !scheduler.Net.In.Empty() {
 		newMessage, err := scheduler.Net.In.Dequeue()
 		if err != nil {
 			panic(err)

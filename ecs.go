@@ -70,6 +70,18 @@ func (ecs *ECS) ApplyToAllComponent(name ComponentName, f func(ecs *ECS, entity 
 	}
 
 }
+func (ecs *ECS) GetEntitiesHasComponenet(componentNeed ComponentName) []EntityName {
+	var result []EntityName
+	for e, components := range ecs.Entities {
+		for n := range components {
+			if n == componentNeed {
+				result = append(result, e)
+				break
+			}
+		}
+	}
+	return result
+}
 
 func (ecs *ECS) GetComponet(entityNeed EntityName, componentNeed ComponentName) (ret Component) {
 	for e, components := range ecs.Entities {

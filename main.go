@@ -6,6 +6,14 @@ import (
 	"math/rand"
 )
 
+var Debug = flag.Bool("debug", false, "run as debug mode")
+var Dcss = flag.Bool("dcss", false, "run dcss")
+var NodeNum = flag.Int("nodeNum", 11, "how many nodeNum")
+
+func init() {
+	flag.Parse()
+}
+
 func InitCenterSimulator() *ECS {
 	simulator := NewEcs()
 
@@ -24,7 +32,7 @@ func InitCenterSimulator() *ECS {
 	simulator.AddEntities("user1", &SystemTime{Time: 0}, newTaskgen)
 
 	// init taskGen
-	const WorkerNum = 20
+	var WorkerNum = *NodeNum
 	for i := 0; i < WorkerNum; i++ {
 		workerName := fmt.Sprintf("worker%d", i)
 		newResourceManager := NewResourceManager(workerName)
@@ -54,7 +62,7 @@ func InitDcssSimulator() *ECS {
 	simulator.AddEntities("user1", &SystemTime{Time: 0}, newTaskgen)
 
 	// init nodes these nodes are scheduler and worker in same time.
-	const nodeNum = 20
+	var nodeNum = *NodeNum
 	for i := 0; i < nodeNum; i++ {
 		nodeName := fmt.Sprintf("node%d", i)
 		newResourceManager := NewResourceManager(nodeName)
@@ -93,13 +101,6 @@ func initNeiborhood(scheduler *Scheduler, allNodeNum int, neiborNum int) {
 	}
 }
 
-var Debug = flag.Bool("debug", false, "run as debug mode")
-var Dcss = flag.Bool("dcss", false, "run dcss")
-
-func init() {
-	flag.Parse()
-}
-
 func main() {
 	//s := NewClusterSimulator()
 	var s *ECS
@@ -110,7 +111,7 @@ func main() {
 	}
 
 	fmt.Println(s.Entities)
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 12000; i++ {
 		s.Update()
 		if *Debug && i == 1000 {
 			fmt.Println("*************************")

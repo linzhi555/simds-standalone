@@ -94,15 +94,18 @@ func ResourceManagerTicks(ecs *ECS, entity EntityName, c Component) {
 			newTask := newMessage.Body.(*TaskInfo)
 			newTask.StartTime = hostTime
 			rm.Tasks[newTask.Id] = newTask
-			newTask.Status = "Run"
+			newTask.Status = "start"
 			LogInfo(ecs, entity, rm.Net.Addr, "Start task:", newTask)
+			TaskEventLog(hostTime, newTask, entity)
 		}
 
 	}
 
 	for id, t := range rm.Tasks {
-		if t.Status == "Run" && t.StartTime+t.LifeTime < GetEntityTime(ecs, entity) {
+		if t.Status == "start" && t.StartTime+t.LifeTime < GetEntityTime(ecs, entity) {
+			t.Status = "finished"
 			LogInfo(ecs, entity, rm.Net.Addr, "Task Finished", t)
+			TaskEventLog(hostTime, t, entity)
 			delete(rm.Tasks, id)
 		}
 	}

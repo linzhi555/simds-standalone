@@ -129,6 +129,7 @@ const CTaskGen = "NetCard"
 type TaskGen struct {
 	CurTaskId int
 	Net       *NetCard
+	Receivers []string
 }
 
 func NewTaskGen(hostname string) *TaskGen {

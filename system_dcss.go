@@ -29,25 +29,40 @@ func DcssTaskGenUpdateSystem(ecs *ECS) {
 
 func DcssTaskGenTicks(ecs *ECS, entity EntityName, c Component) {
 	t := GetEntityTime(ecs, entity)
-	taskgenComponet := c.(*TaskGen)
+	taskgen := c.(*TaskGen)
+
+	if t == 1 {
+		nodes := ecs.GetEntitiesHasComponenet(CScheduler)
+		for _, n := range nodes {
+			newReceiver := string(n) + ":" + "Scheduler"
+			taskgen.Receivers = append(taskgen.Receivers, newReceiver)
+			LogInfo(ecs, entity, fmt.Sprintf(": newReceiver %s", newReceiver))
+		}
+		return
+	}
 
 	period := 10 * MiliSecond
-	if t%(period) == 1 && t < 10*Second {
-		dstAddr := fmt.Sprintf("node%d:Scheduler", taskgenComponet.CurTaskId%10)
+	if t%(period) == 2 && t < 10*Second {
+		dstAddr := taskgen.Receivers[taskgen.CurTaskId%(len(taskgen.Receivers))]
+
+		newtask := &TaskInfo{
+			Id:            fmt.Sprintf("task%d", taskgen.CurTaskId),
+			CpuRequest:    1,
+			MemoryRequest: 1,
+			LifeTime:      500 * MiliSecond,
+			Status:        "submit",
+		}
+
 		newMessage := &Message{
-			From:    taskgenComponet.Net.Addr,
+			From:    taskgen.Net.Addr,
 			To:      dstAddr,
 			Content: "TaskDispense",
-			Body: &TaskInfo{
-				Id:            fmt.Sprintf("task%d", taskgenComponet.CurTaskId),
-				CpuRequest:    1,
-				MemoryRequest: 1,
-				LifeTime:      500 * MiliSecond,
-			},
+			Body:    newtask,
 		}
-		taskgenComponet.Net.Out.InQueue(newMessage)
+		taskgen.Net.Out.InQueue(newMessage)
+		TaskEventLog(t, newtask, entity)
 		LogInfo(ecs, entity, fmt.Sprintf(": send task to %s %v", dstAddr, newMessage.Body))
-		taskgenComponet.CurTaskId += 1
+		taskgen.CurTaskId += 1
 	}
 }
 

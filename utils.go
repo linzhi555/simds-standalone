@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"strings"
+	"time"
 )
 
 var LogLevel = "Info"
@@ -39,4 +41,21 @@ func LogInfo(ecs *ECS, entity EntityName, ins ...interface{}) {
 		fmt.Print(item, " ")
 	}
 	fmt.Println()
+}
+
+var startTime = time.Now()
+
+func init() {
+	f, err := os.OpenFile("./test.log", os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		panic(err)
+	}
+	f.WriteString("time,taskid,type,nodeip,cpu,ram\n")
+	f.Close()
+
+}
+
+func TaskEventLog(t int32, task *TaskInfo, host EntityName) {
+	timestr := fmt.Sprint(startTime.Add(time.Duration(t) * time.Millisecond).Format(time.RFC3339Nano))
+	AppendLineCsvFile("./test.log", []string{timestr, task.Id, task.Status, string(host), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest)})
 }
