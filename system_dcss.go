@@ -47,9 +47,9 @@ func DcssTaskGenTicks(ecs *ECS, entity EntityName, c Component) {
 
 		newtask := &TaskInfo{
 			Id:            fmt.Sprintf("task%d", taskgen.CurTaskId),
-			CpuRequest:    1,
-			MemoryRequest: 1,
-			LifeTime:      500 * MiliSecond,
+			CpuRequest:    1 + int32(rand.Intn(4)),
+			MemoryRequest: 1 + int32(rand.Intn(4)),
+			LifeTime:      (1000 + int32(rand.Intn(5000))) * MiliSecond,
 			Status:        "submit",
 		}
 
@@ -75,6 +75,8 @@ func DcssSchedulerUpdateSystem(ecs *ECS) {
 func DcssSchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 	scheduler := c.(*Scheduler)
 	timeNow := GetEntityTime(ecs, entity)
+	rm := ecs.GetComponet(entity, CResouceManger).(*ResourceManager)
+	nodeinf := ecs.GetComponet(entity, CNodeInfo).(*NodeInfo)
 
 	if timeNow == 1 {
 		keys := make([]string, 0, len(scheduler.Workers))
@@ -84,77 +86,90 @@ func DcssSchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 		LogInfo(ecs, entity, scheduler.Net.Addr, fmt.Sprintf("Now,I have %d neibor, they are %s", len(scheduler.Workers), keys))
 	}
 
-	rm := ecs.GetComponet(entity, CResouceManger).(*ResourceManager)
-	nodeinf := ecs.GetComponet(entity, CNodeInfo).(*NodeInfo)
-	if !scheduler.Net.In.Empty() {
+	for !scheduler.Net.In.Empty() {
 		newMessage, err := scheduler.Net.In.Dequeue()
 		if err != nil {
 			panic(err)
 		}
+		LogInfo(ecs, entity, scheduler.Net.Addr, "received", newMessage.Content, newMessage.Body)
 
+		task := newMessage.Body.(*TaskInfo).DeepCopy()
 		if newMessage.Content == "TaskDispense" {
-			task := newMessage.Body.(*TaskInfo)
 			task.InQueneTime = timeNow
 			task.Status = "Scheduling"
 			scheduler.Tasks[task.Id] = task
-			LogInfo(ecs, entity, scheduler.Net.Addr, "received TaskDispense", task)
-		}
-
-		if newMessage.Content == "TaskDivide" {
-			task := newMessage.Body.(*TaskInfo)
-			task.InQueneTime = timeNow
-			task.Status = "Scheduling"
-			scheduler.Tasks[task.Id] = task
-			LogInfo(ecs, entity, scheduler.Net.Addr, "received TaskDivide", task)
-		}
-
-		if newMessage.Content == "WorkerUpdate" {
-			nodeinfo := newMessage.Body.(*NodeInfo)
-			scheduler.Workers[newMessage.From] = &(*nodeinfo)
-			LogInfo(ecs, entity, scheduler.Net.Addr, "received WorkerUpdate", newMessage.From, *nodeinfo)
-		}
-
-	}
-
-	for _, task := range scheduler.Tasks {
-		if task.Status == "Scheduling" {
-			if timeNow-task.InQueneTime > 10*MiliSecond {
-				task.Status = "Scheduled"
-			}
-
-		}
-		if task.Status == "Scheduled" {
-			var dstWorker string
-			var actionType string
+			// judge if we can run the task locally
 			if nodeinf.CanAllocate(task.CpuRequest, task.MemoryRequest) {
-				dstWorker = rm.Net.Addr
-				actionType = "TaskAllocate"
+				dstWorker := scheduler.Net.Addr
+				newMessage := &Message{
+					From:    dstWorker,
+					To:      rm.Net.Addr,
+					Content: "TaskAllocate",
+					Body:    task,
+				}
+				task.Status = "Allocated"
+				scheduler.Net.Out.InQueue(newMessage)
 			} else {
+				task.Status = "DiviDeStage1"
+
 				keys := make([]string, 0, len(scheduler.Workers))
 				for k := range scheduler.Workers {
 					keys = append(keys, k)
 				}
-				dstWorker = keys[rand.Intn(len(keys))]
-				actionType = "TaskDivide"
-			}
 
-			newMessage := &Message{
-				From:    scheduler.Net.Addr,
-				To:      dstWorker,
-				Content: actionType,
-				Body:    task,
+				for _, neibor := range keys {
+					newMessage := &Message{
+						From:    scheduler.Net.Addr,
+						To:      neibor,
+						Content: "TaskDivide",
+						Body:    task.DeepCopy(),
+					}
+					scheduler.Net.Out.InQueue(newMessage)
+				}
+				task.Status = "DiviDeStage2"
 			}
+		}
 
-			scheduler.Net.Out.InQueue(newMessage)
-			if actionType == "TaskAllocate" {
-				task.Status = "Allocated"
-				LogInfo(ecs, entity, scheduler.Net.Addr, "Run task locally", dstWorker, task)
+		if newMessage.Content == "TaskDivide" {
+			messageReply := *newMessage
+			messageReply.To = newMessage.From
+			messageReply.From = newMessage.To
+			if nodeinf.CanAllocate(task.CpuRequest, task.MemoryRequest) {
+				messageReply.Content = "TaskDivideConfirm"
+				scheduler.Tasks[task.Id] = task
+				task.Status = "NeedAllocate"
 			} else {
-				task.Status = "Divided"
-				LogInfo(ecs, entity, scheduler.Net.Addr, "Divide the task", dstWorker, task)
-
+				messageReply.Content = "TaskDivideReject"
 			}
+			scheduler.Net.Out.InQueue(&messageReply)
+		}
 
+		if newMessage.Content == "TaskDivideConfirm" {
+			if scheduler.Tasks[task.Id].Status == "DiviDeStage2" {
+				scheduler.Tasks[task.Id].Status = "DiviDeStage3"
+				messageReply := *newMessage
+				messageReply.To = newMessage.From
+				messageReply.From = newMessage.To
+				messageReply.Body = scheduler.Tasks[task.Id]
+				messageReply.Content = "TaskDivideAllocate"
+				scheduler.Net.Out.InQueue(&messageReply)
+			}
+		}
+
+		if newMessage.Content == "TaskDivideAllocate" {
+			if scheduler.Tasks[task.Id].Status == "NeedAllocate" {
+				scheduler.Tasks[task.Id].Status = "Allocate"
+				messageReply := *newMessage
+				messageReply.To = rm.Net.Addr
+				messageReply.From = newMessage.To
+				messageReply.Content = "TaskAllocate"
+				scheduler.Net.Out.InQueue(&messageReply)
+			}
+		}
+
+		if newMessage.Content == "TaskDivideReject" {
+			// pass
 		}
 	}
+
 }

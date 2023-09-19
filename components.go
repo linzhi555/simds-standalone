@@ -18,7 +18,7 @@ func (s *SystemTime) Component() ComponentName {
 	return CSystemTime
 }
 
-const CTaskInfo = "TaskInfo"
+const CTaskInfo ComponentName = "TaskInfo"
 
 type TaskInfo struct {
 	Id            string
@@ -36,7 +36,12 @@ func (t *TaskInfo) Component() ComponentName {
 
 }
 
-const CNodeInfo = "NodeInfo"
+func (t *TaskInfo) DeepCopy() *TaskInfo {
+	var newT TaskInfo = *t
+	return &newT
+}
+
+const CNodeInfo ComponentName = "NodeInfo"
 
 type NodeInfo struct {
 	Cpu            int32
@@ -55,16 +60,6 @@ func (n *NodeInfo) CanAllocate(taskCpu, taskMemory int32) bool {
 	} else {
 		return false
 	}
-}
-
-const CTaskList = "TaskList"
-
-type TaskList struct {
-	AllTasks []*TaskInfo
-}
-
-func (n *TaskList) Component() ComponentName {
-	return CTaskList
 }
 
 const CNetWork ComponentName = "Network"

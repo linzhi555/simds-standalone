@@ -33,6 +33,7 @@ func NetworkUpdate(ecs *ECS, entity EntityName, c Component) {
 
 	n := c.(*Network)
 	for _, in := range n.Ins {
+		var receivedNum = 0
 		for !in.Empty() {
 			newM, err := in.Dequeue()
 			if IsSameHost(newM.To, newM.From) {
@@ -46,7 +47,8 @@ func NetworkUpdate(ecs *ECS, entity EntityName, c Component) {
 			}
 
 			LogInfo(ecs, entity, ": new message waitting to be send", newM)
-			n.Waittings[fmt.Sprint(GetEntityTime(ecs, entity))+"_"+newM.From] = newM
+			n.Waittings[fmt.Sprint(GetEntityTime(ecs, entity))+"_"+fmt.Sprint(receivedNum)+"_"+newM.From+"_"+newM.To] = newM
+			receivedNum += 1
 
 		}
 
@@ -103,7 +105,7 @@ func ResourceManagerTicks(ecs *ECS, entity EntityName, c Component) {
 
 	for id, t := range rm.Tasks {
 		if t.Status == "start" && t.StartTime+t.LifeTime < GetEntityTime(ecs, entity) {
-			t.Status = "finished"
+			t.Status = "finish"
 			LogInfo(ecs, entity, rm.Net.Addr, "Task Finished", t)
 			TaskEventLog(hostTime, t, entity)
 			delete(rm.Tasks, id)
