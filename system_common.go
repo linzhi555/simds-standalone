@@ -39,7 +39,8 @@ func NetworkUpdate(ecs *ECS, entity EntityName, c Component) {
 		var receivedNum = 0
 		for !in.Empty() {
 			newM, err := in.Dequeue()
-			//AssertTypeIsNotPointer(newM.Body)
+			// message body can not be pointer
+			AssertTypeIsNotPointer(newM.Body)
 			if IsSameHost(newM.To, newM.From) {
 				newM.LeftTime = 0
 			} else {
@@ -51,7 +52,7 @@ func NetworkUpdate(ecs *ECS, entity EntityName, c Component) {
 			}
 
 			LogInfo(ecs, entity, ": new message waitting to be send", newM)
-			n.Waittings[fmt.Sprint(GetEntityTime(ecs, entity))+"_"+fmt.Sprint(receivedNum)+"_"+newM.From+"_"+newM.To] = newM
+			n.Waittings[fmt.Sprint(GetEntityTime(ecs, entity))+"_"+fmt.Sprint(receivedNum)+"_"+newM.From+"_"+newM.To] = &newM
 			receivedNum += 1
 
 		}
@@ -65,7 +66,7 @@ func NetworkUpdate(ecs *ECS, entity EntityName, c Component) {
 			if !ok {
 				panic(v.To + ":net can not reach")
 			}
-			out.InQueue(v)
+			out.InQueue(*v)
 			delete(n.Waittings, name)
 		} else {
 			v.LeftTime -= 1
@@ -97,14 +98,13 @@ func ResourceManagerTicks(ecs *ECS, entity EntityName, c Component) {
 		LogInfo(ecs, entity, rm.Net.Addr, "received message:", newMessage)
 
 		if newMessage.Content == "TaskAllocate" {
-			newTask := newMessage.Body.(*TaskInfo)
+			newTask := newMessage.Body.(TaskInfo)
 			newTask.StartTime = hostTime
-			rm.Tasks[newTask.Id] = newTask
+			rm.Tasks[newTask.Id] = &newTask
 			newTask.Status = "start"
 			LogInfo(ecs, entity, rm.Net.Addr, "Start task:", newTask)
-			TaskEventLog(hostTime, newTask, entity)
+			TaskEventLog(hostTime, &newTask, entity)
 		}
-
 	}
 
 	for id, t := range rm.Tasks {
@@ -161,11 +161,12 @@ func TaskGenTicks(ecs *ECS, entity EntityName, c Component) {
 		return
 	}
 
-	period := 10 * MiliSecond
+	taskNumPerSecond := 0.6 * float32(*NodeNum)
+	period := int32(float32(1*Second) / taskNumPerSecond)
 	if t%(period) == 2 && t < 10*Second {
 		dstAddr := taskgen.Receivers[taskgen.CurTaskId%(len(taskgen.Receivers))]
 
-		newtask := &TaskInfo{
+		newtask := TaskInfo{
 			Id:            fmt.Sprintf("task%d", taskgen.CurTaskId),
 			CpuRequest:    1 + int32(rand.Intn(4)),
 			MemoryRequest: 1 + int32(rand.Intn(4)),
@@ -173,14 +174,14 @@ func TaskGenTicks(ecs *ECS, entity EntityName, c Component) {
 			Status:        "submit",
 		}
 
-		newMessage := &Message{
+		newMessage := Message{
 			From:    taskgen.Net.Addr,
 			To:      dstAddr,
 			Content: "TaskDispense",
 			Body:    newtask,
 		}
 		taskgen.Net.Out.InQueue(newMessage)
-		TaskEventLog(t, newtask, entity)
+		TaskEventLog(t, &newtask, entity)
 		LogInfo(ecs, entity, fmt.Sprintf(": send task to %s %v", dstAddr, newMessage.Body))
 		taskgen.CurTaskId += 1
 	}

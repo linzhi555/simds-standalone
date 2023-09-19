@@ -2,21 +2,28 @@ package main
 
 import "errors"
 
+type MessageBody interface {
+	MessageBody()
+}
+
+func (TaskInfo) MessageBody() {}
+func (NodeInfo) MessageBody() {}
+
 type Message struct {
 	From     string
 	To       string
 	Content  string
 	LeftTime int32
-	Body     interface{}
+	Body     MessageBody
 }
 
 type MessageQueue struct {
-	buffers []*Message
+	buffers []Message
 }
 
 func NewMessageQueue() *MessageQueue {
 	return &MessageQueue{
-		buffers: make([]*Message, 0),
+		buffers: make([]Message, 0),
 	}
 }
 
@@ -28,13 +35,13 @@ func (mch *MessageQueue) Len() int {
 	return len(mch.buffers)
 }
 
-func (mch *MessageQueue) InQueue(m *Message) {
+func (mch *MessageQueue) InQueue(m Message) {
 	mch.buffers = append(mch.buffers, m)
 }
 
-func (mch *MessageQueue) Dequeue() (*Message, error) {
+func (mch *MessageQueue) Dequeue() (Message, error) {
 	if mch.Empty() == true {
-		return nil, errors.New("the queue is Empty")
+		return Message{}, errors.New("the queue is Empty")
 	}
 	res := mch.buffers[0]
 	mch.buffers = mch.buffers[1:mch.Len()]

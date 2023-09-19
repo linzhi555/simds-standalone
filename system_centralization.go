@@ -35,17 +35,17 @@ func SchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 		}
 
 		if newMessage.Content == "TaskDispense" {
-			task := newMessage.Body.(*TaskInfo)
+			task := newMessage.Body.(TaskInfo)
 			task.InQueneTime = timeNow
 			task.Status = "Scheduling"
-			scheduler.Tasks[task.Id] = task
+			scheduler.Tasks[task.Id] = &task
 			LogInfo(ecs, entity, scheduler.Net.Addr, "received task submit", task)
 		}
 
 		if newMessage.Content == "WorkerUpdate" {
-			nodeinfo := newMessage.Body.(*NodeInfo)
-			scheduler.Workers[newMessage.From] = &(*nodeinfo)
-			LogInfo(ecs, entity, scheduler.Net.Addr, "received WorkerUpdate", newMessage.From, *nodeinfo)
+			nodeinfo := newMessage.Body.(NodeInfo)
+			scheduler.Workers[newMessage.From] = &(nodeinfo)
+			LogInfo(ecs, entity, scheduler.Net.Addr, "received WorkerUpdate", newMessage.From, nodeinfo)
 		}
 
 	}
@@ -59,11 +59,11 @@ func SchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 		}
 		if task.Status == "Scheduled" {
 			dstWorker := schdulingAlgorithm(scheduler)
-			newMessage := &Message{
+			newMessage := Message{
 				From:    scheduler.Net.Addr,
 				To:      dstWorker,
 				Content: "TaskAllocate",
-				Body:    task,
+				Body:    *task,
 			}
 			scheduler.Net.Out.InQueue(newMessage)
 			task.Status = "Allocated"
@@ -97,11 +97,11 @@ func WorkerStatusUpdateTicks(ecs *ECS, entity EntityName, c Component) {
 
 	if hostTime%(1000*MiliSecond) == 1 {
 		nodeinfoCopy := *nodeinfo
-		rm.Net.Out.InQueue(&Message{
+		rm.Net.Out.InQueue(Message{
 			From:    rm.Net.Addr,
 			To:      "master1:Scheduler",
 			Content: "WorkerUpdate",
-			Body:    &nodeinfoCopy,
+			Body:    nodeinfoCopy,
 		})
 		LogInfo(ecs, entity, rm.Net.Addr, "WorkerUpdate", nodeinfoCopy)
 	}

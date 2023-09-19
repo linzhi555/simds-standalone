@@ -46,15 +46,15 @@ func DcssSchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 		}
 		LogInfo(ecs, entity, scheduler.Net.Addr, "received", newMessage.Content, newMessage.Body)
 
-		task := newMessage.Body.(*TaskInfo).DeepCopy()
+		task := newMessage.Body.(TaskInfo)
 		if newMessage.Content == "TaskDispense" {
 			task.InQueneTime = timeNow
 			task.Status = "Scheduling"
-			scheduler.Tasks[task.Id] = task
+			scheduler.Tasks[task.Id] = &task
 			// judge if we can run the task locally
 			if nodeinf.CanAllocate(task.CpuRequest, task.MemoryRequest) {
 				dstWorker := scheduler.Net.Addr
-				newMessage := &Message{
+				newMessage := Message{
 					From:    dstWorker,
 					To:      rm.Net.Addr,
 					Content: "TaskAllocate",
@@ -71,11 +71,11 @@ func DcssSchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 				}
 
 				for _, neibor := range keys {
-					newMessage := &Message{
+					newMessage := Message{
 						From:    scheduler.Net.Addr,
 						To:      neibor,
 						Content: "TaskDivide",
-						Body:    task.DeepCopy(),
+						Body:    task,
 					}
 					scheduler.Net.Out.InQueue(newMessage)
 				}
@@ -84,39 +84,39 @@ func DcssSchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 		}
 
 		if newMessage.Content == "TaskDivide" {
-			messageReply := *newMessage
+			messageReply := newMessage
 			messageReply.To = newMessage.From
 			messageReply.From = newMessage.To
 			if nodeinf.CanAllocate(task.CpuRequest, task.MemoryRequest) {
 				messageReply.Content = "TaskDivideConfirm"
-				scheduler.Tasks[task.Id] = task
+				scheduler.Tasks[task.Id] = &task
 				task.Status = "NeedAllocate"
 			} else {
 				messageReply.Content = "TaskDivideReject"
 			}
-			scheduler.Net.Out.InQueue(&messageReply)
+			scheduler.Net.Out.InQueue(messageReply)
 		}
 
 		if newMessage.Content == "TaskDivideConfirm" {
 			if scheduler.Tasks[task.Id].Status == "DiviDeStage2" {
 				scheduler.Tasks[task.Id].Status = "DiviDeStage3"
-				messageReply := *newMessage
+				messageReply := newMessage
 				messageReply.To = newMessage.From
 				messageReply.From = newMessage.To
-				messageReply.Body = scheduler.Tasks[task.Id]
+				messageReply.Body = *scheduler.Tasks[task.Id]
 				messageReply.Content = "TaskDivideAllocate"
-				scheduler.Net.Out.InQueue(&messageReply)
+				scheduler.Net.Out.InQueue(messageReply)
 			}
 		}
 
 		if newMessage.Content == "TaskDivideAllocate" {
 			if scheduler.Tasks[task.Id].Status == "NeedAllocate" {
 				scheduler.Tasks[task.Id].Status = "Allocate"
-				messageReply := *newMessage
+				messageReply := newMessage
 				messageReply.To = rm.Net.Addr
 				messageReply.From = newMessage.To
 				messageReply.Content = "TaskAllocate"
-				scheduler.Net.Out.InQueue(&messageReply)
+				scheduler.Net.Out.InQueue(messageReply)
 			}
 		}
 
