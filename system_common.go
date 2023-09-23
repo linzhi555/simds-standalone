@@ -163,7 +163,7 @@ func TaskGenTicks(ecs *ECS, entity EntityName, c Component) {
 
 	taskNumPerSecond := 0.6 * float32(*NodeNum)
 	period := float32(1*Second) / taskNumPerSecond
-	if t > int32(float32(taskgen.CurTaskId+1)*period) {
+	if t > int32(float32(taskgen.CurTaskId+1)*period) && t < 10*Second {
 		dstAddr := taskgen.Receivers[taskgen.CurTaskId%(len(taskgen.Receivers))]
 
 		newtask := TaskInfo{
