@@ -55,6 +55,11 @@ func (n *NodeInfo) Component() ComponentName {
 	return CNodeInfo
 }
 
+func (n *NodeInfo) AddAllocated(taskCpu, taskMemory int32) {
+	n.CpuAllocted += taskCpu
+	n.MemoryAllocted += taskMemory
+}
+
 func (n *NodeInfo) CanAllocate(taskCpu, taskMemory int32) bool {
 	if n.Cpu-n.CpuAllocted >= taskCpu && n.Memory-n.MemoryAllocted >= taskMemory {
 		return true
@@ -179,4 +184,21 @@ func NewResourceManager(host string) *ResourceManager {
 }
 func (t *ResourceManager) Component() ComponentName {
 	return CResouceManger
+}
+
+const CStatusUpdater ComponentName = "StatusUpdater"
+
+type StatusUpdater struct {
+	LastTickNodeInfo NodeInfo
+}
+
+func NewStatusUpdater() *StatusUpdater {
+	return &StatusUpdater{
+		LastTickNodeInfo: NodeInfo{},
+	}
+
+}
+
+func (t *StatusUpdater) Component() ComponentName {
+	return CStatusUpdater
 }

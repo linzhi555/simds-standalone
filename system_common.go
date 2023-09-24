@@ -123,10 +123,7 @@ func ResourceManagerTicks(ecs *ECS, entity EntityName, c Component) {
 		allcpu += t.CpuRequest
 		allmemory += t.MemoryRequest
 	}
-
-	if hostTime%(5*MiliSecond) == 1 {
-		UpdateNodeInfo(ecs, entity, allcpu, allmemory)
-	}
+	UpdateNodeInfo(ecs, entity, allcpu, allmemory)
 }
 
 func UpdateNodeInfo(ecs *ECS, entity EntityName, cpu, memory int32) {
@@ -161,7 +158,7 @@ func TaskGenTicks(ecs *ECS, entity EntityName, c Component) {
 		return
 	}
 
-	taskNumPerSecond := 0.6 * float32(*NodeNum)
+	taskNumPerSecond := 12 * float32(*NodeNum)
 	period := float32(1*Second) / taskNumPerSecond
 	if t > int32(float32(taskgen.CurTaskId+1)*period) && t < 10*Second {
 		dstAddr := taskgen.Receivers[taskgen.CurTaskId%(len(taskgen.Receivers))]
@@ -170,7 +167,7 @@ func TaskGenTicks(ecs *ECS, entity EntityName, c Component) {
 			Id:            fmt.Sprintf("task%d", taskgen.CurTaskId),
 			CpuRequest:    1 + int32(rand.Intn(4)),
 			MemoryRequest: 1 + int32(rand.Intn(4)),
-			LifeTime:      (1000 + int32(rand.Intn(5000))) * MiliSecond,
+			LifeTime:      (100 + int32(rand.Intn(500))) * MiliSecond,
 			Status:        "submit",
 		}
 

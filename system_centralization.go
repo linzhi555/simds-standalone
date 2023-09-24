@@ -49,13 +49,14 @@ func SchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 
 	}
 
-	for _, task := range scheduler.Tasks {
+	for taskid, task := range scheduler.Tasks {
 		switch task.Status {
 		case "WaitSchedule":
 			dstWorker, ok := schdulingAlgorithm(scheduler, task)
 			if ok {
 				task.Worker = dstWorker
 				task.Status = "Scheduling"
+				scheduler.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
 			} else {
 			}
 			break
@@ -77,6 +78,7 @@ func SchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 			LogInfo(ecs, entity, scheduler.Net.Addr, "sendtask to", task.Worker, task)
 			break
 		case "Allocated":
+			delete(scheduler.Tasks, taskid)
 			break
 		default:
 			panic("wrong task status")
@@ -112,23 +114,25 @@ const SWorkerStatusUpdate = "WorkerStatusUpdateSystem"
 
 func init() { addCentralizedSystem(SWorkerStatusUpdate, WorkerStatusUpdateSystem) }
 func WorkerStatusUpdateSystem(ecs *ECS) {
-	ecs.ApplyToAllComponent(CResouceManger, WorkerStatusUpdateTicks)
+	ecs.ApplyToAllComponent(CStatusUpdater, WorkerStatusUpdateTicks)
 }
-func WorkerStatusUpdateTicks(ecs *ECS, entity EntityName, c Component) {
-	rm := c.(*ResourceManager)
-	hostTime := GetEntityTime(ecs, entity)
-	tmp := ecs.GetComponet(entity, CNodeInfo)
-	nodeinfo := tmp.(*NodeInfo)
 
-	if hostTime%(500*MiliSecond) == 1 {
-		nodeinfoCopy := *nodeinfo
+func WorkerStatusUpdateTicks(ecs *ECS, entity EntityName, c Component) {
+	updater := c.(*StatusUpdater)
+	rm := ecs.GetComponet(entity, CResouceManger).(*ResourceManager)
+	nodeinfo := ecs.GetComponet(entity, CNodeInfo).(*NodeInfo)
+	nodeinfoCopy := *nodeinfo
+
+	if updater.LastTickNodeInfo != nodeinfoCopy {
 		rm.Net.Out.InQueue(Message{
 			From:    rm.Net.Addr,
-			To:      "master1:Scheduler",
+			To:      "master0:Scheduler",
 			Content: "WorkerUpdate",
 			Body:    nodeinfoCopy,
 		})
 		LogInfo(ecs, entity, rm.Net.Addr, "WorkerUpdate", nodeinfoCopy)
 	}
+
+	updater.LastTickNodeInfo = nodeinfoCopy
 
 }

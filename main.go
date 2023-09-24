@@ -22,9 +22,9 @@ func InitCenterSimulator() *ECS {
 	simulator.AddEntities("network1", &SystemTime{Time: 0}, newNet)
 
 	// init master
-	newScheduler := NewScheduler("master1")
+	newScheduler := NewScheduler("master0")
 	newScheduler.Net.JoinNetWork(newNet)
-	simulator.AddEntities("master1", &SystemTime{Time: 0}, newScheduler)
+	simulator.AddEntities("master0", &SystemTime{Time: 0}, newScheduler)
 
 	// init taskGen
 	newTaskgen := NewTaskGen("user1")
@@ -41,7 +41,8 @@ func InitCenterSimulator() *ECS {
 		nodeCopy := nodeinfo
 		newScheduler.Workers[newResourceManager.Net.Addr] = &nodeCopy
 		newResourceManager.Net.JoinNetWork(newNet)
-		simulator.AddEntities(EntityName(workerName), &SystemTime{Time: 0}, newResourceManager, &nodeinfo)
+		newStatusUpdater := NewStatusUpdater()
+		simulator.AddEntities(EntityName(workerName), &SystemTime{Time: 0}, newResourceManager, &nodeinfo, newStatusUpdater)
 	}
 
 	RegisteCentralizedsystemToEcs(simulator)
