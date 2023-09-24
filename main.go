@@ -103,6 +103,8 @@ func initNeiborhood(scheduler *Scheduler, allNodeNum int, neiborNum int) {
 }
 
 func main() {
+	startPerf()
+	defer stopPerf()
 	//s := NewClusterSimulator()
 	var s *ECS
 	if *Dcss {
