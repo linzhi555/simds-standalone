@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math/rand"
 	"os"
 	"reflect"
 	"strings"
@@ -65,4 +66,8 @@ func AssertTypeIsNotPointer(v interface{}) {
 	if strings.HasPrefix(typestr, "*") {
 		panic(typestr + " is ponter type")
 	}
+}
+
+func shuffleStringSlice(slice []string) {
+	rand.Shuffle(len(slice), func(i, j int) { slice[i], slice[j] = slice[j], slice[i] })
 }

@@ -21,7 +21,7 @@ func (s *SystemTime) Component() ComponentName {
 const CTaskInfo ComponentName = "TaskInfo"
 
 type TaskInfo struct {
-	Id            string
+	Id            string //the task id,it is unique
 	CpuRequest    int32
 	MemoryRequest int32
 	SubmitTime    int32
@@ -29,6 +29,7 @@ type TaskInfo struct {
 	StartTime     int32
 	LifeTime      int32
 	Status        string
+	Worker        string
 }
 
 func (t *TaskInfo) Component() ComponentName {

@@ -1,9 +1,5 @@
 package main
 
-import (
-	"math/rand"
-)
-
 var centralizedSystem []System
 
 func addCentralizedSystem(n SystemName, f func(*ECS)) {
@@ -24,6 +20,9 @@ func init() { addCentralizedSystem(SSchedulerUpdate, SchedulerUpdateSystem) }
 func SchedulerUpdateSystem(ecs *ECS) {
 	ecs.ApplyToAllComponent("Scheduler", SchedulerTicks)
 }
+
+const schedulerDelay = 10 * MiliSecond
+
 func SchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 	scheduler := c.(*Scheduler)
 	timeNow := GetEntityTime(ecs, entity)
@@ -37,50 +36,76 @@ func SchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 		if newMessage.Content == "TaskDispense" {
 			task := newMessage.Body.(TaskInfo)
 			task.InQueneTime = timeNow
-			task.Status = "Scheduling"
+			task.Status = "WaitSchedule"
 			scheduler.Tasks[task.Id] = &task
 			LogInfo(ecs, entity, scheduler.Net.Addr, "received task submit", task)
 		}
 
 		if newMessage.Content == "WorkerUpdate" {
 			nodeinfo := newMessage.Body.(NodeInfo)
-			scheduler.Workers[newMessage.From] = &(nodeinfo)
+			*scheduler.Workers[newMessage.From] = nodeinfo
 			LogInfo(ecs, entity, scheduler.Net.Addr, "received WorkerUpdate", newMessage.From, nodeinfo)
 		}
 
 	}
 
 	for _, task := range scheduler.Tasks {
-		if task.Status == "Scheduling" {
-			if timeNow-task.InQueneTime > 10*MiliSecond {
+		switch task.Status {
+		case "WaitSchedule":
+			dstWorker, ok := schdulingAlgorithm(scheduler, task)
+			if ok {
+				task.Worker = dstWorker
+				task.Status = "Scheduling"
+			} else {
+			}
+			break
+
+		case "Scheduling":
+			if timeNow-task.InQueneTime > schedulerDelay {
 				task.Status = "Scheduled"
 			}
-
-		}
-		if task.Status == "Scheduled" {
-			dstWorker := schdulingAlgorithm(scheduler)
+			break
+		case "Scheduled":
 			newMessage := Message{
 				From:    scheduler.Net.Addr,
-				To:      dstWorker,
+				To:      task.Worker,
 				Content: "TaskAllocate",
 				Body:    *task,
 			}
 			scheduler.Net.Out.InQueue(newMessage)
 			task.Status = "Allocated"
-			LogInfo(ecs, entity, scheduler.Net.Addr, "sendtask to", dstWorker, task)
+			LogInfo(ecs, entity, scheduler.Net.Addr, "sendtask to", task.Worker, task)
+			break
+		case "Allocated":
+			break
+		default:
+			panic("wrong task status")
 		}
 	}
 
 }
 
-func schdulingAlgorithm(scheduler *Scheduler) string {
+// schedule the task,if it  can not find a worker for the task,return "",false
+// else return "addr of some worker",true
+func schdulingAlgorithm(scheduler *Scheduler, task *TaskInfo) (dstAddr string, ok bool) {
+	dstAddr = ""
+
 	keys := make([]string, 0, len(scheduler.Workers))
 	for k := range scheduler.Workers {
 		keys = append(keys, k)
 	}
+	shuffleStringSlice(keys)
+	for _, workerAddr := range keys {
+		nodeinfo := scheduler.Workers[workerAddr]
+		if nodeinfo.CanAllocate(task.CpuRequest, task.MemoryRequest) {
+			dstAddr = workerAddr
+		}
+	}
 
-	addr := keys[rand.Intn(len(keys))]
-	return addr
+	if dstAddr == "" {
+		return dstAddr, false
+	}
+	return dstAddr, true
 }
 
 const SWorkerStatusUpdate = "WorkerStatusUpdateSystem"
@@ -95,7 +120,7 @@ func WorkerStatusUpdateTicks(ecs *ECS, entity EntityName, c Component) {
 	tmp := ecs.GetComponet(entity, CNodeInfo)
 	nodeinfo := tmp.(*NodeInfo)
 
-	if hostTime%(1000*MiliSecond) == 1 {
+	if hostTime%(500*MiliSecond) == 1 {
 		nodeinfoCopy := *nodeinfo
 		rm.Net.Out.InQueue(Message{
 			From:    rm.Net.Addr,

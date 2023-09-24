@@ -31,7 +31,7 @@ func InitCenterSimulator() *ECS {
 	newTaskgen.Net.JoinNetWork(newNet)
 	simulator.AddEntities("user1", &SystemTime{Time: 0}, newTaskgen)
 
-	// init taskGen
+	// init nodes
 	var WorkerNum = *NodeNum
 	for i := 0; i < WorkerNum; i++ {
 		workerName := fmt.Sprintf("worker%d", i)
