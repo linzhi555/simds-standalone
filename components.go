@@ -18,57 +18,6 @@ func (s *SystemTime) Component() ComponentName {
 	return CSystemTime
 }
 
-const CTaskInfo ComponentName = "TaskInfo"
-
-type TaskInfo struct {
-	Id            string //the task id,it is unique
-	CpuRequest    int32
-	MemoryRequest int32
-	SubmitTime    int32
-	InQueneTime   int32
-	StartTime     int32
-	LifeTime      int32
-	Status        string
-	Worker        string
-}
-
-func (t *TaskInfo) DeepCopy() *TaskInfo {
-	var newT TaskInfo = *t
-	return &newT
-}
-
-const CNodeInfo ComponentName = "NodeInfo"
-
-type NodeInfo struct {
-	Cpu            int32
-	Memory         int32
-	CpuAllocted    int32
-	MemoryAllocted int32
-}
-
-func (n *NodeInfo) Clone() *NodeInfo {
-	var NodeInfoCopy = *n
-	return &NodeInfoCopy
-}
-
-func (n *NodeInfo) AddAllocated(taskCpu, taskMemory int32) {
-	n.CpuAllocted += taskCpu
-	n.MemoryAllocted += taskMemory
-}
-
-func (n *NodeInfo) SubAllocated(taskCpu, taskMemory int32) {
-	n.CpuAllocted -= taskCpu
-	n.MemoryAllocted -= taskMemory
-}
-
-func (n *NodeInfo) CanAllocate(taskCpu, taskMemory int32) bool {
-	if n.Cpu-n.CpuAllocted >= taskCpu && n.Memory-n.MemoryAllocted >= taskMemory {
-		return true
-	} else {
-		return false
-	}
-}
-
 const CNetWork ComponentName = "Network"
 
 type Network struct {
@@ -122,6 +71,7 @@ func NewNetCard(name string) *NetCard {
 	}
 
 }
+
 func (nc *NetCard) Component() ComponentName {
 	return CNetCard
 }

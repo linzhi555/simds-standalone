@@ -67,8 +67,9 @@ func InitDcssSimulator() *ECS {
 		nodeName := fmt.Sprintf("node%d", i)
 		newResourceManager := NewResourceManager(nodeName)
 		newScheduler := NewScheduler(nodeName)
-		initNeiborhood(newScheduler, nodeNum, int(Config.DcssNeibor))
+		newScheduler.Net.JoinNetWork(newNet)
 		newResourceManager.Net.JoinNetWork(newNet)
+		initNeiborhood(newScheduler, nodeNum, int(Config.DcssNeibor))
 		newResourceManager.Node = &NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
 		simulator.AddEntities(EntityName(nodeName), &SystemTime{Time: 0}, newResourceManager, newScheduler)
 	}
