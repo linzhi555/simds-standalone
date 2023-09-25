@@ -8,7 +8,6 @@ import (
 
 var Debug = flag.Bool("debug", false, "run as debug mode")
 var Dcss = flag.Bool("dcss", false, "run dcss")
-var NodeNum = flag.Int("nodeNum", 11, "how many nodeNum")
 
 func init() {
 	flag.Parse()
@@ -18,7 +17,7 @@ func InitCenterSimulator() *ECS {
 	simulator := NewEcs()
 
 	// init network
-	newNet := NewNetWork(10 * MiliSecond)
+	newNet := NewNetWork(Config.NetLatency * MiliSecond)
 	simulator.AddEntities("network1", &SystemTime{Time: 0}, newNet)
 
 	// init master
@@ -32,11 +31,11 @@ func InitCenterSimulator() *ECS {
 	simulator.AddEntities("user1", &SystemTime{Time: 0}, newTaskgen)
 
 	// init nodes
-	var WorkerNum = *NodeNum
-	for i := 0; i < WorkerNum; i++ {
+	var WorkerNum = Config.NodeNum
+	for i := 0; i < int(WorkerNum); i++ {
 		workerName := fmt.Sprintf("worker%d", i)
 		newResourceManager := NewResourceManager(workerName)
-		nodeinfo := NodeInfo{10, 10, 0, 0}
+		nodeinfo := NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
 
 		nodeCopy := nodeinfo
 		newScheduler.Workers[newResourceManager.Net.Addr] = &nodeCopy
@@ -54,7 +53,7 @@ func InitDcssSimulator() *ECS {
 	simulator := NewEcs()
 
 	// init network
-	newNet := NewNetWork(10 * MiliSecond)
+	newNet := NewNetWork(Config.NetLatency * MiliSecond)
 	simulator.AddEntities("network1", &SystemTime{Time: 0}, newNet)
 
 	// init taskGen
@@ -63,14 +62,14 @@ func InitDcssSimulator() *ECS {
 	simulator.AddEntities("user1", &SystemTime{Time: 0}, newTaskgen)
 
 	// init nodes these nodes are scheduler and worker in same time.
-	var nodeNum = *NodeNum
+	var nodeNum = int(Config.NodeNum)
 	for i := 0; i < nodeNum; i++ {
 		nodeName := fmt.Sprintf("node%d", i)
 		newResourceManager := NewResourceManager(nodeName)
 		newScheduler := NewScheduler(nodeName)
-		nodeinfo := NodeInfo{10, 10, 0, 0}
+		nodeinfo := NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
 		newScheduler.Net.JoinNetWork(newNet)
-		initNeiborhood(newScheduler, nodeNum, 8)
+		initNeiborhood(newScheduler, nodeNum, int(Config.DcssNeibor))
 		newResourceManager.Net.JoinNetWork(newNet)
 		simulator.AddEntities(EntityName(nodeName), &SystemTime{Time: 0}, newResourceManager, newScheduler, &nodeinfo)
 	}
@@ -98,7 +97,7 @@ func initNeiborhood(scheduler *Scheduler, allNodeNum int, neiborNum int) {
 		}
 	}
 	for _, n := range neibors[1:] {
-		scheduler.Workers[n] = &NodeInfo{10, 10, 0, 0}
+		scheduler.Workers[n] = &NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
 	}
 }
 

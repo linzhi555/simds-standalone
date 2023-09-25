@@ -158,16 +158,16 @@ func TaskGenTicks(ecs *ECS, entity EntityName, c Component) {
 		return
 	}
 
-	taskNumPerSecond := 12 * float32(*NodeNum)
+	taskNumPerSecond := Config.TaskNumFactor * float32(Config.NodeNum)
 	period := float32(1*Second) / taskNumPerSecond
 	if t > int32(float32(taskgen.CurTaskId+1)*period) && t < 10*Second {
 		dstAddr := taskgen.Receivers[taskgen.CurTaskId%(len(taskgen.Receivers))]
 
 		newtask := TaskInfo{
 			Id:            fmt.Sprintf("task%d", taskgen.CurTaskId),
-			CpuRequest:    1 + int32(rand.Intn(4)),
-			MemoryRequest: 1 + int32(rand.Intn(4)),
-			LifeTime:      (100 + int32(rand.Intn(500))) * MiliSecond,
+			CpuRequest:    1 + int32(rand.Intn(int(2*Config.TaskCpu-2))),
+			MemoryRequest: 1 + int32(rand.Intn(int(2*Config.TaskMemory-2))),
+			LifeTime:      (100 + int32(rand.Intn(int(Config.TaskLifeTime)*2-200))) * MiliSecond,
 			Status:        "submit",
 		}
 
