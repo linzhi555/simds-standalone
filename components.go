@@ -116,8 +116,16 @@ func NewScheduler(hostname string) *Scheduler {
 		Tasks:   make(map[string]*TaskInfo),
 	}
 }
-func (t *Scheduler) Component() ComponentName {
+func (s *Scheduler) Component() ComponentName {
 	return CScheduler
+}
+
+func (s *Scheduler) GetAllWokersName() []string {
+	keys := make([]string, 0, len(s.Workers))
+	for k := range s.Workers {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 const CResouceManger ComponentName = "ResourceManager"

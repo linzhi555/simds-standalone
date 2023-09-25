@@ -7,15 +7,16 @@ type MessageBody interface {
 }
 
 type TaskInfo struct {
-	Id            string //the task id,it is unique
-	CpuRequest    int32
-	MemoryRequest int32
-	SubmitTime    int32
-	InQueneTime   int32
-	StartTime     int32
-	LifeTime      int32
-	Status        string
-	Worker        string
+	Id                string //the task id,it is unique
+	CpuRequest        int32
+	MemoryRequest     int32
+	SubmitTime        int32
+	InQueneTime       int32
+	StartTime         int32
+	LifeTime          int32
+	Status            string
+	Worker            string
+	ScheduleFailCount int32
 }
 
 func (t *TaskInfo) DeepCopy() *TaskInfo {
