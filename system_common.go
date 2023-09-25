@@ -112,27 +112,39 @@ func ResourceManagerTicks(ecs *ECS, entity EntityName, c Component) {
 			t.Status = "finish"
 			LogInfo(ecs, entity, rm.Net.Addr, "Task Finished", t)
 			TaskEventLog(hostTime, t, entity)
+			if rm.TaskFinishReceiver != "" {
+				informReceiverTaskStatus(rm, t, "TaskFinish")
+			}
+
 			delete(rm.Tasks, id)
 		}
 	}
 
-	var allcpu int32 = 0
-	var allmemory int32 = 0
-
-	for _, t := range rm.Tasks {
-		allcpu += t.CpuRequest
-		allmemory += t.MemoryRequest
-	}
-	UpdateNodeInfo(ecs, entity, allcpu, allmemory)
+	updateNodeInfo(ecs, entity, rm)
 }
 
-func UpdateNodeInfo(ecs *ECS, entity EntityName, cpu, memory int32) {
-	c := ecs.GetComponet(entity, CNodeInfo)
-	nodeinfo := c.(*NodeInfo)
+func informReceiverTaskStatus(rm *ResourceManager, t *TaskInfo, content string) {
+	newMessage := Message{
+		From:    rm.Net.Addr,
+		To:      rm.TaskFinishReceiver,
+		Content: content,
+		Body:    *t,
+	}
+	rm.Net.Out.InQueue(newMessage)
+}
 
-	if nodeinfo.CpuAllocted != cpu || nodeinfo.MemoryAllocted != memory {
-		nodeinfo.CpuAllocted = cpu
-		nodeinfo.MemoryAllocted = memory
+func updateNodeInfo(ecs *ECS, entity EntityName, rm *ResourceManager) {
+	var cpu int32 = 0
+	var memory int32 = 0
+
+	for _, t := range rm.Tasks {
+		cpu += t.CpuRequest
+		memory += t.MemoryRequest
+	}
+
+	if rm.Node.CpuAllocted != cpu || rm.Node.MemoryAllocted != memory {
+		rm.Node.CpuAllocted = cpu
+		rm.Node.MemoryAllocted = memory
 		LogInfo(ecs, entity, ":node resource status", cpu, memory)
 	}
 }

@@ -32,11 +32,6 @@ type TaskInfo struct {
 	Worker        string
 }
 
-func (t *TaskInfo) Component() ComponentName {
-	return CTaskInfo
-
-}
-
 func (t *TaskInfo) DeepCopy() *TaskInfo {
 	var newT TaskInfo = *t
 	return &newT
@@ -51,13 +46,19 @@ type NodeInfo struct {
 	MemoryAllocted int32
 }
 
-func (n *NodeInfo) Component() ComponentName {
-	return CNodeInfo
+func (n *NodeInfo) Clone() *NodeInfo {
+	var NodeInfoCopy = *n
+	return &NodeInfoCopy
 }
 
 func (n *NodeInfo) AddAllocated(taskCpu, taskMemory int32) {
 	n.CpuAllocted += taskCpu
 	n.MemoryAllocted += taskMemory
+}
+
+func (n *NodeInfo) SubAllocated(taskCpu, taskMemory int32) {
+	n.CpuAllocted -= taskCpu
+	n.MemoryAllocted -= taskMemory
 }
 
 func (n *NodeInfo) CanAllocate(taskCpu, taskMemory int32) bool {
@@ -172,8 +173,10 @@ func (t *Scheduler) Component() ComponentName {
 const CResouceManger ComponentName = "ResourceManager"
 
 type ResourceManager struct {
-	Tasks map[string]*TaskInfo
-	Net   *NetCard
+	Tasks              map[string]*TaskInfo
+	Net                *NetCard
+	Node               *NodeInfo
+	TaskFinishReceiver string // if it is not zero , the receiver wiil get the notifiction
 }
 
 func NewResourceManager(host string) *ResourceManager {
@@ -184,21 +187,4 @@ func NewResourceManager(host string) *ResourceManager {
 }
 func (t *ResourceManager) Component() ComponentName {
 	return CResouceManger
-}
-
-const CStatusUpdater ComponentName = "StatusUpdater"
-
-type StatusUpdater struct {
-	LastTickNodeInfo NodeInfo
-}
-
-func NewStatusUpdater() *StatusUpdater {
-	return &StatusUpdater{
-		LastTickNodeInfo: NodeInfo{},
-	}
-
-}
-
-func (t *StatusUpdater) Component() ComponentName {
-	return CStatusUpdater
 }

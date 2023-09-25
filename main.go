@@ -35,13 +35,13 @@ func InitCenterSimulator() *ECS {
 	for i := 0; i < int(WorkerNum); i++ {
 		workerName := fmt.Sprintf("worker%d", i)
 		newResourceManager := NewResourceManager(workerName)
-		nodeinfo := NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
-
-		nodeCopy := nodeinfo
-		newScheduler.Workers[newResourceManager.Net.Addr] = &nodeCopy
+		nodeinfo := &NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
+		newScheduler.Workers[newResourceManager.Net.Addr] = nodeinfo.Clone()
 		newResourceManager.Net.JoinNetWork(newNet)
-		newStatusUpdater := NewStatusUpdater()
-		simulator.AddEntities(EntityName(workerName), &SystemTime{Time: 0}, newResourceManager, &nodeinfo, newStatusUpdater)
+		newResourceManager.Node = nodeinfo.Clone()
+		newResourceManager.TaskFinishReceiver = newScheduler.Net.Addr
+
+		simulator.AddEntities(EntityName(workerName), &SystemTime{Time: 0}, newResourceManager)
 	}
 
 	RegisteCentralizedsystemToEcs(simulator)
@@ -67,11 +67,10 @@ func InitDcssSimulator() *ECS {
 		nodeName := fmt.Sprintf("node%d", i)
 		newResourceManager := NewResourceManager(nodeName)
 		newScheduler := NewScheduler(nodeName)
-		nodeinfo := NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
-		newScheduler.Net.JoinNetWork(newNet)
 		initNeiborhood(newScheduler, nodeNum, int(Config.DcssNeibor))
 		newResourceManager.Net.JoinNetWork(newNet)
-		simulator.AddEntities(EntityName(nodeName), &SystemTime{Time: 0}, newResourceManager, newScheduler, &nodeinfo)
+		newResourceManager.Node = &NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
+		simulator.AddEntities(EntityName(nodeName), &SystemTime{Time: 0}, newResourceManager, newScheduler)
 	}
 
 	RegisteDcssSystemToEcs(simulator)

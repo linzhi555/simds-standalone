@@ -3,7 +3,7 @@ NetLatency:     10
 DcssNeibor:     8
 NodeCpu:        10
 NodeMemory:     10
-TaskNumFactor:  1.0
+TaskNumFactor:  9.0
 TaskCpu:        3
 TaskMemory:     3
-TaskLifeTime:   4000 
+TaskLifeTime:   400

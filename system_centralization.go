@@ -38,13 +38,13 @@ func SchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 			task.InQueneTime = timeNow
 			task.Status = "WaitSchedule"
 			scheduler.Tasks[task.Id] = &task
-			LogInfo(ecs, entity, scheduler.Net.Addr, "received task submit", task)
+			LogInfo(ecs, entity, scheduler.Net.Addr, "received TaskDispense", task)
 		}
 
-		if newMessage.Content == "WorkerUpdate" {
-			nodeinfo := newMessage.Body.(NodeInfo)
-			*scheduler.Workers[newMessage.From] = nodeinfo
-			LogInfo(ecs, entity, scheduler.Net.Addr, "received WorkerUpdate", newMessage.From, nodeinfo)
+		if newMessage.Content == "TaskFinish" {
+			taskInfo := newMessage.Body.(TaskInfo)
+			scheduler.Workers[newMessage.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)
+			LogInfo(ecs, entity, scheduler.Net.Addr, "received TaskFinish", newMessage.From, taskInfo)
 		}
 
 	}
@@ -108,31 +108,4 @@ func schdulingAlgorithm(scheduler *Scheduler, task *TaskInfo) (dstAddr string, o
 		return dstAddr, false
 	}
 	return dstAddr, true
-}
-
-const SWorkerStatusUpdate = "WorkerStatusUpdateSystem"
-
-func init() { addCentralizedSystem(SWorkerStatusUpdate, WorkerStatusUpdateSystem) }
-func WorkerStatusUpdateSystem(ecs *ECS) {
-	ecs.ApplyToAllComponent(CStatusUpdater, WorkerStatusUpdateTicks)
-}
-
-func WorkerStatusUpdateTicks(ecs *ECS, entity EntityName, c Component) {
-	updater := c.(*StatusUpdater)
-	rm := ecs.GetComponet(entity, CResouceManger).(*ResourceManager)
-	nodeinfo := ecs.GetComponet(entity, CNodeInfo).(*NodeInfo)
-	nodeinfoCopy := *nodeinfo
-
-	if updater.LastTickNodeInfo != nodeinfoCopy {
-		rm.Net.Out.InQueue(Message{
-			From:    rm.Net.Addr,
-			To:      "master0:Scheduler",
-			Content: "WorkerUpdate",
-			Body:    nodeinfoCopy,
-		})
-		LogInfo(ecs, entity, rm.Net.Addr, "WorkerUpdate", nodeinfoCopy)
-	}
-
-	updater.LastTickNodeInfo = nodeinfoCopy
-
 }

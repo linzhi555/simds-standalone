@@ -29,7 +29,6 @@ func DcssSchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 	scheduler := c.(*Scheduler)
 	timeNow := GetEntityTime(ecs, entity)
 	rm := ecs.GetComponet(entity, CResouceManger).(*ResourceManager)
-	nodeinf := ecs.GetComponet(entity, CNodeInfo).(*NodeInfo)
 
 	if timeNow == 1 {
 		keys := make([]string, 0, len(scheduler.Workers))
@@ -52,7 +51,7 @@ func DcssSchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 			task.Status = "Scheduling"
 			scheduler.Tasks[task.Id] = &task
 			// judge if we can run the task locally
-			if nodeinf.CanAllocate(task.CpuRequest, task.MemoryRequest) {
+			if rm.Node.CanAllocate(task.CpuRequest, task.MemoryRequest) {
 				dstWorker := scheduler.Net.Addr
 				newMessage := Message{
 					From:    dstWorker,
@@ -87,7 +86,7 @@ func DcssSchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 			messageReply := newMessage
 			messageReply.To = newMessage.From
 			messageReply.From = newMessage.To
-			if nodeinf.CanAllocate(task.CpuRequest, task.MemoryRequest) {
+			if rm.Node.CanAllocate(task.CpuRequest, task.MemoryRequest) {
 				messageReply.Content = "TaskDivideConfirm"
 				scheduler.Tasks[task.Id] = &task
 				task.Status = "NeedAllocate"
