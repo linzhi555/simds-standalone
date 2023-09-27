@@ -47,7 +47,9 @@ func DcssSchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 		LogInfo(ecs, entity, scheduler.Net.Addr, "received", newMessage.Content, newMessage.Body)
 
 		task := newMessage.Body.(TaskInfo)
-		if newMessage.Content == "TaskDispense" {
+
+		switch newMessage.Content {
+		case "TaskDispense":
 			task.InQueneTime = timeNow
 			task.Status = "Scheduling"
 			scheduler.Tasks[task.Id] = &task
@@ -81,9 +83,8 @@ func DcssSchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 				}
 				task.Status = "DiviDeStage2"
 			}
-		}
 
-		if newMessage.Content == "TaskDivide" {
+		case "TaskDivide":
 			messageReply := newMessage
 			messageReply.To = newMessage.From
 			messageReply.From = newMessage.To
@@ -95,9 +96,8 @@ func DcssSchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 				messageReply.Content = "TaskDivideReject"
 			}
 			scheduler.Net.Out.InQueue(messageReply)
-		}
 
-		if newMessage.Content == "TaskDivideConfirm" {
+		case "TaskDivideConfirm":
 			if scheduler.Tasks[task.Id].Status == "DiviDeStage2" {
 				scheduler.Tasks[task.Id].Status = "DiviDeStage3"
 				messageReply := newMessage
@@ -107,9 +107,8 @@ func DcssSchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 				messageReply.Content = "TaskDivideAllocate"
 				scheduler.Net.Out.InQueue(messageReply)
 			}
-		}
 
-		if newMessage.Content == "TaskDivideAllocate" {
+		case "TaskDivideAllocate":
 			if scheduler.Tasks[task.Id].Status == "NeedAllocate" {
 				scheduler.Tasks[task.Id].Status = "Allocate"
 				messageReply := newMessage
@@ -118,9 +117,8 @@ func DcssSchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 				messageReply.Content = "TaskAllocate"
 				scheduler.Net.Out.InQueue(messageReply)
 			}
-		}
 
-		if newMessage.Content == "TaskDivideReject" {
+		case "TaskDivideReject":
 			scheduler.Tasks[task.Id].ScheduleFailCount += 1
 			neiborNum := len(scheduler.Workers)
 			// if all neibors reject this task, so we i have to dispense the task to a random neibors,
@@ -138,7 +136,6 @@ func DcssSchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 				}
 				scheduler.Net.Out.InQueue(newMessage)
 				LogInfo(ecs, entity, scheduler.Net.Addr, "TaskDivide finally fail, start a new TaskDispense", newMessage.Body)
-
 			}
 		}
 	}
