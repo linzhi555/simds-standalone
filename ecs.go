@@ -61,12 +61,22 @@ func (e *ECS) AddComponetsToEntity(entity EntityName, cs ...Component) error {
 }
 
 func (ecs *ECS) ApplyToAllComponent(name ComponentName, f func(ecs *ECS, entity EntityName, component Component)) {
-	for e, components := range ecs.Entities {
-		for n, c := range components {
+	threadNum := 0
+	finishChan := make(chan bool ,len(ecs.Entities))
+	for entity, components := range ecs.Entities {
+		for n, component := range components {
 			if n == name {
-				f(ecs, e, c)
+				threadNum += 1
+				go func(c Component,e EntityName) {
+					f(ecs, e, c)
+					finishChan <- true
+				}(component,entity)
+				break
 			}
 		}
+	}
+	for i:=0;i<threadNum;i++{
+		<- finishChan 
 	}
 
 }

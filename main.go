@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"math/rand"
 )
 
@@ -112,7 +113,9 @@ func main() {
 		s = InitCenterSimulator()
 	}
 	fmt.Println(s.Entities)
-	for i := 0; i < 12000; i++ {
+	frameNum := 12000
+	for i := 0; i < frameNum; i++ {
+		log.Println("simluating", i, frameNum)
 		s.Update()
 		if *Debug && i == 1000 {
 			fmt.Println("*************************")
