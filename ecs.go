@@ -15,7 +15,7 @@ type ComponentListNode struct {
 	belong   EntityName
 }
 
-type ComponentList []*ComponentListNode
+type ComponentList []ComponentListNode
 
 type SystemName string
 type System struct {
@@ -24,14 +24,14 @@ type System struct {
 }
 
 type ECS struct {
-	Entities   map[EntityName]ComponentList
+	Entities   map[EntityName]struct{}
 	Components map[ComponentName]ComponentList
 	Systems    []System
 }
 
 func NewEcs() *ECS {
 	return &ECS{
-		Entities:   make(map[EntityName]ComponentList),
+		Entities:   make(map[EntityName]struct{}),
 		Components: make(map[ComponentName]ComponentList),
 		Systems:    make([]System, 0),
 	}
@@ -45,29 +45,24 @@ func (e *ECS) AddEntities(name EntityName, cs ...Component) {
 	if _, alreadyHas := e.Entities[name]; alreadyHas {
 		panic("the entity is already existed")
 	}
-	e.Entities[name] = ComponentList{}
+	e.Entities[name] = struct{}{}
 
 	for _, c := range cs {
-		newNode := ComponentListNode{c, name}
-		if _, ok := e.Components[c.Component()]; !ok {
-			e.Components[c.Component()] = ComponentList{&newNode}
-		} else {
-			e.Components[c.Component()] = append(e.Components[c.Component()], &newNode)
-		}
-		e.Entities[name] = append(e.Entities[name], &newNode)
+		AssertTypeIsNotPointer(c)
+		e.Components[c.Component()] = append(e.Components[c.Component()], ComponentListNode{c, name})
 	}
 
 }
 
-func (ecs *ECS) ApplyToAllComponent(name ComponentName, f func(ecs *ECS, entity EntityName, component Component)) {
+func (ecs *ECS) ApplyToAllComponent(name ComponentName, f func(ecs *ECS, cnode *ComponentListNode)) {
 	const RenderThreadNum = 100
 	finishChan := make(chan bool, RenderThreadNum)
 	for i := 0; i < RenderThreadNum; i++ {
 
 		go func(id int) {
-			for j, node := range ecs.Components[name] {
+			for j, _ := range ecs.Components[name] {
 				if j%RenderThreadNum == id {
-					f(ecs, node.belong, node.componet)
+					f(ecs, &ecs.Components[name][j])
 				}
 			}
 			finishChan <- true
@@ -80,28 +75,24 @@ func (ecs *ECS) ApplyToAllComponent(name ComponentName, f func(ecs *ECS, entity 
 
 }
 func (ecs *ECS) GetEntitiesHasComponenet(componentNeed ComponentName) []EntityName {
-	var result []EntityName
-	for e, components := range ecs.Entities {
-		for _, node := range components {
-			if node.componet.Component() == componentNeed {
-				result = append(result, e)
-				break
-			}
-		}
+	var result map[EntityName]struct{} = make(map[EntityName]struct{})
+	for _, node := range ecs.Components[componentNeed] {
+		result[node.belong] = struct{}{}
 	}
-	return result
+
+	keys := make([]EntityName, 0, len(result))
+	for en := range result {
+		keys = append(keys, en)
+	}
+	return keys
 }
 
+// Get the information of a commponet of entityNeed,rember the ret is a value not a pointer
 func (ecs *ECS) GetComponet(entityNeed EntityName, componentNeed ComponentName) (ret Component) {
-	for e, components := range ecs.Entities {
-		if e != entityNeed {
-			continue
-		}
 
-		for _, node := range components {
-			if node.componet.Component() == componentNeed {
-				return node.componet
-			}
+	for _, node := range ecs.Components[componentNeed] {
+		if node.belong == entityNeed {
+			return node.componet
 		}
 	}
 	panic("the entity" + string(entityNeed) + "dones not have" + string(componentNeed))
@@ -114,14 +105,14 @@ func (e *ECS) Update() {
 	}
 }
 
-func (e *ECS) String() string {
-	var s = ""
-	for name, Components := range e.Entities {
-		s += "***" + string(name) + "***" + "\n"
-		for _, node := range Components {
-			s += string(node.componet.Component()) + "\n"
-			s += fmt.Sprint(node.componet) + "\n"
-		}
-	}
-	return s
-}
+//func (e *ECS) String() string {
+//	var s = ""
+//	for name, Components := range e.Entities {
+//		s += "***" + string(name) + "***" + "\n"
+//		for _, node := range Components {
+//			s += string(node.componet.Component()) + "\n"
+//			s += fmt.Sprint(node.componet) + "\n"
+//		}
+//	}
+//	return s
+//}

@@ -26,10 +26,13 @@ func init() { addDcssSystem(SDcssSchedulerUpdate, DcssSchedulerUpdateSystem) }
 func DcssSchedulerUpdateSystem(ecs *ECS) {
 	ecs.ApplyToAllComponent(CScheduler, DcssSchedulerTicks)
 }
-func DcssSchedulerTicks(ecs *ECS, entity EntityName, c Component) {
-	scheduler := c.(*Scheduler)
-	timeNow := GetEntityTime(ecs, entity)
-	rm := ecs.GetComponet(entity, CResouceManger).(*ResourceManager)
+func DcssSchedulerTicks(ecs *ECS, cnode *ComponentListNode) {
+	scheduler := cnode.componet.(Scheduler)
+	defer func() { cnode.componet = scheduler }()
+
+	timeNow := GetEntityTime(ecs, cnode.belong)
+	entity := cnode.belong
+	rm := ecs.GetComponet(entity, CResouceManger).(ResourceManager)
 
 	if timeNow == 1 {
 		keys := make([]string, 0, len(scheduler.Workers))

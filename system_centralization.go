@@ -23,8 +23,10 @@ func SchedulerUpdateSystem(ecs *ECS) {
 
 const schedulerDelay = 10 * MiliSecond
 
-func SchedulerTicks(ecs *ECS, entity EntityName, c Component) {
-	scheduler := c.(*Scheduler)
+func SchedulerTicks(ecs *ECS, cnode *ComponentListNode) {
+	scheduler := cnode.componet.(Scheduler)
+	defer func() { cnode.componet = scheduler }()
+	entity := cnode.belong
 	timeNow := GetEntityTime(ecs, entity)
 
 	for !scheduler.Net.In.Empty() {
@@ -52,7 +54,7 @@ func SchedulerTicks(ecs *ECS, entity EntityName, c Component) {
 	for taskid, task := range scheduler.Tasks {
 		switch task.Status {
 		case "WaitSchedule":
-			dstWorker, ok := schdulingAlgorithm(scheduler, task)
+			dstWorker, ok := schdulingAlgorithm(&scheduler, task)
 			if ok {
 				task.Worker = dstWorker
 				task.Status = "Scheduling"

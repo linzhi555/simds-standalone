@@ -16,8 +16,9 @@ const SSystemTimeUpdate = "SystemTimeUpdate"
 func init() { addCommonSystem(SSystemTimeUpdate, SystemTimeUpdate) }
 func SystemTimeUpdate(ecs *ECS) {
 
-	f := func(ecs *ECS, entity EntityName, c Component) {
-		st := c.(*SystemTime)
+	f := func(ecs *ECS, cnode *ComponentListNode) {
+		st := cnode.componet.(SystemTime)
+		defer func() { cnode.componet = st }()
 		st.Time += 1
 	}
 
@@ -31,9 +32,11 @@ func NetworkUpdateSystem(ecs *ECS) {
 	ecs.ApplyToAllComponent(CNetWork, NetworkUpdate)
 }
 
-func NetworkUpdate(ecs *ECS, entity EntityName, c Component) {
+func NetworkUpdate(ecs *ECS, cnode *ComponentListNode) {
+	n := cnode.componet.(Network)
+	defer func() { cnode.componet = n }()
+	entity := cnode.belong
 
-	n := c.(*Network)
 	for _, in := range n.Ins {
 		var receivedNum = 0
 		for !in.Empty() {
@@ -76,7 +79,7 @@ func NetworkUpdate(ecs *ECS, entity EntityName, c Component) {
 
 func GetEntityTime(ecs *ECS, entity EntityName) int32 {
 	timeComponent := ecs.GetComponet(entity, CSystemTime)
-	return timeComponent.(*SystemTime).Time
+	return timeComponent.(SystemTime).Time
 }
 
 const SResourceManagerUpdate = "ResourceManagerUpdateSystem"
@@ -85,9 +88,11 @@ func init() { addCommonSystem(SResourceManagerUpdate, ResourceManagerUpdateSyste
 func ResourceManagerUpdateSystem(ecs *ECS) {
 	ecs.ApplyToAllComponent(CResouceManger, ResourceManagerTicks)
 }
-func ResourceManagerTicks(ecs *ECS, entity EntityName, c Component) {
-	rm := c.(*ResourceManager)
-	hostTime := GetEntityTime(ecs, entity)
+func ResourceManagerTicks(ecs *ECS, cnode *ComponentListNode) {
+	rm := cnode.componet.(ResourceManager)
+	defer func() { cnode.componet = rm }()
+	entity := cnode.belong
+	hostTime := GetEntityTime(ecs, cnode.belong)
 
 	if !rm.Net.In.Empty() {
 		newMessage, err := rm.Net.In.Dequeue()
@@ -112,14 +117,14 @@ func ResourceManagerTicks(ecs *ECS, entity EntityName, c Component) {
 			LogInfo(ecs, entity, rm.Net.Addr, "Task Finished", t)
 			TaskEventLog(hostTime, t, entity)
 			if rm.TaskFinishReceiver != "" {
-				informReceiverTaskStatus(rm, t, "TaskFinish")
+				informReceiverTaskStatus(&rm, t, "TaskFinish")
 			}
 
 			delete(rm.Tasks, id)
 		}
 	}
 
-	updateNodeInfo(ecs, entity, rm)
+	updateNodeInfo(ecs, entity, &rm)
 }
 
 func informReceiverTaskStatus(rm *ResourceManager, t *TaskInfo, content string) {
@@ -155,9 +160,11 @@ func TaskGenUpdateSystem(ecs *ECS) {
 	ecs.ApplyToAllComponent(CTaskGen, TaskGenTicks)
 }
 
-func TaskGenTicks(ecs *ECS, entity EntityName, c Component) {
-	t := GetEntityTime(ecs, entity)
-	taskgen := c.(*TaskGen)
+func TaskGenTicks(ecs *ECS, cnode *ComponentListNode) {
+	taskgen := cnode.componet.(TaskGen)
+	defer func() { cnode.componet = taskgen }()
+	entity := cnode.belong
+	t := GetEntityTime(ecs, cnode.belong)
 
 	if t == 1 {
 		nodes := ecs.GetEntitiesHasComponenet(CScheduler)

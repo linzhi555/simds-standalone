@@ -14,7 +14,7 @@ type SystemTime struct {
 	Time int32
 }
 
-func (s *SystemTime) Component() ComponentName {
+func (s SystemTime) Component() ComponentName {
 	return CSystemTime
 }
 
@@ -27,12 +27,12 @@ type Network struct {
 	Outs       map[string]*MessageQueue
 }
 
-func (n *Network) Component() ComponentName {
+func (n Network) Component() ComponentName {
 	return CNetWork
 }
 
-func NewNetWork(latency int32) *Network {
-	return &Network{
+func CreateNetWork(latency int32) Network {
+	return Network{
 		NetLatency: latency,
 		Waittings:  make(map[string]*Message),
 		Ins:        make(map[string]*MessageQueue),
@@ -40,7 +40,7 @@ func NewNetWork(latency int32) *Network {
 	}
 }
 
-func (n *Network) String() string {
+func (n Network) String() string {
 	var res string
 	res += "Waittings: \n"
 	for _, v := range n.Waittings {
@@ -65,14 +65,14 @@ type NetCard struct {
 	Out  *MessageQueue
 }
 
-func NewNetCard(name string) *NetCard {
-	return &NetCard{
+func CreateNetCard(name string) NetCard {
+	return NetCard{
 		Addr: name,
 	}
 
 }
 
-func (nc *NetCard) Component() ComponentName {
+func (nc NetCard) Component() ComponentName {
 	return CNetCard
 }
 
@@ -80,17 +80,17 @@ const CTaskGen = "NetCard"
 
 type TaskGen struct {
 	CurTaskId int
-	Net       *NetCard
+	Net       NetCard
 	Receivers []string
 }
 
-func NewTaskGen(hostname string) *TaskGen {
-	return &TaskGen{
+func CreateTaskGen(hostname string) TaskGen {
+	return TaskGen{
 		CurTaskId: 0,
-		Net:       NewNetCard(hostname + ":" + "TaskGen"),
+		Net:       CreateNetCard(hostname + ":" + "TaskGen"),
 	}
 }
-func (t *TaskGen) Component() ComponentName {
+func (t TaskGen) Component() ComponentName {
 	return CTaskGen
 }
 
@@ -104,19 +104,19 @@ func (nc *NetCard) JoinNetWork(net *Network) {
 const CScheduler ComponentName = "Scheduler"
 
 type Scheduler struct {
-	Net     *NetCard
+	Net     NetCard
 	Workers map[string]*NodeInfo
 	Tasks   map[string]*TaskInfo
 }
 
-func NewScheduler(hostname string) *Scheduler {
-	return &Scheduler{
-		Net:     NewNetCard(hostname + ":" + "Scheduler"),
+func CreateScheduler(hostname string) Scheduler {
+	return Scheduler{
+		Net:     CreateNetCard(hostname + ":" + "Scheduler"),
 		Workers: make(map[string]*NodeInfo),
 		Tasks:   make(map[string]*TaskInfo),
 	}
 }
-func (s *Scheduler) Component() ComponentName {
+func (s Scheduler) Component() ComponentName {
 	return CScheduler
 }
 
@@ -132,17 +132,17 @@ const CResouceManger ComponentName = "ResourceManager"
 
 type ResourceManager struct {
 	Tasks              map[string]*TaskInfo
-	Net                *NetCard
-	Node               *NodeInfo
+	Net                NetCard
+	Node               NodeInfo
 	TaskFinishReceiver string // if it is not zero , the receiver wiil get the notifiction
 }
 
-func NewResourceManager(host string) *ResourceManager {
-	return &ResourceManager{
+func CreateResourceManager(host string) ResourceManager {
+	return ResourceManager{
 		Tasks: make(map[string]*TaskInfo),
-		Net:   NewNetCard(host + ":" + "ResourceManager"),
+		Net:   CreateNetCard(host + ":" + "ResourceManager"),
 	}
 }
-func (t *ResourceManager) Component() ComponentName {
+func (t ResourceManager) Component() ComponentName {
 	return CResouceManger
 }
