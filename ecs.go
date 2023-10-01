@@ -1,17 +1,21 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 )
 
 type EntityName string
 type ComponentName string
-
 type Component interface {
 	Component() ComponentName
 }
-type Components map[ComponentName]Component
+
+type ComponentListNode struct {
+	componet Component
+	belong   EntityName
+}
+
+type ComponentList []*ComponentListNode
 
 type SystemName string
 type System struct {
@@ -20,14 +24,16 @@ type System struct {
 }
 
 type ECS struct {
-	Entities map[EntityName]Components
-	Systems  []System
+	Entities   map[EntityName]ComponentList
+	Components map[ComponentName]ComponentList
+	Systems    []System
 }
 
 func NewEcs() *ECS {
 	return &ECS{
-		Entities: make(map[EntityName]Components),
-		Systems:  make([]System, 0),
+		Entities:   make(map[EntityName]ComponentList),
+		Components: make(map[ComponentName]ComponentList),
+		Systems:    make([]System, 0),
 	}
 }
 
@@ -35,56 +41,44 @@ func (e *ECS) AddSystem(name SystemName, f func(*ECS)) {
 	e.Systems = append(e.Systems, System{Name: name, Function: f})
 }
 
-func (e *ECS) AddEntities(name EntityName, cs ...Component) error {
+func (e *ECS) AddEntities(name EntityName, cs ...Component) {
 	if _, alreadyHas := e.Entities[name]; alreadyHas {
-		return errors.New("the ecs has already this entity")
+		panic("the entity is already existed")
 	}
-	e.Entities[name] = make(Components)
+	e.Entities[name] = ComponentList{}
 
 	for _, c := range cs {
-		e.Entities[name][c.Component()] = c
-	}
-	return nil
-}
-
-func (e *ECS) AddComponetsToEntity(entity EntityName, cs ...Component) error {
-
-	if _, has := e.Entities[entity]; !has {
-		return errors.New("the entity can not be found")
+		newNode := ComponentListNode{c, name}
+		if _, ok := e.Components[c.Component()]; !ok {
+			e.Components[c.Component()] = ComponentList{&newNode}
+		} else {
+			e.Components[c.Component()] = append(e.Components[c.Component()], &newNode)
+		}
+		e.Entities[name] = append(e.Entities[name], &newNode)
 	}
 
-	for _, c := range cs {
-		e.Entities[entity][c.Component()] = c
-	}
-
-	return nil
 }
 
 func (ecs *ECS) ApplyToAllComponent(name ComponentName, f func(ecs *ECS, entity EntityName, component Component)) {
 	threadNum := 0
-	finishChan := make(chan bool ,len(ecs.Entities))
-	for entity, components := range ecs.Entities {
-		for n, component := range components {
-			if n == name {
-				threadNum += 1
-				go func(c Component,e EntityName) {
-					f(ecs, e, c)
-					finishChan <- true
-				}(component,entity)
-				break
-			}
-		}
+	finishChan := make(chan bool, len(ecs.Components[name]))
+	for _, node := range ecs.Components[name] {
+		threadNum += 1
+		go func(c Component, e EntityName) {
+			f(ecs, e, c)
+			finishChan <- true
+		}(node.componet, node.belong)
 	}
-	for i:=0;i<threadNum;i++{
-		<- finishChan 
+	for i := 0; i < threadNum; i++ {
+		<-finishChan
 	}
 
 }
 func (ecs *ECS) GetEntitiesHasComponenet(componentNeed ComponentName) []EntityName {
 	var result []EntityName
 	for e, components := range ecs.Entities {
-		for n := range components {
-			if n == componentNeed {
+		for _, node := range components {
+			if node.componet.Component() == componentNeed {
 				result = append(result, e)
 				break
 			}
@@ -98,18 +92,19 @@ func (ecs *ECS) GetComponet(entityNeed EntityName, componentNeed ComponentName) 
 		if e != entityNeed {
 			continue
 		}
-		for n, c := range components {
-			if n == componentNeed {
-				return c
+
+		for _, node := range components {
+			if node.componet.Component() == componentNeed {
+				return node.componet
 			}
 		}
 	}
 	panic("the entity" + string(entityNeed) + "dones not have" + string(componentNeed))
-	return nil
 }
 
 func (e *ECS) Update() {
 	for _, system := range e.Systems {
+		fmt.Println(system.Name)
 		system.Function(e)
 	}
 }
@@ -117,10 +112,10 @@ func (e *ECS) Update() {
 func (e *ECS) String() string {
 	var s = ""
 	for name, Components := range e.Entities {
-		s += string(name) + "\n"
-		for componentName, Component := range Components {
-			s += string(componentName) + "\n"
-			s += fmt.Sprint(Component) + "\n"
+		s += "***" + string(name) + "***" + "\n"
+		for _, node := range Components {
+			s += string(node.componet.Component()) + "\n"
+			s += fmt.Sprint(node.componet) + "\n"
 		}
 	}
 	return s

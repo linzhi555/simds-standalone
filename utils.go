@@ -16,7 +16,7 @@ var disableInfo = flag.Bool("q", false, "disable info")
 func ParseAddr(addr string) (host, port string) {
 	temp := strings.Split(addr, ":")
 	if len(temp) != 2 {
-		panic("addr is wrong:"+addr)
+		panic("addr is wrong:" + addr)
 	}
 	return temp[0], temp[1]
 }

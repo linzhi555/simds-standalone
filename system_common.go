@@ -14,22 +14,21 @@ func addCommonSystem(n SystemName, f func(*ECS)) {
 const SSystemTimeUpdate = "SystemTimeUpdate"
 
 func init() { addCommonSystem(SSystemTimeUpdate, SystemTimeUpdate) }
-func SystemTimeUpdate(e *ECS) {
-	for _, Components := range e.Entities {
-		for componentName, Component := range Components {
-			if componentName == "SystemTime" {
-				st := Component.(*SystemTime)
-				st.Time += 1
-			}
-		}
+func SystemTimeUpdate(ecs *ECS) {
+
+	f := func(ecs *ECS, entity EntityName, c Component) {
+		st := c.(*SystemTime)
+		st.Time += 1
 	}
+
+	ecs.ApplyToAllComponent(CSystemTime, f)
 }
 
 const SNetworkUpdate = "NetworkUpdateSystem"
 
 func init() { addCommonSystem(SNetworkUpdate, NetworkUpdateSystem) }
 func NetworkUpdateSystem(ecs *ECS) {
-	ecs.ApplyToAllComponent("Network", NetworkUpdate)
+	ecs.ApplyToAllComponent(CNetWork, NetworkUpdate)
 }
 
 func NetworkUpdate(ecs *ECS, entity EntityName, c Component) {

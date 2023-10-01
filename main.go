@@ -117,15 +117,12 @@ func main() {
 	for i := 0; i < frameNum; i++ {
 		log.Println("simluating", i, frameNum)
 		s.Update()
-		if *Debug && i == 1000 {
-			fmt.Println("*************************")
-			fmt.Println("*************************")
-			fmt.Println(s)
 
-			fmt.Println("*************************")
-			fmt.Println("*************************")
+		//if i==10{
+		//	fmt.Println(s)
+		//	panic("debug")
+		//}
 
-		}
 	}
 
 }
