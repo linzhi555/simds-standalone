@@ -60,16 +60,21 @@ func (e *ECS) AddEntities(name EntityName, cs ...Component) {
 }
 
 func (ecs *ECS) ApplyToAllComponent(name ComponentName, f func(ecs *ECS, entity EntityName, component Component)) {
-	threadNum := 0
-	finishChan := make(chan bool, len(ecs.Components[name]))
-	for _, node := range ecs.Components[name] {
-		threadNum += 1
-		go func(c Component, e EntityName) {
-			f(ecs, e, c)
+	const RenderThreadNum = 100
+	finishChan := make(chan bool, RenderThreadNum)
+	for i := 0; i < RenderThreadNum; i++ {
+
+		go func(id int) {
+			for j, node := range ecs.Components[name] {
+				if j%RenderThreadNum == id {
+					f(ecs, node.belong, node.componet)
+				}
+			}
 			finishChan <- true
-		}(node.componet, node.belong)
+		}(i)
 	}
-	for i := 0; i < threadNum; i++ {
+
+	for i := 0; i < RenderThreadNum; i++ {
 		<-finishChan
 	}
 
