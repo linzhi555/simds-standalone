@@ -8,7 +8,6 @@ analyse:
 	mkdir -p target
 	rm -f target/*.log && rm -f target/*.png 
 	analyse 
-	nautilus ./target
 
 
 fmt:
