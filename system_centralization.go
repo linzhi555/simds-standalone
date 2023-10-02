@@ -23,10 +23,8 @@ func SchedulerUpdateSystem(ecs *ECS) {
 
 const schedulerDelay = 10 * MiliSecond
 
-func SchedulerTicks(ecs *ECS, cnode *ComponentListNode) {
-	scheduler := cnode.componet.(Scheduler)
-	defer func() { cnode.componet = scheduler }()
-	entity := cnode.belong
+func SchedulerTicks(ecs *ECS, entity EntityName, comp Component) Component {
+	scheduler := comp.(Scheduler)
 	timeNow := GetEntityTime(ecs, entity)
 
 	for !scheduler.Net.In.Empty() {
@@ -86,6 +84,7 @@ func SchedulerTicks(ecs *ECS, cnode *ComponentListNode) {
 			panic("wrong task status")
 		}
 	}
+	return scheduler
 
 }
 

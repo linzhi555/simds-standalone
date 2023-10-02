@@ -54,7 +54,7 @@ func (e *ECS) AddEntities(name EntityName, cs ...Component) {
 
 }
 
-func (ecs *ECS) ApplyToAllComponent(name ComponentName, f func(ecs *ECS, cnode *ComponentListNode)) {
+func (ecs *ECS) ApplyToAllComponent(name ComponentName, f func(ecs *ECS, e EntityName, componet Component) Component) {
 	const RenderThreadNum = 100
 	finishChan := make(chan bool, RenderThreadNum)
 	for i := 0; i < RenderThreadNum; i++ {
@@ -62,7 +62,8 @@ func (ecs *ECS) ApplyToAllComponent(name ComponentName, f func(ecs *ECS, cnode *
 		go func(id int) {
 			for j, _ := range ecs.Components[name] {
 				if j%RenderThreadNum == id {
-					f(ecs, &ecs.Components[name][j])
+					entity := ecs.Components[name][j].belong
+					ecs.Components[name][j].componet = f(ecs, entity, ecs.Components[name][j].componet)
 				}
 			}
 			finishChan <- true

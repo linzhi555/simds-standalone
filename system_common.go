@@ -16,10 +16,10 @@ const SSystemTimeUpdate = "SystemTimeUpdate"
 func init() { addCommonSystem(SSystemTimeUpdate, SystemTimeUpdate) }
 func SystemTimeUpdate(ecs *ECS) {
 
-	f := func(ecs *ECS, cnode *ComponentListNode) {
-		st := cnode.componet.(SystemTime)
-		defer func() { cnode.componet = st }()
+	f := func(ecs *ECS, _ EntityName, comp Component) Component {
+		st := comp.(SystemTime)
 		st.Time += 1
+		return st
 	}
 
 	ecs.ApplyToAllComponent(CSystemTime, f)
@@ -32,10 +32,8 @@ func NetworkUpdateSystem(ecs *ECS) {
 	ecs.ApplyToAllComponent(CNetWork, NetworkUpdate)
 }
 
-func NetworkUpdate(ecs *ECS, cnode *ComponentListNode) {
-	n := cnode.componet.(Network)
-	defer func() { cnode.componet = n }()
-	entity := cnode.belong
+func NetworkUpdate(ecs *ECS, entity EntityName, comp Component) Component {
+	n := comp.(Network)
 
 	for _, in := range n.Ins {
 		var receivedNum = 0
@@ -74,6 +72,7 @@ func NetworkUpdate(ecs *ECS, cnode *ComponentListNode) {
 			v.LeftTime -= 1
 		}
 	}
+	return n
 
 }
 
@@ -88,11 +87,9 @@ func init() { addCommonSystem(SResourceManagerUpdate, ResourceManagerUpdateSyste
 func ResourceManagerUpdateSystem(ecs *ECS) {
 	ecs.ApplyToAllComponent(CResouceManger, ResourceManagerTicks)
 }
-func ResourceManagerTicks(ecs *ECS, cnode *ComponentListNode) {
-	rm := cnode.componet.(ResourceManager)
-	defer func() { cnode.componet = rm }()
-	entity := cnode.belong
-	hostTime := GetEntityTime(ecs, cnode.belong)
+func ResourceManagerTicks(ecs *ECS, entity EntityName, comp Component) Component {
+	rm := comp.(ResourceManager)
+	hostTime := GetEntityTime(ecs, entity)
 
 	if !rm.Net.In.Empty() {
 		newMessage, err := rm.Net.In.Dequeue()
@@ -125,6 +122,7 @@ func ResourceManagerTicks(ecs *ECS, cnode *ComponentListNode) {
 	}
 
 	updateNodeInfo(ecs, entity, &rm)
+	return rm
 }
 
 func informReceiverTaskStatus(rm *ResourceManager, t *TaskInfo, content string) {
@@ -160,11 +158,9 @@ func TaskGenUpdateSystem(ecs *ECS) {
 	ecs.ApplyToAllComponent(CTaskGen, TaskGenTicks)
 }
 
-func TaskGenTicks(ecs *ECS, cnode *ComponentListNode) {
-	taskgen := cnode.componet.(TaskGen)
-	defer func() { cnode.componet = taskgen }()
-	entity := cnode.belong
-	t := GetEntityTime(ecs, cnode.belong)
+func TaskGenTicks(ecs *ECS, entity EntityName, comp Component) Component {
+	taskgen := comp.(TaskGen)
+	t := GetEntityTime(ecs, entity)
 
 	if t == 1 {
 		nodes := ecs.GetEntitiesHasComponenet(CScheduler)
@@ -173,7 +169,7 @@ func TaskGenTicks(ecs *ECS, cnode *ComponentListNode) {
 			taskgen.Receivers = append(taskgen.Receivers, newReceiver)
 			LogInfo(ecs, entity, fmt.Sprintf(": newReceiver %s", newReceiver))
 		}
-		return
+		return taskgen
 	}
 
 	taskNumPerSecond := Config.TaskNumFactor * float32(Config.NodeNum)
@@ -201,4 +197,5 @@ func TaskGenTicks(ecs *ECS, cnode *ComponentListNode) {
 			taskgen.CurTaskId += 1
 		}
 	}
+	return taskgen
 }
