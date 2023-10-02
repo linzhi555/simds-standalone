@@ -23,15 +23,17 @@ type System struct {
 	Function func(*ECS)
 }
 
+type componetIndex map[ComponentName]int
+
 type ECS struct {
-	Entities   map[EntityName]struct{}
+	Entities   map[EntityName]componetIndex
 	Components map[ComponentName]ComponentList
 	Systems    []System
 }
 
 func NewEcs() *ECS {
 	return &ECS{
-		Entities:   make(map[EntityName]struct{}),
+		Entities:   make(map[EntityName]componetIndex),
 		Components: make(map[ComponentName]ComponentList),
 		Systems:    make([]System, 0),
 	}
@@ -45,11 +47,12 @@ func (e *ECS) AddEntities(name EntityName, cs ...Component) {
 	if _, alreadyHas := e.Entities[name]; alreadyHas {
 		panic("the entity is already existed")
 	}
-	e.Entities[name] = struct{}{}
+	e.Entities[name] = make(componetIndex)
 
 	for _, c := range cs {
 		AssertTypeIsNotPointer(c)
 		e.Components[c.Component()] = append(e.Components[c.Component()], ComponentListNode{c, name})
+		e.Entities[name][c.Component()]=len(e.Components[c.Component()])-1
 	}
 
 }
@@ -91,12 +94,9 @@ func (ecs *ECS) GetEntitiesHasComponenet(componentNeed ComponentName) []EntityNa
 // Get the information of a commponet of entityNeed,rember the ret is a value not a pointer
 func (ecs *ECS) GetComponet(entityNeed EntityName, componentNeed ComponentName) (ret Component) {
 
-	for _, node := range ecs.Components[componentNeed] {
-		if node.belong == entityNeed {
-			return node.componet
-		}
-	}
-	panic("the entity" + string(entityNeed) + "dones not have" + string(componentNeed))
+	index := ecs.Entities[entityNeed][componentNeed]
+	return ecs.Components[componentNeed][index].componet
+
 }
 
 func (e *ECS) Update() {
