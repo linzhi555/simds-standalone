@@ -5,15 +5,16 @@ import (
 )
 
 var Config struct {
-	NodeNum       int32
-	NetLatency    int32
-	DcssNeibor    int32
-	NodeCpu       int32
-	NodeMemory    int32
-	TaskNumFactor float32
-	TaskCpu       int32
-	TaskMemory    int32
-	TaskLifeTime  int32
+	NodeNum              int32
+	NetLatency           int32
+	DcssNeibor           int32
+	NodeCpu              int32
+	NodeMemory           int32
+	TaskNumFactor        float32
+	TaskCpu              int32
+	TaskMemory           int32
+	TaskLifeTime         int32
+	SchedulerPerformance float32
 }
 
 func init() {
@@ -32,5 +33,6 @@ func init() {
 	Config.TaskCpu = int32(viper.GetInt("TaskCpu"))
 	Config.TaskMemory = int32(viper.GetInt("TaskMemory"))
 	Config.TaskLifeTime = int32(viper.GetInt("TaskLifeTime"))
+	Config.SchedulerPerformance = float32(viper.GetInt("SchedulerPerformance"))
 
 }

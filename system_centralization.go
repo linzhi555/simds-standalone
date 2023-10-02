@@ -27,6 +27,11 @@ func SchedulerTicks(ecs *ECS, entity EntityName, comp Component) Component {
 	scheduler := comp.(Scheduler)
 	timeNow := GetEntityTime(ecs, entity)
 
+	if timeNow == 1 {
+		scheduler.Tasks["WaitSchedule"] = &Vec[TaskInfo]{}
+		return scheduler
+	}
+
 	for !scheduler.Net.In.Empty() {
 		newMessage, err := scheduler.Net.In.Dequeue()
 		if err != nil {
@@ -37,7 +42,7 @@ func SchedulerTicks(ecs *ECS, entity EntityName, comp Component) Component {
 			task := newMessage.Body.(TaskInfo)
 			task.InQueneTime = timeNow
 			task.Status = "WaitSchedule"
-			scheduler.Tasks[task.Id] = &task
+			scheduler.Tasks["WaitSchedule"].InQueue(task)
 			LogInfo(ecs, entity, scheduler.Net.Addr, "received TaskDispense", task)
 		}
 
@@ -49,40 +54,32 @@ func SchedulerTicks(ecs *ECS, entity EntityName, comp Component) Component {
 
 	}
 
-	for taskid, task := range scheduler.Tasks {
-		switch task.Status {
-		case "WaitSchedule":
-			dstWorker, ok := schdulingAlgorithm(&scheduler, task)
-			if ok {
-				task.Worker = dstWorker
-				task.Status = "Scheduling"
-				scheduler.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
-			} else {
-			}
-			break
+	var MAX_SCHEDULE_TIMES = int(Config.SchedulerPerformance)
+	for i := 0; i < MAX_SCHEDULE_TIMES; i++ {
 
-		case "Scheduling":
-			if timeNow-task.InQueneTime > schedulerDelay {
-				task.Status = "Scheduled"
-			}
+		task, err := scheduler.Tasks["WaitSchedule"].Dequeue()
+		if err != nil {
 			break
-		case "Scheduled":
+		}
+
+		dstWorker, ok := schdulingAlgorithm(&scheduler, &task)
+		if ok {
+			task.Worker = dstWorker
+			task.Status = "Allocated"
+			scheduler.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
 			newMessage := Message{
 				From:    scheduler.Net.Addr,
 				To:      task.Worker,
 				Content: "TaskAllocate",
-				Body:    *task,
+				Body:    task,
 			}
 			scheduler.Net.Out.InQueue(newMessage)
-			task.Status = "Allocated"
 			LogInfo(ecs, entity, scheduler.Net.Addr, "sendtask to", task.Worker, task)
-			break
-		case "Allocated":
-			delete(scheduler.Tasks, taskid)
-			break
-		default:
-			panic("wrong task status")
+		} else {
+			scheduler.Tasks["WaitSchedule"].InQueue(task)
+
 		}
+
 	}
 	return scheduler
 

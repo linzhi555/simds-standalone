@@ -52,7 +52,7 @@ func (e *ECS) AddEntities(name EntityName, cs ...Component) {
 	for _, c := range cs {
 		AssertTypeIsNotPointer(c)
 		e.Components[c.Component()] = append(e.Components[c.Component()], ComponentListNode{c, name})
-		e.Entities[name][c.Component()]=len(e.Components[c.Component()])-1
+		e.Entities[name][c.Component()] = len(e.Components[c.Component()]) - 1
 	}
 
 }

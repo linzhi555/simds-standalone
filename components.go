@@ -103,14 +103,14 @@ const CScheduler ComponentName = "Scheduler"
 type Scheduler struct {
 	Net     NetCard
 	Workers map[string]*NodeInfo
-	Tasks   map[string]*TaskInfo
+	Tasks   map[string]*Vec[TaskInfo]
 }
 
 func CreateScheduler(hostname string) Scheduler {
 	return Scheduler{
 		Net:     CreateNetCard(hostname + ":" + "Scheduler"),
 		Workers: make(map[string]*NodeInfo),
-		Tasks:   make(map[string]*TaskInfo),
+		Tasks:   make(map[string]*Vec[TaskInfo]),
 	}
 }
 func (s Scheduler) Component() ComponentName {
