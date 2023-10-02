@@ -22,7 +22,7 @@ const CNetWork ComponentName = "Network"
 
 type Network struct {
 	NetLatency int32
-	Waittings  map[string]*Message
+	Waittings  Vec[Message]
 	Ins        map[string]*Vec[Message]
 	Outs       map[string]*Vec[Message]
 }
@@ -34,7 +34,7 @@ func (n Network) Component() ComponentName {
 func CreateNetWork(latency int32) Network {
 	return Network{
 		NetLatency: latency,
-		Waittings:  make(map[string]*Message),
+		Waittings:  Vec[Message]{},
 		Ins:        make(map[string]*Vec[Message]),
 		Outs:       make(map[string]*Vec[Message]),
 	}
@@ -44,9 +44,6 @@ func (n Network) String() string {
 	var res string
 	res += "Waittings: \n"
 	for _, v := range n.Waittings {
-		if v == nil {
-			continue
-		}
 		res += fmt.Sprintln(v)
 	}
 	res += "Routes: \n"

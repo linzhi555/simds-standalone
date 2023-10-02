@@ -36,7 +36,6 @@ func NetworkUpdate(ecs *ECS, entity EntityName, comp Component) Component {
 	n := comp.(Network)
 
 	for _, in := range n.Ins {
-		var receivedNum = 0
 		for !in.Empty() {
 			newM, err := in.Dequeue()
 			// message body can not be pointer
@@ -52,26 +51,32 @@ func NetworkUpdate(ecs *ECS, entity EntityName, comp Component) Component {
 			}
 
 			LogInfo(ecs, entity, ": new message waitting to be send", newM)
-			n.Waittings[fmt.Sprint(GetEntityTime(ecs, entity))+"_"+fmt.Sprint(receivedNum)+"_"+newM.From+"_"+newM.To] = &newM
-			receivedNum += 1
-
+			n.Waittings.InQueue(newM)
 		}
 
 	}
-
-	for name, v := range n.Waittings {
-		if v.LeftTime == 0 {
-			LogInfo(ecs, entity, ": new message sended", v)
-			out, ok := n.Outs[v.To]
+	for i := 0; i < len(n.Waittings); {
+		m := n.Waittings[i]
+		needDelete := false
+		if m.LeftTime == 0 {
+			LogInfo(ecs, entity, ": new message sended", m)
+			out, ok := n.Outs[m.To]
 			if !ok {
-				panic(v.To + ":net can not reach")
+				panic(m.To + ":net can not reach")
 			}
-			out.InQueue(*v)
-			delete(n.Waittings, name)
+			needDelete = true
+			out.InQueue(m)
 		} else {
-			v.LeftTime -= 1
+			n.Waittings[i].LeftTime -= 1
 		}
+		if needDelete {
+			n.Waittings.Delete(i)
+		} else {
+			i += 1
+		}
+
 	}
+
 	return n
 
 }
