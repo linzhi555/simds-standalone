@@ -23,8 +23,8 @@ const CNetWork ComponentName = "Network"
 type Network struct {
 	NetLatency int32
 	Waittings  map[string]*Message
-	Ins        map[string]*MessageQueue
-	Outs       map[string]*MessageQueue
+	Ins        map[string]*Vec[Message]
+	Outs       map[string]*Vec[Message]
 }
 
 func (n Network) Component() ComponentName {
@@ -35,8 +35,8 @@ func CreateNetWork(latency int32) Network {
 	return Network{
 		NetLatency: latency,
 		Waittings:  make(map[string]*Message),
-		Ins:        make(map[string]*MessageQueue),
-		Outs:       make(map[string]*MessageQueue),
+		Ins:        make(map[string]*Vec[Message]),
+		Outs:       make(map[string]*Vec[Message]),
 	}
 }
 
@@ -61,8 +61,8 @@ const CNetCard = "NetCard"
 
 type NetCard struct {
 	Addr string
-	In   *MessageQueue
-	Out  *MessageQueue
+	In   *Vec[Message]
+	Out  *Vec[Message]
 }
 
 func CreateNetCard(name string) NetCard {
@@ -95,8 +95,8 @@ func (t TaskGen) Component() ComponentName {
 }
 
 func (nc *NetCard) JoinNetWork(net *Network) {
-	nc.In = NewMessageQueue()
-	nc.Out = NewMessageQueue()
+	nc.In = &Vec[Message]{}
+	nc.Out = &Vec[Message]{}
 	net.Outs[nc.Addr] = nc.In
 	net.Ins[nc.Addr] = nc.Out
 }
