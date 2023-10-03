@@ -27,11 +27,6 @@ func SchedulerTicks(ecs *ECS, entity EntityName, comp Component) Component {
 	scheduler := comp.(Scheduler)
 	timeNow := GetEntityTime(ecs, entity)
 
-	if timeNow == 1 {
-		scheduler.Tasks["WaitSchedule"] = &Vec[TaskInfo]{}
-		return scheduler
-	}
-
 	for !scheduler.Net.In.Empty() {
 		newMessage, err := scheduler.Net.In.Dequeue()
 		if err != nil {
@@ -42,7 +37,7 @@ func SchedulerTicks(ecs *ECS, entity EntityName, comp Component) Component {
 			task := newMessage.Body.(TaskInfo)
 			task.InQueneTime = timeNow
 			task.Status = "WaitSchedule"
-			scheduler.Tasks["WaitSchedule"].InQueue(task)
+			scheduler.WaitSchedule.InQueue(task)
 			LogInfo(ecs, entity, scheduler.Net.Addr, "received TaskDispense", task)
 		}
 
@@ -57,7 +52,7 @@ func SchedulerTicks(ecs *ECS, entity EntityName, comp Component) Component {
 	var MAX_SCHEDULE_TIMES = int(Config.SchedulerPerformance)
 	for i := 0; i < MAX_SCHEDULE_TIMES; i++ {
 
-		task, err := scheduler.Tasks["WaitSchedule"].Dequeue()
+		task, err := scheduler.WaitSchedule.Dequeue()
 		if err != nil {
 			break
 		}
@@ -76,7 +71,7 @@ func SchedulerTicks(ecs *ECS, entity EntityName, comp Component) Component {
 			scheduler.Net.Out.InQueue(newMessage)
 			LogInfo(ecs, entity, scheduler.Net.Addr, "sendtask to", task.Worker, task)
 		} else {
-			scheduler.Tasks["WaitSchedule"].InQueue(task)
+			scheduler.WaitSchedule.InQueue(task)
 
 		}
 

@@ -101,16 +101,18 @@ func (nc *NetCard) JoinNetWork(net *Network) {
 const CScheduler ComponentName = "Scheduler"
 
 type Scheduler struct {
-	Net     NetCard
-	Workers map[string]*NodeInfo
-	Tasks   map[string]*Vec[TaskInfo]
+	Net          NetCard
+	Workers      map[string]*NodeInfo
+	WaitSchedule Vec[TaskInfo]
+	TasksStatus  map[string]*TaskInfo
 }
 
 func CreateScheduler(hostname string) Scheduler {
 	return Scheduler{
-		Net:     CreateNetCard(hostname + ":" + "Scheduler"),
-		Workers: make(map[string]*NodeInfo),
-		Tasks:   make(map[string]*Vec[TaskInfo]),
+		Net:          CreateNetCard(hostname + ":" + "Scheduler"),
+		Workers:      make(map[string]*NodeInfo),
+		WaitSchedule: Vec[TaskInfo]{},
+		TasksStatus:  make(map[string]*TaskInfo),
 	}
 }
 func (s Scheduler) Component() ComponentName {
