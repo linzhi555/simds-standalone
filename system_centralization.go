@@ -71,7 +71,7 @@ func SchedulerTicks(ecs *ECS, entity EntityName, comp Component) Component {
 			scheduler.Net.Out.InQueue(newMessage)
 			LogInfo(ecs, entity, scheduler.Net.Addr, "sendtask to", task.Worker, task)
 		} else {
-			scheduler.WaitSchedule.InQueue(task)
+			scheduler.WaitSchedule.InQueueFront(task)
 
 		}
 

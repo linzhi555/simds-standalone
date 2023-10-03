@@ -56,6 +56,11 @@ func (n *NodeInfo) CanAllocate(taskCpu, taskMemory int32) bool {
 
 type Vec[T TaskInfo | NodeInfo | Message] []T
 
+func (vec *Vec[T])InQueueFront(data T){
+	*vec = append(Vec[T]{data},*vec...)
+
+}
+
 func (vec *Vec[T]) InQueue(data T) {
 	*vec = append(*vec, data)
 }
