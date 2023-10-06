@@ -4,10 +4,13 @@ centerTest:
 dcssTest:
 	go run . -dcss
 	make analyse
+
+Folder= target/$(shell date '+%m_%d_%H_%M_%S')
 analyse:
-	mkdir -p target
-	rm -f target/*.log && rm -f target/*.png 
-	analyse 
+	mkdir -p $(Folder)
+	cp ./config.yaml $(Folder)
+	analyse -outputDir $(Folder)
+
 
 
 fmt:

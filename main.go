@@ -114,7 +114,7 @@ func main() {
 	fmt.Println(s.Entities)
 	frameNum := 12000
 	for i := 0; i < frameNum; i++ {
-		log.Println("simluating", i, frameNum)
+		log.Println("simluating", i,"/",frameNum)
 		s.Update()
 
 		//if i==10{
