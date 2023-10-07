@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"log"
@@ -6,7 +6,7 @@ import (
 	"runtime/pprof"
 )
 
-func startPerf() {
+func StartPerf() {
 	f, err := os.OpenFile("./cpu.prof", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0666)
 	if err != nil {
 		log.Fatal("could not create CPU profile: ", err)
@@ -16,6 +16,6 @@ func startPerf() {
 	}
 }
 
-func stopPerf() {
+func StopPerf() {
 	pprof.StopCPUProfile()
 }

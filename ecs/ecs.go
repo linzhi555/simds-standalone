@@ -1,7 +1,8 @@
-package main
+package ecs
 
 import (
 	"fmt"
+	"simds-standalone/common"
 )
 
 type EntityName string
@@ -26,13 +27,15 @@ type System struct {
 type componetIndex map[ComponentName]int
 
 type ECS struct {
-	Entities   map[EntityName]componetIndex
-	Components map[ComponentName]ComponentList
-	Systems    []System
+	UpdateCount uint64
+	Entities    map[EntityName]componetIndex
+	Components  map[ComponentName]ComponentList
+	Systems     []System
 }
 
 func NewEcs() *ECS {
 	return &ECS{
+		UpdateCount:0,
 		Entities:   make(map[EntityName]componetIndex),
 		Components: make(map[ComponentName]ComponentList),
 		Systems:    make([]System, 0),
@@ -50,7 +53,7 @@ func (e *ECS) AddEntities(name EntityName, cs ...Component) {
 	e.Entities[name] = make(componetIndex)
 
 	for _, c := range cs {
-		AssertTypeIsNotPointer(c)
+		common.AssertTypeIsNotPointer(c)
 		e.Components[c.Component()] = append(e.Components[c.Component()], ComponentListNode{c, name})
 		e.Entities[name][c.Component()] = len(e.Components[c.Component()]) - 1
 	}
@@ -104,6 +107,7 @@ func (e *ECS) Update() {
 		fmt.Println(system.Name)
 		system.Function(e)
 	}
+	e.UpdateCount +=1;
 }
 
 //func (e *ECS) String() string {

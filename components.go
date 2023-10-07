@@ -2,37 +2,67 @@ package main
 
 import (
 	"fmt"
+	"simds-standalone/ecs"
+	"time"
 )
 
 const MiliSecond int32 = 1
 const Second int32 = 1000
 
-// SystemTime Component, a entity can know it when it has this obecjt
-const CSystemTime ComponentName = "SystemTime"
+const CMockNetWork ecs.ComponentName = "MockNetwork"
+const CTaskGen ecs.ComponentName = "TaskGen"
+const CScheduler ecs.ComponentName = "Scheduler"
+const CResouceManger ecs.ComponentName = "ResourceManager"
 
-type SystemTime struct {
-	Time int32
+type NodeComponent interface {
+	ecs.Component
+	SetComponent(n ecs.ComponentName)
+	InitNet(NetInterface)
+	InitTimeGetter(func() time.Time)
+	Net() NetInterface
+	GetTime() time.Time
 }
 
-func (s SystemTime) Component() ComponentName {
-	return CSystemTime
+type baseComp struct {
+	name        ecs.ComponentName
+	getTimeFunc func() time.Time
+	net         NetInterface
 }
 
-const CNetWork ComponentName = "Network"
+func (n *baseComp) Component() ecs.ComponentName {
+	return n.name
+}
 
-type Network struct {
+func (n *baseComp) SetComponent(name ecs.ComponentName) {
+	n.name = name
+}
+
+func (n *baseComp) InitNet(ni NetInterface) {
+	n.net = ni
+}
+
+func (n *baseComp) InitTimeGetter(f func() time.Time) {
+	n.getTimeFunc = f
+}
+
+func (n *baseComp) Net() NetInterface {
+	return n.net
+}
+func (n *baseComp) GetTime() time.Time {
+	return n.getTimeFunc()
+}
+
+type MockNetwork struct {
+	*baseComp
 	NetLatency int32
 	Waittings  Vec[Message]
 	Ins        map[string]*Vec[Message]
 	Outs       map[string]*Vec[Message]
 }
 
-func (n Network) Component() ComponentName {
-	return CNetWork
-}
-
-func CreateNetWork(latency int32) Network {
-	return Network{
+func CreateMockNetWork(latency int32) MockNetwork {
+	return MockNetwork{
+		baseComp:   &baseComp{name: CMockNetWork},
 		NetLatency: latency,
 		Waittings:  Vec[Message]{},
 		Ins:        make(map[string]*Vec[Message]),
@@ -40,7 +70,7 @@ func CreateNetWork(latency int32) Network {
 	}
 }
 
-func (n Network) String() string {
+func (n MockNetwork) String() string {
 	var res string
 	res += "Waittings: \n"
 	for _, v := range n.Waittings {
@@ -54,54 +84,21 @@ func (n Network) String() string {
 	return res
 }
 
-const CNetCard = "NetCard"
-
-type NetCard struct {
-	Addr string
-	In   *Vec[Message]
-	Out  *Vec[Message]
-}
-
-func CreateNetCard(name string) NetCard {
-	return NetCard{
-		Addr: name,
-	}
-
-}
-
-func (nc NetCard) Component() ComponentName {
-	return CNetCard
-}
-
-const CTaskGen = "NetCard"
-
 type TaskGen struct {
+	*baseComp
 	CurTaskId int
-	Net       NetCard
 	Receivers []string
 }
 
 func CreateTaskGen(hostname string) TaskGen {
 	return TaskGen{
+		baseComp:  &baseComp{name: CTaskGen},
 		CurTaskId: 0,
-		Net:       CreateNetCard(hostname + ":" + "TaskGen"),
 	}
 }
-func (t TaskGen) Component() ComponentName {
-	return CTaskGen
-}
-
-func (nc *NetCard) JoinNetWork(net *Network) {
-	nc.In = &Vec[Message]{}
-	nc.Out = &Vec[Message]{}
-	net.Outs[nc.Addr] = nc.In
-	net.Ins[nc.Addr] = nc.Out
-}
-
-const CScheduler ComponentName = "Scheduler"
 
 type Scheduler struct {
-	Net          NetCard
+	*baseComp
 	Workers      map[string]*NodeInfo
 	WaitSchedule Vec[TaskInfo]
 	TasksStatus  map[string]*TaskInfo
@@ -109,14 +106,11 @@ type Scheduler struct {
 
 func CreateScheduler(hostname string) Scheduler {
 	return Scheduler{
-		Net:          CreateNetCard(hostname + ":" + "Scheduler"),
+		baseComp:     &baseComp{name: CScheduler},
 		Workers:      make(map[string]*NodeInfo),
 		WaitSchedule: Vec[TaskInfo]{},
 		TasksStatus:  make(map[string]*TaskInfo),
 	}
-}
-func (s Scheduler) Component() ComponentName {
-	return CScheduler
 }
 
 func (s *Scheduler) GetAllWokersName() []string {
@@ -127,21 +121,16 @@ func (s *Scheduler) GetAllWokersName() []string {
 	return keys
 }
 
-const CResouceManger ComponentName = "ResourceManager"
-
 type ResourceManager struct {
+	*baseComp
 	Tasks              map[string]*TaskInfo
-	Net                NetCard
 	Node               NodeInfo
 	TaskFinishReceiver string // if it is not zero , the receiver wiil get the notifiction
 }
 
 func CreateResourceManager(host string) ResourceManager {
 	return ResourceManager{
-		Tasks: make(map[string]*TaskInfo),
-		Net:   CreateNetCard(host + ":" + "ResourceManager"),
+		baseComp: &baseComp{name: CResouceManger},
+		Tasks:    make(map[string]*TaskInfo),
 	}
-}
-func (t ResourceManager) Component() ComponentName {
-	return CResouceManger
 }

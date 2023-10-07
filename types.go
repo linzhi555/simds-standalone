@@ -2,6 +2,45 @@ package main
 
 import "errors"
 
+
+type NetInterface interface{
+	Empty()bool
+	Recv()(Message,error)
+	Send(Message)error
+}
+
+type MockNetCard struct {
+	Addr string
+	In   *Vec[Message]
+	Out  *Vec[Message]
+}
+
+func CreateMockNetCard(name string) MockNetCard {
+	return MockNetCard{
+		Addr: name,
+	}
+}
+
+func (card MockNetCard)Empty()bool{
+
+	return true
+}
+
+func (card MockNetCard)Recv()(Message,error){
+	return Message{},errors.New("recv fail")
+}
+
+func (card MockNetCard)Send(m Message)error{
+	return errors.New("send fail")
+}
+
+func (nc *MockNetCard) JoinNetWork(net *MockNetwork) {
+	nc.In = &Vec[Message]{}
+	nc.Out = &Vec[Message]{}
+	net.Outs[nc.Addr] = nc.In
+	net.Ins[nc.Addr] = nc.Out
+}
+
 type MessageBody interface {
 	MessageBody()
 }

@@ -2,9 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"log"
-	"math/rand"
+	"simds-standalone/common"
 )
 
 var Debug = flag.Bool("debug", false, "run as debug mode")
@@ -14,114 +12,11 @@ func init() {
 	flag.Parse()
 }
 
-func InitCenterSimulator() *ECS {
-	simulator := NewEcs()
-
-	// init network
-	newNet := CreateNetWork(Config.NetLatency * MiliSecond)
-	simulator.AddEntities("network1", SystemTime{Time: 0}, newNet)
-
-	// init master
-	newScheduler := CreateScheduler("master0")
-	newScheduler.Net.JoinNetWork(&newNet)
-	simulator.AddEntities("master0", SystemTime{Time: 0}, newScheduler)
-
-	// init taskGen
-	newTaskgen := CreateTaskGen("user1")
-	newTaskgen.Net.JoinNetWork(&newNet)
-	simulator.AddEntities("user1", SystemTime{Time: 0}, newTaskgen)
-
-	// init nodes
-	var WorkerNum = Config.NodeNum
-	for i := 0; i < int(WorkerNum); i++ {
-		workerName := fmt.Sprintf("worker%d", i)
-		newResourceManager := CreateResourceManager(workerName)
-		nodeinfo := &NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
-		newScheduler.Workers[newResourceManager.Net.Addr] = nodeinfo.Clone()
-		newResourceManager.Net.JoinNetWork(&newNet)
-		newResourceManager.Node = *nodeinfo.Clone()
-		newResourceManager.TaskFinishReceiver = newScheduler.Net.Addr
-
-		simulator.AddEntities(EntityName(workerName), SystemTime{Time: 0}, newResourceManager)
-	}
-
-	RegisteCentralizedsystemToEcs(simulator)
-	return simulator
-
-}
-
-func InitDcssSimulator() *ECS {
-	simulator := NewEcs()
-
-	// init network
-	newNet := CreateNetWork(Config.NetLatency * MiliSecond)
-	simulator.AddEntities("network1", SystemTime{Time: 0}, newNet)
-
-	// init taskGen
-	newTaskgen := CreateTaskGen("user1")
-	newTaskgen.Net.JoinNetWork(&newNet)
-	simulator.AddEntities("user1", SystemTime{Time: 0}, newTaskgen)
-
-	// init nodes these nodes are scheduler and worker in same time.
-	var nodeNum = int(Config.NodeNum)
-	for i := 0; i < nodeNum; i++ {
-		nodeName := fmt.Sprintf("node%d", i)
-		newResourceManager := CreateResourceManager(nodeName)
-		newScheduler := CreateScheduler(nodeName)
-		newScheduler.Net.JoinNetWork(&newNet)
-		newResourceManager.Net.JoinNetWork(&newNet)
-		initNeiborhood(&newScheduler, nodeNum, int(Config.DcssNeibor))
-		newResourceManager.Node = NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
-		simulator.AddEntities(EntityName(nodeName), SystemTime{Time: 0}, newResourceManager, newScheduler)
-	}
-
-	RegisteDcssSystemToEcs(simulator)
-	return simulator
-
-}
-
-func initNeiborhood(scheduler *Scheduler, allNodeNum int, neiborNum int) {
-
-	var neibors []string
-	// add self in the first for convernience, and ignore the first when actually register neibor
-	neibors = append(neibors, scheduler.Net.Addr)
-	for len(neibors) != neiborNum+1 {
-		newNeibor := fmt.Sprintf("node%d:Scheduler", rand.Intn(allNodeNum))
-		alreadyExisted := false
-		for _, n := range neibors {
-			if n == newNeibor {
-				alreadyExisted = true
-			}
-		}
-		if !alreadyExisted {
-			neibors = append(neibors, newNeibor)
-		}
-	}
-	for _, n := range neibors[1:] {
-		scheduler.Workers[n] = &NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
-	}
-}
-
 func main() {
-	startPerf()
-	defer stopPerf()
-	var s *ECS
-	if *Dcss {
-		s = InitDcssSimulator()
-	} else {
-		s = InitCenterSimulator()
-	}
-	fmt.Println(s.Entities)
-	frameNum := 12000
-	for i := 0; i < frameNum; i++ {
-		log.Println("simluating", i,"/",frameNum)
-		s.Update()
+	common.StartPerf()
+	defer common.StopPerf()
 
-		//if i==10{
-		//	fmt.Println(s)
-		//	panic("debug")
-		//}
-
-	}
+	cluster := NewCenterCluster()
+	EcsRunCluster(cluster)
 
 }
