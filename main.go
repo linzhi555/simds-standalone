@@ -5,7 +5,6 @@ import (
 	"simds-standalone/common"
 )
 
-var Debug = flag.Bool("debug", false, "run as debug mode")
 var Dcss = flag.Bool("dcss", false, "run dcss")
 
 func init() {
@@ -16,7 +15,12 @@ func main() {
 	common.StartPerf()
 	defer common.StopPerf()
 
-	cluster := BuildCenterCluster()
+	var cluster Cluster
+	if *Dcss {
+		cluster = BuildDCSSCluster()
+	} else {
+		cluster = BuildCenterCluster()
+	}
 	EcsRunCluster(cluster)
 
 }

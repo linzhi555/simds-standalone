@@ -85,6 +85,7 @@ func (n MockNetwork) String() string {
 
 type TaskGen struct {
 	*baseComp
+	Host      string
 	StartTime time.Time
 	CurTaskId int
 	Receivers []string
@@ -93,19 +94,23 @@ type TaskGen struct {
 func CreateTaskGen(hostname string) TaskGen {
 	return TaskGen{
 		baseComp:  &baseComp{name: CTaskGen},
+		Host:      hostname,
 		CurTaskId: 0,
 	}
 }
 
 type Scheduler struct {
 	*baseComp
+	Host         string
 	Workers      map[string]*NodeInfo
+	LocalNode    *NodeInfo
 	WaitSchedule Vec[TaskInfo]
 	TasksStatus  map[string]*TaskInfo
 }
 
 func CreateScheduler(hostname string) Scheduler {
 	return Scheduler{
+		Host:         hostname,
 		baseComp:     &baseComp{name: CScheduler},
 		Workers:      make(map[string]*NodeInfo),
 		WaitSchedule: Vec[TaskInfo]{},
@@ -123,6 +128,7 @@ func (s *Scheduler) GetAllWokersName() []string {
 
 type ResourceManager struct {
 	*baseComp
+	Host               string
 	Tasks              map[string]*TaskInfo
 	Node               NodeInfo
 	TaskFinishReceiver string // if it is not zero , the receiver wiil get the notifiction
@@ -131,6 +137,7 @@ type ResourceManager struct {
 func CreateResourceManager(host string) ResourceManager {
 	return ResourceManager{
 		baseComp: &baseComp{name: CResouceManger},
+		Host:     host,
 		Tasks:    make(map[string]*TaskInfo),
 	}
 }

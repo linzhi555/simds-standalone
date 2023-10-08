@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"simds-standalone/common"
 	"time"
@@ -36,53 +35,20 @@ func BuildCenterCluster() Cluster {
 
 	}
 	cluster.Nodes = nodes
-	cluster.RegisterFunc(CTaskGen, taskgen_setup, taskgen_update)
-	cluster.RegisterFunc(CScheduler, scheduler_setup, scheduler_update)
-	cluster.RegisterFunc(CResouceManger, resourceManager_setup, resourceManager_update)
+	cluster.RegisterFunc(CTaskGen, CenterTaskgen_setup, CommonTaskgen_update)
+	cluster.RegisterFunc(CScheduler, CenterScheduler_setup, CenterScheduler_update)
+	cluster.RegisterFunc(CResouceManger, CenterResourceManager_setup, CommonResourceManager_update)
 
 	return cluster
 }
 
-func taskgen_setup(c interface{}) {
+func CenterTaskgen_setup(c interface{}) {
 	taskgen := c.(*TaskGen)
 	taskgen.StartTime = taskgen.GetTime()
+	taskgen.Receivers = append(taskgen.Receivers, "master1"+":"+string(CScheduler))
 }
 
-func taskgen_update(c interface{}) {
-	taskgen := c.(*TaskGen)
-	t := taskgen.GetTime().Sub(taskgen.StartTime)
-
-	taskNumPerSecond := Config.TaskNumFactor * float32(Config.NodeNum)
-
-	taskgenAddr := "user1" + ":" + string(CTaskGen)
-	masterAddr := "master1" + ":" + string(CScheduler)
-
-	if t < 10*time.Second {
-		for taskgen.CurTaskId < int(taskNumPerSecond*float32(t.Milliseconds())/float32(Second)) {
-
-			newtask := TaskInfo{
-				Id:            fmt.Sprintf("task%d", taskgen.CurTaskId),
-				CpuRequest:    1 + int32(rand.Intn(int(2*Config.TaskCpu-2))),
-				MemoryRequest: 1 + int32(rand.Intn(int(2*Config.TaskMemory-2))),
-				LifeTime:      time.Duration(100+int32(rand.Intn(int(Config.TaskLifeTime)*2-200))) * time.Millisecond,
-				Status:        "submit",
-			}
-
-			newMessage := Message{
-				From:    taskgenAddr,
-				To:      masterAddr,
-				Content: "TaskDispense",
-				Body:    newtask,
-			}
-			taskgen.Net().Send(newMessage)
-			LogInfo(taskgen, fmt.Sprintf(": send task to %s %v", masterAddr, newMessage.Body))
-			TaskEventLog(taskgen.GetTime(), &newtask, masterAddr)
-			taskgen.CurTaskId += 1
-		}
-	}
-}
-
-func scheduler_setup(comp interface{}) {
+func CenterScheduler_setup(comp interface{}) {
 	scheduler := comp.(*Scheduler)
 	for i := 0; i < int(Config.NodeNum); i++ {
 		nodeinfo := &NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
@@ -91,7 +57,7 @@ func scheduler_setup(comp interface{}) {
 
 }
 
-func scheduler_update(comp interface{}) {
+func CenterScheduler_update(comp interface{}) {
 
 	scheduler := comp.(*Scheduler)
 
@@ -168,73 +134,10 @@ func schdulingAlgorithm(scheduler *Scheduler, task *TaskInfo) (dstAddr string, o
 	return dstAddr, true
 }
 
-func resourceManager_setup(comp interface{}) {
+func CenterResourceManager_setup(comp interface{}) {
 	rm := comp.(*ResourceManager)
 	rm.TaskFinishReceiver = "master1" + ":" + string(CScheduler)
 
-}
-
-func resourceManager_update(comp interface{}) {
-
-	rm := comp.(*ResourceManager)
-	hostTime := rm.GetTime()
-
-	if !rm.Net().Empty() {
-		newMessage, err := rm.Net().Recv()
-		if err != nil {
-			panic(err)
-		}
-		LogInfo(rm, "received message:", newMessage)
-
-		if newMessage.Content == "TaskAllocate" {
-			newTask := newMessage.Body.(TaskInfo)
-			newTask.StartTime = hostTime
-			rm.Tasks[newTask.Id] = &newTask
-			newTask.Status = "start"
-			LogInfo(rm, "Start task:", newTask)
-			TaskEventLog(hostTime, &newTask, rm.Net().GetAddr())
-		}
-	}
-
-	for id, t := range rm.Tasks {
-		if t.Status == "start" && hostTime.After(t.StartTime.Add(t.LifeTime)) {
-			t.Status = "finish"
-			LogInfo(rm, "Task Finished", t)
-			TaskEventLog(hostTime, t, rm.net.GetAddr())
-			if rm.TaskFinishReceiver != "" {
-				informReceiverTaskStatus(rm, t, "TaskFinish")
-			}
-
-			delete(rm.Tasks, id)
-		}
-	}
-
-	updateNodeInfo(rm)
-}
-
-func informReceiverTaskStatus(rm *ResourceManager, t *TaskInfo, content string) {
-	newMessage := Message{
-		From:    rm.Net().GetAddr(),
-		To:      rm.TaskFinishReceiver,
-		Content: content,
-		Body:    *t,
-	}
-	rm.Net().Send(newMessage)
-}
-
-func updateNodeInfo(rm *ResourceManager) {
-	var cpu int32 = 0
-	var memory int32 = 0
-
-	for _, t := range rm.Tasks {
-		cpu += t.CpuRequest
-		memory += t.MemoryRequest
-	}
-
-	if rm.Node.CpuAllocted != cpu || rm.Node.MemoryAllocted != memory {
-		rm.Node.CpuAllocted = cpu
-		rm.Node.MemoryAllocted = memory
-	}
 }
 
 func init() {

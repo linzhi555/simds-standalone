@@ -97,6 +97,9 @@ func (n *NodeInfo) CanAllocate(taskCpu, taskMemory int32) bool {
 		return false
 	}
 }
+func (n *NodeInfo) CanAllocateTask(task *TaskInfo) bool {
+	return n.CanAllocate(task.CpuRequest, task.MemoryRequest)
+}
 
 type Vec[T TaskInfo | NodeInfo | Message] []T
 
