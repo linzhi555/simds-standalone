@@ -1,12 +1,15 @@
 package main
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
-
-type NetInterface interface{
-	Empty()bool
-	Recv()(Message,error)
-	Send(Message)error
+type NetInterface interface {
+	Empty() bool
+	Recv() (Message, error)
+	Send(Message) error
+	GetAddr() string
 }
 
 type MockNetCard struct {
@@ -21,17 +24,21 @@ func CreateMockNetCard(name string) MockNetCard {
 	}
 }
 
-func (card MockNetCard)Empty()bool{
-
-	return true
+func (card MockNetCard) Empty() bool {
+	return card.In.Empty()
 }
 
-func (card MockNetCard)Recv()(Message,error){
-	return Message{},errors.New("recv fail")
+func (card MockNetCard) Recv() (Message, error) {
+	return card.In.Dequeue()
 }
 
-func (card MockNetCard)Send(m Message)error{
+func (card MockNetCard) Send(m Message) error {
+	card.Out.InQueue(m)
 	return errors.New("send fail")
+}
+
+func (card MockNetCard) GetAddr() string {
+	return card.Addr
 }
 
 func (nc *MockNetCard) JoinNetWork(net *MockNetwork) {
@@ -49,10 +56,8 @@ type TaskInfo struct {
 	Id                string //the task id,it is unique
 	CpuRequest        int32
 	MemoryRequest     int32
-	SubmitTime        int32
-	InQueneTime       int32
-	StartTime         int32
-	LifeTime          int32
+	StartTime         time.Time
+	LifeTime          time.Duration
 	Status            string
 	Worker            string
 	ScheduleFailCount int32
@@ -95,8 +100,8 @@ func (n *NodeInfo) CanAllocate(taskCpu, taskMemory int32) bool {
 
 type Vec[T TaskInfo | NodeInfo | Message] []T
 
-func (vec *Vec[T])InQueueFront(data T){
-	*vec = append(Vec[T]{data},*vec...)
+func (vec *Vec[T]) InQueueFront(data T) {
+	*vec = append(Vec[T]{data}, *vec...)
 
 }
 

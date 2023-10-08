@@ -2,21 +2,20 @@ package main
 
 import (
 	"fmt"
-	"simds-standalone/ecs"
 	"time"
 )
 
 const MiliSecond int32 = 1
 const Second int32 = 1000
 
-const CMockNetWork ecs.ComponentName = "MockNetwork"
-const CTaskGen ecs.ComponentName = "TaskGen"
-const CScheduler ecs.ComponentName = "Scheduler"
-const CResouceManger ecs.ComponentName = "ResourceManager"
+const CMockNetWork ComponentName = "MockNetwork"
+const CTaskGen ComponentName = "TaskGen"
+const CScheduler ComponentName = "Scheduler"
+const CResouceManger ComponentName = "ResourceManager"
 
 type NodeComponent interface {
-	ecs.Component
-	SetComponent(n ecs.ComponentName)
+	Component
+	SetComponent(n ComponentName)
 	InitNet(NetInterface)
 	InitTimeGetter(func() time.Time)
 	Net() NetInterface
@@ -24,16 +23,16 @@ type NodeComponent interface {
 }
 
 type baseComp struct {
-	name        ecs.ComponentName
+	name        ComponentName
 	getTimeFunc func() time.Time
 	net         NetInterface
 }
 
-func (n *baseComp) Component() ecs.ComponentName {
+func (n *baseComp) Component() ComponentName {
 	return n.name
 }
 
-func (n *baseComp) SetComponent(name ecs.ComponentName) {
+func (n *baseComp) SetComponent(name ComponentName) {
 	n.name = name
 }
 
@@ -86,6 +85,7 @@ func (n MockNetwork) String() string {
 
 type TaskGen struct {
 	*baseComp
+	StartTime time.Time
 	CurTaskId int
 	Receivers []string
 }

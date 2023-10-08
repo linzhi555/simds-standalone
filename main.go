@@ -16,7 +16,7 @@ func main() {
 	common.StartPerf()
 	defer common.StopPerf()
 
-	cluster := NewCenterCluster()
+	cluster := BuildCenterCluster()
 	EcsRunCluster(cluster)
 
 }

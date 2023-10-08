@@ -28,6 +28,6 @@ func AssertTypeIsNotPointer(v interface{}) {
 	}
 }
 
-func shuffleStringSlice(slice []string) {
+func ShuffleStringSlice(slice []string) {
 	rand.Shuffle(len(slice), func(i, j int) { slice[i], slice[j] = slice[j], slice[i] })
 }
