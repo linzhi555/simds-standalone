@@ -13,61 +13,35 @@ const CTaskGen ComponentName = "TaskGen"
 const CScheduler ComponentName = "Scheduler"
 const CResouceManger ComponentName = "ResourceManager"
 
+type OsApi interface {
+	GetTime() time.Time
+	Net() NetInterface
+}
+
 type NodeComponent interface {
 	Component
-	SetComponent(n ComponentName)
-	InitNet(NetInterface)
-	InitTimeGetter(func() time.Time)
-	Net() NetInterface
-	GetTime() time.Time
-}
-
-type baseComp struct {
-	name        ComponentName
-	getTimeFunc func() time.Time
-	net         NetInterface
-}
-
-func (n *baseComp) Component() ComponentName {
-	return n.name
-}
-
-func (n *baseComp) SetComponent(name ComponentName) {
-	n.name = name
-}
-
-func (n *baseComp) InitNet(ni NetInterface) {
-	n.net = ni
-}
-
-func (n *baseComp) InitTimeGetter(f func() time.Time) {
-	n.getTimeFunc = f
-}
-
-func (n *baseComp) Net() NetInterface {
-	return n.net
-}
-func (n *baseComp) GetTime() time.Time {
-	return n.getTimeFunc()
+	SetOsApi(OsApi)
 }
 
 type MockNetwork struct {
-	*baseComp
+	Os         OsApi
 	NetLatency int32
 	Waittings  Vec[Message]
 	Ins        map[string]*Vec[Message]
 	Outs       map[string]*Vec[Message]
 }
 
-func CreateMockNetWork(latency int32) MockNetwork {
-	return MockNetwork{
-		baseComp:   &baseComp{name: CMockNetWork},
+func NewMockNetWork(latency int32) *MockNetwork {
+	return &MockNetwork{
 		NetLatency: latency,
 		Waittings:  Vec[Message]{},
 		Ins:        make(map[string]*Vec[Message]),
 		Outs:       make(map[string]*Vec[Message]),
 	}
 }
+
+func (n MockNetwork) Component() ComponentName { return CMockNetWork }
+func (n *MockNetwork) SetOsApi(osapi OsApi)    { n.Os = osapi }
 
 func (n MockNetwork) String() string {
 	var res string
@@ -84,23 +58,25 @@ func (n MockNetwork) String() string {
 }
 
 type TaskGen struct {
-	*baseComp
+	Os        OsApi
 	Host      string
 	StartTime time.Time
 	CurTaskId int
 	Receivers []string
 }
 
-func CreateTaskGen(hostname string) TaskGen {
-	return TaskGen{
-		baseComp:  &baseComp{name: CTaskGen},
+func NewTaskGen(hostname string) *TaskGen {
+	return &TaskGen{
 		Host:      hostname,
 		CurTaskId: 0,
 	}
 }
 
+func (n TaskGen) Component() ComponentName { return CTaskGen }
+func (n *TaskGen) SetOsApi(osapi OsApi)    { n.Os = osapi }
+
 type Scheduler struct {
-	*baseComp
+	Os           OsApi
 	Host         string
 	Workers      map[string]*NodeInfo
 	LocalNode    *NodeInfo
@@ -108,15 +84,17 @@ type Scheduler struct {
 	TasksStatus  map[string]*TaskInfo
 }
 
-func CreateScheduler(hostname string) Scheduler {
-	return Scheduler{
+func NewScheduler(hostname string) *Scheduler {
+	return &Scheduler{
 		Host:         hostname,
-		baseComp:     &baseComp{name: CScheduler},
 		Workers:      make(map[string]*NodeInfo),
 		WaitSchedule: Vec[TaskInfo]{},
 		TasksStatus:  make(map[string]*TaskInfo),
 	}
 }
+
+func (n Scheduler) Component() ComponentName { return CScheduler }
+func (n *Scheduler) SetOsApi(osapi OsApi)    { n.Os = osapi }
 
 func (s *Scheduler) GetAllWokersName() []string {
 	keys := make([]string, 0, len(s.Workers))
@@ -127,17 +105,19 @@ func (s *Scheduler) GetAllWokersName() []string {
 }
 
 type ResourceManager struct {
-	*baseComp
+	Os                 OsApi
 	Host               string
 	Tasks              map[string]*TaskInfo
 	Node               NodeInfo
 	TaskFinishReceiver string // if it is not zero , the receiver wiil get the notifiction
 }
 
-func CreateResourceManager(host string) ResourceManager {
-	return ResourceManager{
-		baseComp: &baseComp{name: CResouceManger},
-		Host:     host,
-		Tasks:    make(map[string]*TaskInfo),
+func NewResourceManager(host string) *ResourceManager {
+	return &ResourceManager{
+		Host:  host,
+		Tasks: make(map[string]*TaskInfo),
 	}
 }
+
+func (n ResourceManager) Component() ComponentName { return CResouceManger }
+func (n *ResourceManager) SetOsApi(osapi OsApi)    { n.Os = osapi }

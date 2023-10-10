@@ -13,14 +13,14 @@ func BuildCenterCluster() Cluster {
 	nodes = append(nodes, Node{
 		"user1",
 		[]NodeComponent{
-			CreateTaskGen("user1"),
+			NewTaskGen("user1"),
 		},
 	})
 
 	nodes = append(nodes, Node{
 		"master1",
 		[]NodeComponent{
-			CreateScheduler("master1"),
+			NewScheduler("master1"),
 		},
 	})
 	for i := 0; i < int(Config.NodeNum); i++ {
@@ -29,7 +29,7 @@ func BuildCenterCluster() Cluster {
 		nodes = append(nodes, Node{
 			workerName,
 			[]NodeComponent{
-				CreateResourceManager(workerName),
+				NewResourceManager(workerName),
 			},
 		})
 
@@ -44,7 +44,7 @@ func BuildCenterCluster() Cluster {
 
 func CenterTaskgen_setup(c interface{}) {
 	taskgen := c.(*TaskGen)
-	taskgen.StartTime = taskgen.GetTime()
+	taskgen.StartTime = taskgen.Os.GetTime()
 	taskgen.Receivers = append(taskgen.Receivers, "master1"+":"+string(CScheduler))
 }
 
@@ -61,8 +61,8 @@ func CenterScheduler_update(comp interface{}) {
 
 	scheduler := comp.(*Scheduler)
 
-	for !scheduler.Net().Empty() {
-		newMessage, err := scheduler.net.Recv()
+	for !scheduler.Os.Net().Empty() {
+		newMessage, err := scheduler.Os.Net().Recv()
 		if err != nil {
 			panic(err)
 		}
@@ -71,13 +71,13 @@ func CenterScheduler_update(comp interface{}) {
 			task := newMessage.Body.(TaskInfo)
 			task.Status = "WaitSchedule"
 			scheduler.WaitSchedule.InQueue(task)
-			LogInfo(scheduler, "received TaskDispense", task)
+			LogInfo(scheduler.Os, "received TaskDispense", task)
 		}
 
 		if newMessage.Content == "TaskFinish" {
 			taskInfo := newMessage.Body.(TaskInfo)
 			scheduler.Workers[newMessage.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)
-			LogInfo(scheduler, "received TaskFinish", newMessage.From, taskInfo)
+			LogInfo(scheduler.Os, "received TaskFinish", newMessage.From, taskInfo)
 		}
 
 	}
@@ -96,13 +96,13 @@ func CenterScheduler_update(comp interface{}) {
 			task.Status = "Allocated"
 			scheduler.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
 			newMessage := Message{
-				From:    scheduler.Net().GetAddr(),
+				From:    scheduler.Os.Net().GetAddr(),
 				To:      task.Worker,
 				Content: "TaskAllocate",
 				Body:    task,
 			}
-			scheduler.Net().Send(newMessage)
-			LogInfo(scheduler, "sendtask to", task.Worker, task)
+			scheduler.Os.Net().Send(newMessage)
+			LogInfo(scheduler.Os, "sendtask to", task.Worker, task)
 		} else {
 			scheduler.WaitSchedule.InQueueFront(task)
 

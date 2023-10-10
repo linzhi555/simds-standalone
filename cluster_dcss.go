@@ -11,7 +11,7 @@ func BuildDCSSCluster() Cluster {
 	nodes = append(nodes, Node{
 		"user1",
 		[]NodeComponent{
-			CreateTaskGen("user1"),
+			NewTaskGen("user1"),
 		},
 	})
 
@@ -21,8 +21,8 @@ func BuildDCSSCluster() Cluster {
 		nodes = append(nodes, Node{
 			nodeName,
 			[]NodeComponent{
-				CreateScheduler(nodeName),
-				CreateResourceManager(nodeName),
+				NewScheduler(nodeName),
+				NewResourceManager(nodeName),
 			},
 		})
 
@@ -37,7 +37,7 @@ func BuildDCSSCluster() Cluster {
 
 func DcssTaskgen_setup(c interface{}) {
 	taskgen := c.(*TaskGen)
-	taskgen.StartTime = taskgen.GetTime()
+	taskgen.StartTime = taskgen.Os.GetTime()
 	for i := 0; i < int(Config.NodeNum); i++ {
 
 		taskgen.Receivers = append(taskgen.Receivers,
@@ -53,7 +53,7 @@ func DcssScheduler_setup(comp interface{}) {
 	// add self in the first for convernience, and ignore the first when actually register neibor
 	neiborNum := int(Config.DcssNeibor)
 	allNodeNum := int(Config.NodeNum)
-	neibors = append(neibors, scheduler.Net().GetAddr())
+	neibors = append(neibors, scheduler.Os.Net().GetAddr())
 	for len(neibors) != neiborNum+1 {
 		newNeibor := fmt.Sprintf("node%d:Scheduler", rand.Intn(allNodeNum))
 		alreadyExisted := false
@@ -77,19 +77,19 @@ func DcssScheduler_setup(comp interface{}) {
 	for k := range scheduler.Workers {
 		keys = append(keys, k)
 	}
-	LogInfo(scheduler, fmt.Sprintf("Now,I have %d neibor, they are %s", len(scheduler.Workers), keys))
+	LogInfo(scheduler.Os, fmt.Sprintf("Now,I have %d neibor, they are %s", len(scheduler.Workers), keys))
 
 }
 
 func DcssScheduler_update(comp interface{}) {
 	scheduler := comp.(*Scheduler)
 
-	for !scheduler.Net().Empty() {
-		newMessage, err := scheduler.Net().Recv()
+	for !scheduler.Os.Net().Empty() {
+		newMessage, err := scheduler.Os.Net().Recv()
 		if err != nil {
 			panic(err)
 		}
-		LogInfo(scheduler, scheduler.Net().GetAddr(), "received", newMessage.Content, newMessage.Body)
+		LogInfo(scheduler.Os, scheduler.Os.Net().GetAddr(), "received", newMessage.Content, newMessage.Body)
 		switch newMessage.Content {
 		case "TaskDispense":
 			dcssTaskDispenseHandle(scheduler, newMessage)
@@ -113,10 +113,10 @@ func dcssTaskDispenseHandle(scheduler *Scheduler, newMessage Message) {
 	task.Status = "Scheduling"
 	if scheduler.LocalNode.CanAllocateTask(&task) {
 		dcssAllocateTaskLocally(scheduler, &task)
-		LogInfo(scheduler, "run task locally", task)
+		LogInfo(scheduler.Os, "run task locally", task)
 	} else {
 
-		LogInfo(scheduler, "start divide ", task)
+		LogInfo(scheduler.Os, "start divide ", task)
 		task.Status = "DiviDeStage1"
 		task.ScheduleFailCount = 0 // this is for count how many neibor reject this task
 		keys := make([]string, 0, len(scheduler.Workers))
@@ -126,12 +126,12 @@ func dcssTaskDispenseHandle(scheduler *Scheduler, newMessage Message) {
 
 		for _, neibor := range keys {
 			newMessage := Message{
-				From:    scheduler.Net().GetAddr(),
+				From:    scheduler.Os.Net().GetAddr(),
 				To:      neibor,
 				Content: "TaskDivide",
 				Body:    task,
 			}
-			scheduler.Net().Send(newMessage)
+			scheduler.Os.Net().Send(newMessage)
 		}
 		task.Status = "DiviDeStage2"
 	}
@@ -150,7 +150,7 @@ func dcssTaskDivideHandle(scheduler *Scheduler, newMessage Message) {
 	} else {
 		messageReply.Content = "TaskDivideReject"
 	}
-	scheduler.Net().Send(messageReply)
+	scheduler.Os.Net().Send(messageReply)
 }
 func dcssTaskDivideConfirmHandle(scheduler *Scheduler, newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
@@ -161,7 +161,7 @@ func dcssTaskDivideConfirmHandle(scheduler *Scheduler, newMessage Message) {
 		messageReply.From = newMessage.To
 		messageReply.Body = *scheduler.TasksStatus[task.Id]
 		messageReply.Content = "TaskDivideAllocate"
-		scheduler.Net().Send(messageReply)
+		scheduler.Os.Net().Send(messageReply)
 	}
 }
 func dcssTaskDivideAllocateHandle(scheduler *Scheduler, newMessage Message) {
@@ -183,27 +183,27 @@ func dcssTaskDivideRejectHandle(scheduler *Scheduler, newMessage Message) {
 		dstNeibor := neibors[rand.Intn(len(neibors))]
 
 		newMessage := Message{
-			From:    scheduler.Net().GetAddr(),
+			From:    scheduler.Os.Net().GetAddr(),
 			To:      dstNeibor,
 			Content: "TaskDispense",
 			Body:    taskCopy,
 		}
-		scheduler.Net().Send(newMessage)
-		LogInfo(scheduler, "TaskDivide finally fail, start a new TaskDispense", newMessage.Body)
+		scheduler.Os.Net().Send(newMessage)
+		LogInfo(scheduler.Os, "TaskDivide finally fail, start a new TaskDispense", newMessage.Body)
 	}
 }
 
 func dcssAllocateTaskLocally(scheduler *Scheduler, task *TaskInfo) {
 	dstWorker := scheduler.Host + ":" + string(CResouceManger)
 	newMessage := Message{
-		From:    scheduler.Net().GetAddr(),
+		From:    scheduler.Os.Net().GetAddr(),
 		To:      dstWorker,
 		Content: "TaskAllocate",
 		Body:    *task,
 	}
 	task.Status = "Allocated"
 	scheduler.LocalNode.AddAllocated(task.CpuRequest, task.MemoryRequest)
-	scheduler.Net().Send(newMessage)
+	scheduler.Os.Net().Send(newMessage)
 }
 
 func dcssFinishHandle(scheduler *Scheduler, newMessage Message) {

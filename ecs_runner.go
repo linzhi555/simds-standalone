@@ -9,14 +9,30 @@ import (
 
 var ZEROTIME time.Time = time.Now()
 
+type MockOs struct {
+	getTimeFunc func() time.Time
+	net         NetInterface
+}
+
+func (o *MockOs) GetTime() time.Time {
+	return o.getTimeFunc()
+}
+func (o *MockOs) Net() NetInterface {
+	return o.net
+}
+
 func EcsRunCluster(cluster Cluster) {
 	simulator := NewEcs()
-
-	newNet := CreateMockNetWork(Config.NetLatency * MiliSecond)
-	newNet.InitTimeGetter(func() time.Time { return ZEROTIME.Add(time.Duration(simulator.UpdateCount) * time.Millisecond) })
+	newNet := NewMockNetWork(Config.NetLatency * MiliSecond)
+	getTimeFunc := func() time.Time { return ZEROTIME.Add(time.Duration(simulator.UpdateCount) * time.Millisecond) }
 	card := CreateMockNetCard("network1" + ":" + string(CMockNetWork))
-	card.JoinNetWork(&newNet)
-	newNet.InitNet(card)
+	card.JoinNetWork(newNet)
+	newNet.SetOsApi(
+		&MockOs{
+			getTimeFunc,
+			card,
+		},
+	)
 
 	simulator.AddEntities("network1", newNet)
 	simulator.AddSystem(SystemName(string(newNet.Component()+"_update")), func(e *ECS) {
@@ -26,11 +42,16 @@ func EcsRunCluster(cluster Cluster) {
 	for _, node := range cluster.Nodes {
 		var inited []Component
 		for _, c := range node.Components {
-			c.InitTimeGetter(func() time.Time { return ZEROTIME.Add(time.Duration(simulator.UpdateCount) * time.Millisecond) })
 
 			card := CreateMockNetCard(node.Name + ":" + string(c.Component()))
-			card.JoinNetWork(&newNet)
-			c.InitNet(card)
+			card.JoinNetWork(newNet)
+
+			c.SetOsApi(
+				&MockOs{
+					getTimeFunc,
+					card,
+				},
+			)
 
 			inited = append(inited, c)
 		}
@@ -64,14 +85,14 @@ func covertFuncToSystem(c ComponentName, f func(interface{}), isSetup bool) func
 
 		componetTick := func(ecs *ECS, e EntityName, comp Component) Component {
 			switch t := comp.(type) {
-			case TaskGen:
-				f(&t)
+			case *TaskGen:
+				f(t)
 				return t
-			case Scheduler:
-				f(&t)
+			case *Scheduler:
+				f(t)
 				return t
-			case ResourceManager:
-				f(&t)
+			case *ResourceManager:
+				f(t)
 				return t
 			}
 			return comp
@@ -81,7 +102,7 @@ func covertFuncToSystem(c ComponentName, f func(interface{}), isSetup bool) func
 }
 
 func networkTick(ecs *ECS, entity EntityName, comp Component) Component {
-	n := comp.(MockNetwork)
+	n := comp.(*MockNetwork)
 
 	for _, in := range n.Ins {
 		for !in.Empty() {
@@ -98,7 +119,7 @@ func networkTick(ecs *ECS, entity EntityName, comp Component) Component {
 				panic(err)
 			}
 
-			LogInfo(&n, ": new message waitting to be send", newM)
+			LogInfo(n.Os, ": new message waitting to be send", newM)
 			n.Waittings.InQueue(newM)
 		}
 
@@ -107,7 +128,7 @@ func networkTick(ecs *ECS, entity EntityName, comp Component) Component {
 		m := n.Waittings[i]
 		needDelete := false
 		if m.LeftTime == 0 {
-			LogInfo(n, ": new message sended", m)
+			LogInfo(n.Os, ": new message sended", m)
 			out, ok := n.Outs[m.To]
 			if !ok {
 				panic(m.To + ":net can not reach")
@@ -129,8 +150,8 @@ func networkTick(ecs *ECS, entity EntityName, comp Component) Component {
 
 }
 
-func LogInfo(nodecomp NodeComponent, ins ...interface{}) {
-	fmt.Print(nodecomp.GetTime().Sub(ZEROTIME).Milliseconds(), " ", "Info", " ", nodecomp.Net().GetAddr(), " ")
+func LogInfo(osapi OsApi, ins ...interface{}) {
+	fmt.Println(osapi.GetTime().Sub(ZEROTIME).Milliseconds(), " ", "Info", " ", osapi.Net().GetAddr(), " ")
 	for _, item := range ins {
 		fmt.Print(item, " ")
 	}

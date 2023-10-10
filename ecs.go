@@ -1,9 +1,5 @@
 package main
 
-import (
-	"simds-standalone/common"
-)
-
 type EntityName string
 type ComponentName string
 type Component interface {
@@ -52,7 +48,6 @@ func (e *ECS) AddEntities(name EntityName, cs ...Component) {
 	e.Entities[name] = make(componetIndex)
 
 	for _, c := range cs {
-		common.AssertTypeIsNotPointer(c)
 		e.Components[c.Component()] = append(e.Components[c.Component()], ComponentListNode{c, name})
 		e.Entities[name][c.Component()] = len(e.Components[c.Component()]) - 1
 	}
@@ -81,11 +76,9 @@ func (ecs *ECS) ApplyToAllComponent(name ComponentName, f func(ecs *ECS, e Entit
 
 }
 
-
 func (e *ECS) Update() {
 	for _, system := range e.Systems {
 		system.Function(e)
 	}
 	e.UpdateCount += 1
 }
-

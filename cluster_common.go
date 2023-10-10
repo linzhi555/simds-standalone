@@ -8,7 +8,7 @@ import (
 
 func CommonTaskgen_update(c interface{}) {
 	taskgen := c.(*TaskGen)
-	t := taskgen.GetTime().Sub(taskgen.StartTime)
+	t := taskgen.Os.GetTime().Sub(taskgen.StartTime)
 
 	taskNumPerSecond := Config.TaskNumFactor * float32(Config.NodeNum)
 
@@ -34,9 +34,9 @@ func CommonTaskgen_update(c interface{}) {
 				Content: "TaskDispense",
 				Body:    newtask,
 			}
-			taskgen.Net().Send(newMessage)
-			LogInfo(taskgen, fmt.Sprintf(": send task to %s %v", receiverAddr, newMessage.Body))
-			TaskEventLog(taskgen.GetTime(), &newtask, receiverAddr)
+			taskgen.Os.Net().Send(newMessage)
+			LogInfo(taskgen.Os, fmt.Sprintf(": send task to %s %v", receiverAddr, newMessage.Body))
+			TaskEventLog(taskgen.Os.GetTime(), &newtask, receiverAddr)
 			taskgen.CurTaskId += 1
 		}
 	}
@@ -45,30 +45,30 @@ func CommonTaskgen_update(c interface{}) {
 func CommonResourceManager_update(comp interface{}) {
 
 	rm := comp.(*ResourceManager)
-	hostTime := rm.GetTime()
+	hostTime := rm.Os.GetTime()
 
-	if !rm.Net().Empty() {
-		newMessage, err := rm.Net().Recv()
+	if !rm.Os.Net().Empty() {
+		newMessage, err := rm.Os.Net().Recv()
 		if err != nil {
 			panic(err)
 		}
-		LogInfo(rm, "received message:", newMessage)
+		LogInfo(rm.Os, "received message:", newMessage)
 
 		if newMessage.Content == "TaskAllocate" {
 			newTask := newMessage.Body.(TaskInfo)
 			newTask.StartTime = hostTime
 			rm.Tasks[newTask.Id] = &newTask
 			newTask.Status = "start"
-			LogInfo(rm, "Start task:", newTask)
-			TaskEventLog(hostTime, &newTask, rm.Net().GetAddr())
+			LogInfo(rm.Os, "Start task:", newTask)
+			TaskEventLog(hostTime, &newTask, rm.Os.Net().GetAddr())
 		}
 	}
 
 	for id, t := range rm.Tasks {
 		if t.Status == "start" && hostTime.After(t.StartTime.Add(t.LifeTime)) {
 			t.Status = "finish"
-			LogInfo(rm, "Task Finished", t)
-			TaskEventLog(hostTime, t, rm.net.GetAddr())
+			LogInfo(rm.Os, "Task Finished", t)
+			TaskEventLog(hostTime, t, rm.Os.Net().GetAddr())
 			if rm.TaskFinishReceiver != "" {
 				informReceiverTaskStatus(rm, t, "TaskFinish")
 			}
@@ -82,12 +82,12 @@ func CommonResourceManager_update(comp interface{}) {
 
 func informReceiverTaskStatus(rm *ResourceManager, t *TaskInfo, content string) {
 	newMessage := Message{
-		From:    rm.Net().GetAddr(),
+		From:    rm.Os.Net().GetAddr(),
 		To:      rm.TaskFinishReceiver,
 		Content: content,
 		Body:    *t,
 	}
-	rm.Net().Send(newMessage)
+	rm.Os.Net().Send(newMessage)
 }
 
 func updateNodeInfo(rm *ResourceManager) {
