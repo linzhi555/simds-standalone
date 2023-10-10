@@ -98,7 +98,7 @@ func CenterScheduler_update(comp interface{}) {
 			newMessage := Message{
 				From:    scheduler.Os.Net().GetAddr(),
 				To:      task.Worker,
-				Content: "TaskAllocate",
+				Content: "TaskRun",
 				Body:    task,
 			}
 			scheduler.Os.Net().Send(newMessage)

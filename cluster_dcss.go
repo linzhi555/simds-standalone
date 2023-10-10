@@ -99,6 +99,8 @@ func DcssScheduler_update(comp interface{}) {
 			dcssTaskDivideConfirmHandle(scheduler, newMessage)
 		case "TaskDivideAllocate":
 			dcssTaskDivideAllocateHandle(scheduler, newMessage)
+		case "TaskDivideCancel":
+			dcssTaskDivideCancelHandle(scheduler, newMessage)
 		case "TaskDivideReject":
 			dcssTaskDivideRejectHandle(scheduler, newMessage)
 		case "TaskFinish":
@@ -112,7 +114,9 @@ func dcssTaskDispenseHandle(scheduler *Scheduler, newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
 	task.Status = "Scheduling"
 	if scheduler.LocalNode.CanAllocateTask(&task) {
-		dcssAllocateTaskLocally(scheduler, &task)
+		task.Status = "allocate"
+		scheduler.LocalNode.AddAllocated(task.CpuRequest, task.MemoryRequest)
+		dcssChangeTaskStatusLocally(scheduler, &task, "TaskRun")
 		LogInfo(scheduler.Os, "run task locally", task)
 	} else {
 
@@ -145,7 +149,9 @@ func dcssTaskDivideHandle(scheduler *Scheduler, newMessage Message) {
 	messageReply.From = newMessage.To
 	if scheduler.LocalNode.CanAllocateTask(&task) {
 		messageReply.Content = "TaskDivideConfirm"
-		task.Status = "NeedAllocate"
+		task.Status = "needStart"
+		scheduler.LocalNode.AddAllocated(task.CpuRequest, task.MemoryRequest)
+		dcssChangeTaskStatusLocally(scheduler, &task, "TaskPreAllocate")
 		scheduler.TasksStatus[task.Id] = &task
 	} else {
 		messageReply.Content = "TaskDivideReject"
@@ -154,20 +160,36 @@ func dcssTaskDivideHandle(scheduler *Scheduler, newMessage Message) {
 }
 func dcssTaskDivideConfirmHandle(scheduler *Scheduler, newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
-	if scheduler.TasksStatus[task.Id].Status == "DiviDeStage2" {
-		scheduler.TasksStatus[task.Id].Status = "DiviDeStage3"
-		messageReply := newMessage
-		messageReply.To = newMessage.From
-		messageReply.From = newMessage.To
-		messageReply.Body = *scheduler.TasksStatus[task.Id]
-		messageReply.Content = "TaskDivideAllocate"
-		scheduler.Os.Net().Send(messageReply)
+	t := scheduler.TasksStatus[task.Id]
+
+	if t.Status == "DiviDeStage2" {
+		t.Status = "DiviDeStage3"
+		scheduler.Os.Net().Send(Message{
+			From:    newMessage.To,
+			To:      newMessage.From,
+			Content: "TaskDivideAllocate",
+			Body:    *scheduler.TasksStatus[task.Id],
+		})
+	} else if t.Status == "DiviDeStage3" {
+		scheduler.Os.Net().Send(Message{
+			From:    newMessage.To,
+			To:      newMessage.From,
+			Content: "TaskDivideCancel",
+			Body:    *scheduler.TasksStatus[task.Id],
+		})
 	}
 }
 func dcssTaskDivideAllocateHandle(scheduler *Scheduler, newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
-	if scheduler.TasksStatus[task.Id].Status == "NeedAllocate" {
-		dcssAllocateTaskLocally(scheduler, &task)
+	if scheduler.TasksStatus[task.Id].Status == "needStart" {
+		dcssChangeTaskStatusLocally(scheduler, &task, "TaskStart")
+	}
+}
+
+func dcssTaskDivideCancelHandle(scheduler *Scheduler, newMessage Message) {
+	task := newMessage.Body.(TaskInfo)
+	if scheduler.TasksStatus[task.Id].Status == "needStart" {
+		dcssChangeTaskStatusLocally(scheduler, &task, "TaskCancelAllocate")
 	}
 }
 
@@ -193,16 +215,14 @@ func dcssTaskDivideRejectHandle(scheduler *Scheduler, newMessage Message) {
 	}
 }
 
-func dcssAllocateTaskLocally(scheduler *Scheduler, task *TaskInfo) {
+func dcssChangeTaskStatusLocally(scheduler *Scheduler, task *TaskInfo, contentType string) {
 	dstWorker := scheduler.Host + ":" + string(CResouceManger)
 	newMessage := Message{
 		From:    scheduler.Os.Net().GetAddr(),
 		To:      dstWorker,
-		Content: "TaskAllocate",
+		Content: contentType,
 		Body:    *task,
 	}
-	task.Status = "Allocated"
-	scheduler.LocalNode.AddAllocated(task.CpuRequest, task.MemoryRequest)
 	scheduler.Os.Net().Send(newMessage)
 }
 

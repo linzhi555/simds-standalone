@@ -151,9 +151,9 @@ func networkTick(ecs *ECS, entity EntityName, comp Component) Component {
 }
 
 func LogInfo(osapi OsApi, ins ...interface{}) {
-	fmt.Println(osapi.GetTime().Sub(ZEROTIME).Milliseconds(), " ", "Info", " ", osapi.Net().GetAddr(), " ")
+	s := fmt.Sprint(osapi.GetTime().Sub(ZEROTIME).Milliseconds(), " ", "Info", " ", osapi.Net().GetAddr(), " ")
 	for _, item := range ins {
-		fmt.Print(item, " ")
+		s += fmt.Sprint(item, " ")
 	}
-	fmt.Println()
+	fmt.Println(s)
 }

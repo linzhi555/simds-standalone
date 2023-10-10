@@ -54,7 +54,26 @@ func CommonResourceManager_update(comp interface{}) {
 		}
 		LogInfo(rm.Os, "received message:", newMessage)
 
-		if newMessage.Content == "TaskAllocate" {
+		if newMessage.Content == "TaskStart" {
+			taskid := newMessage.Body.(TaskInfo).Id
+			if t, ok := rm.Tasks[taskid]; ok {
+				if t.Status == "needStart" {
+					t.Status = "start"
+					t.StartTime = hostTime
+					LogInfo(rm.Os, "start task:", t)
+					TaskEventLog(hostTime, t, rm.Os.Net().GetAddr())
+				}
+			}
+		}
+
+		if newMessage.Content == "TaskPreAllocate" {
+			newTask := newMessage.Body.(TaskInfo)
+			rm.Tasks[newTask.Id] = &newTask
+			newTask.Status = "needStart"
+			LogInfo(rm.Os, "allocate task:", newTask)
+		}
+
+		if newMessage.Content == "TaskRun" {
 			newTask := newMessage.Body.(TaskInfo)
 			newTask.StartTime = hostTime
 			rm.Tasks[newTask.Id] = &newTask
@@ -62,6 +81,23 @@ func CommonResourceManager_update(comp interface{}) {
 			LogInfo(rm.Os, "Start task:", newTask)
 			TaskEventLog(hostTime, &newTask, rm.Os.Net().GetAddr())
 		}
+
+		if newMessage.Content == "TaskCancelAllocate" {
+			taskid := newMessage.Body.(TaskInfo).Id
+			if t, ok := rm.Tasks[taskid]; ok {
+				if t.Status == "needStart" {
+					t.Status = "finish"
+					LogInfo(rm.Os, "cancel task:", t)
+
+					if rm.TaskFinishReceiver != "" {
+						informReceiverTaskStatus(rm, t, "TaskFinish")
+					}
+					delete(rm.Tasks, taskid)
+
+				}
+			}
+		}
+
 	}
 
 	for id, t := range rm.Tasks {
