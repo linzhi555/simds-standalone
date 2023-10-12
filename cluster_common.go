@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
+	"simds-standalone/common"
 	"time"
 )
 
@@ -21,9 +21,9 @@ func CommonTaskgen_update(c interface{}) {
 
 			newtask := TaskInfo{
 				Id:            fmt.Sprintf("task%d", taskgen.CurTaskId),
-				CpuRequest:    1 + int32(rand.Intn(int(2*Config.TaskCpu-2))),
-				MemoryRequest: 1 + int32(rand.Intn(int(2*Config.TaskMemory-2))),
-				LifeTime:      time.Duration(100+int32(rand.Intn(int(Config.TaskLifeTime)*2-200))) * time.Millisecond,
+				CpuRequest:    common.RandIntWithRange(Config.TaskCpu, 0.5),
+				MemoryRequest: common.RandIntWithRange(Config.TaskMemory, 0.5),
+				LifeTime:      time.Duration(common.RandIntWithRange(Config.TaskLifeTime, 0.5)) * time.Millisecond,
 				Status:        "submit",
 			}
 

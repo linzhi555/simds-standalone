@@ -113,6 +113,7 @@ func networkTick(ecs *ECS, entity EntityName, comp Component) Component {
 				newM.LeftTime = 0
 			} else {
 				newM.LeftTime = n.NetLatency
+				//newM.LeftTime = common.RandIntWithRange(n.NetLatency,0.1)
 			}
 
 			if err != nil {

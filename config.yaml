@@ -1,10 +1,10 @@
-NodeNum:        100
-NetLatency:     5
+NodeNum:        1000
+NetLatency:     10
 DcssNeibor:     8
 NodeCpu:        10
 NodeMemory:     10
-TaskNumFactor:  9.0
+TaskNumFactor:  8.0
 TaskCpu:        3
 TaskMemory:     3
 TaskLifeTime:   333
-SchedulerPerformance: 12.0
+SchedulerPerformance: 110.0

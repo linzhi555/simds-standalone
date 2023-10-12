@@ -31,3 +31,9 @@ func AssertTypeIsNotPointer(v interface{}) {
 func ShuffleStringSlice(slice []string) {
 	rand.Shuffle(len(slice), func(i, j int) { slice[i], slice[j] = slice[j], slice[i] })
 }
+
+func RandIntWithRange(avg int32, randRange float32) int32 {
+	diff := int32(float32(avg) * randRange)
+	min := avg - diff
+	return min + int32(rand.Intn(int(2*diff+1)))
+}
