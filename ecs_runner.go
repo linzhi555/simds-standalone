@@ -24,7 +24,7 @@ func (o *MockOs) Net() NetInterface {
 func EcsRunCluster(cluster Cluster) {
 	simulator := NewEcs()
 	newNet := NewMockNetWork(Config.NetLatency * MiliSecond)
-	getTimeFunc := func() time.Time { return ZEROTIME.Add(time.Duration(simulator.UpdateCount) * time.Millisecond) }
+	getTimeFunc := func() time.Time { return ZEROTIME.Add(time.Duration(simulator.UpdateCount) * time.Microsecond * 100) }
 	card := CreateMockNetCard("network1" + ":" + string(CMockNetWork))
 	card.JoinNetWork(newNet)
 	newNet.SetOsApi(
@@ -66,7 +66,7 @@ func EcsRunCluster(cluster Cluster) {
 		simulator.AddSystem(SystemName(string(k)+"_update"), covertFuncToSystem(k, f, false))
 	}
 
-	frameNum := 12000
+	frameNum := 120000
 	for i := 0; i < frameNum; i++ {
 		log.Println("simluating", i, "/", frameNum)
 		simulator.Update()
@@ -112,8 +112,8 @@ func networkTick(ecs *ECS, entity EntityName, comp Component) Component {
 			if common.IsSameHost(newM.To, newM.From) {
 				newM.LeftTime = 0
 			} else {
-				newM.LeftTime = n.NetLatency
-				//newM.LeftTime = common.RandIntWithRange(n.NetLatency,0.1)
+				//newM.LeftTime = n.NetLatency
+				newM.LeftTime = common.RandIntWithRange(n.NetLatency,0.3)
 			}
 
 			if err != nil {
