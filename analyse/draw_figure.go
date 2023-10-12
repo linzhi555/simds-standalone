@@ -71,7 +71,7 @@ func calPercentCurves(latencyList TaskStageCostList) plotter.XYs {
 
 	for i := 0; i < allNum; i++ {
 		var temp plotter.XY
-		temp.Y = float64(latencyList[i].Cost.Milliseconds())
+		temp.Y = float64(latencyList[i].Cost.Microseconds())/1000
 		temp.X = float64(i) / float64(allNum) * float64(100)
 		pts = append(pts, temp)
 	}
