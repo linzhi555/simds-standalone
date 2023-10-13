@@ -48,14 +48,14 @@ func outputLatencyResultFigure(fileName string, l TaskStageCostList) {
 	p.X.Tick.Marker = MyTicks{precise: 1}
 
 	xys := calPercentCurves(l)
-	newscatter, err := plotter.NewScatter(xys)
-	newscatter.Color = color.RGBA{R: 255, B: 0, A: 255}
+	newCurve, err := plotter.NewLine(xys)
+	newCurve.Color = color.RGBA{R: 255, B: 0, A: 255}
 
 	if err != nil {
 		panic(err)
 	}
 
-	p.Add(newscatter)
+	p.Add(newCurve)
 
 
 	// Save the plot to a PNG file.
