@@ -12,6 +12,7 @@ const CMockNetWork ComponentName = "MockNetwork"
 const CTaskGen ComponentName = "TaskGen"
 const CScheduler ComponentName = "Scheduler"
 const CResouceManger ComponentName = "ResourceManager"
+const CStateStorage ComponentName = "StateStorage"
 
 type OsApi interface {
 	GetTime() time.Time
@@ -103,6 +104,23 @@ func (s *Scheduler) GetAllWokersName() []string {
 	}
 	return keys
 }
+
+type StateStorage struct {
+	Os           OsApi
+	Host         string
+	Workers      map[string]*NodeInfo
+}
+
+func NewStateStorage(hostname string) *StateStorage {
+	return &StateStorage{
+		Host:         hostname,
+		Workers:      make(map[string]*NodeInfo),
+	}
+}
+func (c StateStorage) Component() ComponentName { return CStateStorage }
+func (c *StateStorage) SetOsApi(osapi OsApi)    { c.Os = osapi }
+
+
 
 type ResourceManager struct {
 	Os                 OsApi

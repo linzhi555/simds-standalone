@@ -5,49 +5,6 @@ import (
 	"time"
 )
 
-type NetInterface interface {
-	Empty() bool
-	Recv() (Message, error)
-	Send(Message) error
-	GetAddr() string
-}
-
-type MockNetCard struct {
-	Addr string
-	In   *Vec[Message]
-	Out  *Vec[Message]
-}
-
-func CreateMockNetCard(name string) MockNetCard {
-	return MockNetCard{
-		Addr: name,
-	}
-}
-
-func (card MockNetCard) Empty() bool {
-	return card.In.Empty()
-}
-
-func (card MockNetCard) Recv() (Message, error) {
-	return card.In.Dequeue()
-}
-
-func (card MockNetCard) Send(m Message) error {
-	card.Out.InQueue(m)
-	return errors.New("send fail")
-}
-
-func (card MockNetCard) GetAddr() string {
-	return card.Addr
-}
-
-func (nc *MockNetCard) JoinNetWork(net *MockNetwork) {
-	nc.In = &Vec[Message]{}
-	nc.Out = &Vec[Message]{}
-	net.Outs[nc.Addr] = nc.In
-	net.Ins[nc.Addr] = nc.Out
-}
-
 type MessageBody interface {
 	MessageBody()
 }
@@ -155,38 +112,45 @@ type Message struct {
 	Body     MessageBody
 }
 
-//type MessageQueue Vec[Message]
-//func NewMessageQueue() *MessageQueue{
-//	return &MessageQueue{}
-//}
+type NetInterface interface {
+	Empty() bool
+	Recv() (Message, error)
+	Send(Message) error
+	GetAddr() string
+}
 
-//type MessageQueue struct {
-//	buffers []Message
-//}
-//
-//func NewMessageQueue() *MessageQueue {
-//	return &MessageQueue{
-//		buffers: make([]Message, 0),
-//	}
-//}
-//
-//func (mch *MessageQueue) Empty() bool {
-//	return mch.Len() == 0
-//
-//}
-//func (mch *MessageQueue) Len() int {
-//	return len(mch.buffers)
-//}
-//
-//func (mch *MessageQueue) InQueue(m Message) {
-//	mch.buffers = append(mch.buffers, m)
-//}
-//
-//func (mch *MessageQueue) Dequeue() (Message, error) {
-//	if mch.Empty() == true {
-//		return Message{}, errors.New("the queue is Empty")
-//	}
-//	res := mch.buffers[0]
-//	mch.buffers = mch.buffers[1:mch.Len()]
-//	return res, nil
-//}
+type MockNetCard struct {
+	Addr string
+	In   *Vec[Message]
+	Out  *Vec[Message]
+}
+
+func CreateMockNetCard(name string) MockNetCard {
+	return MockNetCard{
+		Addr: name,
+	}
+}
+
+func (card MockNetCard) Empty() bool {
+	return card.In.Empty()
+}
+
+func (card MockNetCard) Recv() (Message, error) {
+	return card.In.Dequeue()
+}
+
+func (card MockNetCard) Send(m Message) error {
+	card.Out.InQueue(m)
+	return errors.New("send fail")
+}
+
+func (card MockNetCard) GetAddr() string {
+	return card.Addr
+}
+
+func (nc *MockNetCard) JoinNetWork(net *MockNetwork) {
+	nc.In = &Vec[Message]{}
+	nc.Out = &Vec[Message]{}
+	net.Outs[nc.Addr] = nc.In
+	net.Ins[nc.Addr] = nc.Out
+}
