@@ -63,7 +63,9 @@ type TaskInfo struct {
 	ScheduleFailCount int32
 }
 
-func (t *TaskInfo) DeepCopy() *TaskInfo {
+func (TaskInfo) MessageBody() {}
+
+func (t *TaskInfo) Clone() *TaskInfo {
 	var newT TaskInfo = *t
 	return &newT
 }
@@ -74,6 +76,8 @@ type NodeInfo struct {
 	CpuAllocted    int32
 	MemoryAllocted int32
 }
+
+func (NodeInfo) MessageBody() {}
 
 func (n *NodeInfo) Clone() *NodeInfo {
 	var NodeInfoCopy = *n
@@ -103,9 +107,19 @@ func (n *NodeInfo) CanAllocateTask(task *TaskInfo) bool {
 
 type Vec[T TaskInfo | NodeInfo | Message] []T
 
+func (vec Vec[T]) MessageBody() {}
+
 func (vec *Vec[T]) InQueueFront(data T) {
 	*vec = append(Vec[T]{data}, *vec...)
 
+}
+
+func (vec *Vec[T]) Clone() *Vec[T] {
+	newVec := make(Vec[T], len(*vec))
+	for i, data := range *vec {
+		newVec[i] = data
+	}
+	return &newVec
 }
 
 func (vec *Vec[T]) InQueue(data T) {
@@ -132,9 +146,6 @@ func (vec *Vec[T]) Delete(index int) {
 	*vec = append((*vec)[0:index], (*vec)[index+1:vec.Len()]...)
 
 }
-
-func (TaskInfo) MessageBody() {}
-func (NodeInfo) MessageBody() {}
 
 type Message struct {
 	From     string

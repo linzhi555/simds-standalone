@@ -6,6 +6,7 @@ import (
 )
 
 var Dcss = flag.Bool("dcss", false, "run dcss")
+var ShareState = flag.Bool("share", false, "run share state cluster")
 
 func init() {
 	flag.Parse()
@@ -18,7 +19,10 @@ func main() {
 	var cluster Cluster
 	if *Dcss {
 		cluster = BuildDCSSCluster()
-	} else {
+	} else if *ShareState {
+		cluster = BuildShareStateCluster()
+
+	}else{
 		cluster = BuildCenterCluster()
 	}
 	EcsRunCluster(cluster)
