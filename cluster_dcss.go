@@ -28,14 +28,14 @@ func BuildDCSSCluster() Cluster {
 
 	}
 	cluster.Nodes = nodes
-	cluster.RegisterFunc(CTaskGen, DcssTaskgen_setup, CommonTaskgen_update)
-	cluster.RegisterFunc(CScheduler, DcssScheduler_setup, DcssScheduler_update)
-	cluster.RegisterFunc(CResouceManger, DcssResourceManager_setup, CommonResourceManager_update)
+	cluster.RegisterFunc(CTaskGen, DcssTaskgenSetup, CommonTaskgenUpdate)
+	cluster.RegisterFunc(CScheduler, DcssSchedulerSetup, DcssSchedulerUpdate)
+	cluster.RegisterFunc(CResouceManger, DcssResourceManagerSetup, CommonResourceManagerUpdate)
 
 	return cluster
 }
 
-func DcssTaskgen_setup(c interface{}) {
+func DcssTaskgenSetup(c interface{}) {
 	taskgen := c.(*TaskGen)
 	taskgen.StartTime = taskgen.Os.GetTime()
 	for i := 0; i < int(Config.NodeNum); i++ {
@@ -46,7 +46,7 @@ func DcssTaskgen_setup(c interface{}) {
 	}
 
 }
-func DcssScheduler_setup(comp interface{}) {
+func DcssSchedulerSetup(comp interface{}) {
 	scheduler := comp.(*Scheduler)
 
 	var neibors []string
@@ -81,7 +81,7 @@ func DcssScheduler_setup(comp interface{}) {
 
 }
 
-func DcssScheduler_update(comp interface{}) {
+func DcssSchedulerUpdate(comp interface{}) {
 	scheduler := comp.(*Scheduler)
 
 	for !scheduler.Os.Net().Empty() {
@@ -231,7 +231,7 @@ func dcssFinishHandle(scheduler *Scheduler, newMessage Message) {
 	scheduler.LocalNode.SubAllocated(task.CpuRequest, task.MemoryRequest)
 }
 
-func DcssResourceManager_setup(comp interface{}) {
+func DcssResourceManagerSetup(comp interface{}) {
 	rm := comp.(*ResourceManager)
 	rm.TaskFinishReceiver = rm.Host + ":" + string(CScheduler)
 }

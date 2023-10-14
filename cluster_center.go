@@ -35,9 +35,9 @@ func BuildCenterCluster() Cluster {
 
 	}
 	cluster.Nodes = nodes
-	cluster.RegisterFunc(CTaskGen, CenterTaskgen_setup, CommonTaskgen_update)
-	cluster.RegisterFunc(CScheduler, CenterScheduler_setup, CenterScheduler_update)
-	cluster.RegisterFunc(CResouceManger, CenterResourceManager_setup, CommonResourceManager_update)
+	cluster.RegisterFunc(CTaskGen, CenterTaskgen_setup, CommonTaskgenUpdate)
+	cluster.RegisterFunc(CScheduler, CenterSchedulerSetup, CenterSchedulerUpdate)
+	cluster.RegisterFunc(CResouceManger, CenterResourceManagerSetup, CommonResourceManagerUpdate)
 
 	return cluster
 }
@@ -48,7 +48,7 @@ func CenterTaskgen_setup(c interface{}) {
 	taskgen.Receivers = append(taskgen.Receivers, "master1"+":"+string(CScheduler))
 }
 
-func CenterScheduler_setup(comp interface{}) {
+func CenterSchedulerSetup(comp interface{}) {
 	scheduler := comp.(*Scheduler)
 	for i := 0; i < int(Config.NodeNum); i++ {
 		nodeinfo := &NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
@@ -57,7 +57,7 @@ func CenterScheduler_setup(comp interface{}) {
 
 }
 
-func CenterScheduler_update(comp interface{}) {
+func CenterSchedulerUpdate(comp interface{}) {
 
 	scheduler := comp.(*Scheduler)
 
@@ -134,7 +134,7 @@ func schdulingAlgorithm(scheduler *Scheduler, task *TaskInfo) (dstAddr string, o
 	return dstAddr, true
 }
 
-func CenterResourceManager_setup(comp interface{}) {
+func CenterResourceManagerSetup(comp interface{}) {
 	rm := comp.(*ResourceManager)
 	rm.TaskFinishReceiver = "master1" + ":" + string(CScheduler)
 

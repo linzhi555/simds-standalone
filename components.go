@@ -108,6 +108,7 @@ func (s *Scheduler) GetAllWokersName() []string {
 type StateStorage struct {
 	Os           OsApi
 	Host         string
+	StartTime 	 time.Time
 	Workers      map[string]*NodeInfo
 }
 
@@ -117,8 +118,18 @@ func NewStateStorage(hostname string) *StateStorage {
 		Workers:      make(map[string]*NodeInfo),
 	}
 }
-func (c StateStorage) Component() ComponentName { return CStateStorage }
-func (c *StateStorage) SetOsApi(osapi OsApi)    { c.Os = osapi }
+
+func (s  *StateStorage)StateCopy()Vec[NodeInfo]{
+	nodes := make(Vec[NodeInfo],0,len(s.Workers))
+	for _, ni := range s.Workers {
+		nodes = append(nodes, *ni)
+	}
+	return nodes
+}
+
+
+func (s StateStorage) Component() ComponentName { return CStateStorage }
+func (s *StateStorage) SetOsApi(osapi OsApi)    { s.Os = osapi }
 
 
 

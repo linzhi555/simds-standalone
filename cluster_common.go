@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func CommonTaskgen_update(c interface{}) {
+func CommonTaskgenUpdate(c interface{}) {
 	taskgen := c.(*TaskGen)
 	t := taskgen.Os.GetTime().Sub(taskgen.StartTime)
 
@@ -42,7 +42,7 @@ func CommonTaskgen_update(c interface{}) {
 	}
 }
 
-func CommonResourceManager_update(comp interface{}) {
+func CommonResourceManagerUpdate(comp interface{}) {
 
 	rm := comp.(*ResourceManager)
 	hostTime := rm.Os.GetTime()
