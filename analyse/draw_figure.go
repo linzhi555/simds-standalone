@@ -43,7 +43,6 @@ func outputLatencyResultFigure(fileName string, l TaskStageCostList) {
 	p.X.Label.Text = "X: the percent of the tasks (%)"
 	p.Y.Label.Text = "Y: the corresponding time (ms)"
 
-
 	p.Y.Tick.Marker = MyTicks{precise: 2}
 	p.X.Tick.Marker = MyTicks{precise: 1}
 
@@ -56,7 +55,6 @@ func outputLatencyResultFigure(fileName string, l TaskStageCostList) {
 	}
 
 	p.Add(newCurve)
-
 
 	// Save the plot to a PNG file.
 	if err := p.Save(10*vg.Inch, 10*vg.Inch, fileName); err != nil {
@@ -71,7 +69,7 @@ func calPercentCurves(latencyList TaskStageCostList) plotter.XYs {
 
 	for i := 0; i < allNum; i++ {
 		var temp plotter.XY
-		temp.Y = float64(latencyList[i].Cost.Microseconds())/1000
+		temp.Y = float64(latencyList[i].Cost.Microseconds()) / 1000
 		temp.X = float64(i) / float64(allNum) * float64(100)
 		pts = append(pts, temp)
 	}

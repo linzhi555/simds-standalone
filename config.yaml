@@ -1,4 +1,4 @@
-NodeNum:        1000
+NodeNum:        100
 NetLatency:     100
 DcssNeibor:     8
 NodeCpu:        10

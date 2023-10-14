@@ -30,8 +30,6 @@ func TestRandIntWithRange(t *testing.T) {
 		}
 	}
 
-
-
 	for i := int32(float32(avg) * 0.70); i < int32(float32(avg)*1.30); i++ {
 		if count, ok := allres[i]; !ok {
 			t.Error("the rand can not cover all range")
@@ -39,7 +37,6 @@ func TestRandIntWithRange(t *testing.T) {
 			t.Log(i, count)
 		}
 	}
-
 
 	var expect int32 = avg * times
 

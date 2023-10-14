@@ -22,7 +22,7 @@ func main() {
 	} else if *ShareState {
 		cluster = BuildShareStateCluster()
 
-	}else{
+	} else {
 		cluster = BuildCenterCluster()
 	}
 	EcsRunCluster(cluster)

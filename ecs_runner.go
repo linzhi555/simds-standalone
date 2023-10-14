@@ -94,8 +94,13 @@ func covertFuncToSystem(c ComponentName, f func(interface{}), isSetup bool) func
 			case *ResourceManager:
 				f(t)
 				return t
+
+			case *StateStorage:
+				f(t)
+				return t
+			default:
+				panic("wrong type componet,if there is new componet type, please add it there")
 			}
-			return comp
 		}
 		e.ApplyToAllComponent(c, componetTick)
 	}
@@ -113,7 +118,7 @@ func networkTick(ecs *ECS, entity EntityName, comp Component) Component {
 				newM.LeftTime = 0
 			} else {
 				//newM.LeftTime = n.NetLatency
-				newM.LeftTime = common.RandIntWithRange(n.NetLatency,0.3)
+				newM.LeftTime = common.RandIntWithRange(n.NetLatency, 0.3)
 			}
 
 			if err != nil {

@@ -42,7 +42,7 @@ func main() {
 	}
 
 	info("analysing cluster status ...")
-	c :=InitCluster(events)
+	c := InitCluster(events)
 	curves := c.CalStatusCurves(events)
 
 	info("output pngs ...")
