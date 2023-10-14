@@ -117,8 +117,7 @@ func networkTick(ecs *ECS, entity EntityName, comp Component) Component {
 			if common.IsSameHost(newM.To, newM.From) {
 				newM.LeftTime = 0
 			} else {
-				//newM.LeftTime = n.NetLatency
-				newM.LeftTime = common.RandIntWithRange(n.NetLatency, 0.3)
+				newM.LeftTime = common.RandIntWithRange(n.NetLatency*10, 0.3)
 			}
 
 			if err != nil {

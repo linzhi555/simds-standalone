@@ -67,12 +67,12 @@ func DcssSchedulerSetup(comp interface{}) {
 		}
 	}
 
-	nodeInfo := &NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
 	for _, n := range neibors[1:] {
+
+		nodeInfo := &NodeInfo{n, Config.NodeCpu, Config.NodeMemory, 0, 0}
 		scheduler.Workers[n] = nodeInfo.Clone()
 	}
-	scheduler.LocalNode = nodeInfo.Clone()
-
+	scheduler.LocalNode = &NodeInfo{scheduler.Os.Net().GetAddr(), Config.NodeCpu, Config.NodeMemory, 0, 0}
 	keys := make([]string, 0, len(scheduler.Workers))
 	for k := range scheduler.Workers {
 		keys = append(keys, k)

@@ -51,7 +51,9 @@ func CenterTaskgen_setup(c interface{}) {
 func CenterSchedulerSetup(comp interface{}) {
 	scheduler := comp.(*Scheduler)
 	for i := 0; i < int(Config.NodeNum); i++ {
-		nodeinfo := &NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
+
+		nodeAddr := "worker" + fmt.Sprint(i) + ":" + string(CResouceManger)
+		nodeinfo := &NodeInfo{nodeAddr, Config.NodeCpu, Config.NodeMemory, 0, 0}
 		scheduler.Workers["worker"+fmt.Sprint(i)+":"+string(CResouceManger)] = nodeinfo.Clone()
 	}
 

@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 const ShareSchdulerNum = 3
 const stateCopyUpdateMS = 200
@@ -56,13 +59,54 @@ func shareStateStorageSetup(comp interface{}) {
 	storage := comp.(*StateStorage)
 	storage.LastSendTime = storage.Os.GetTime()
 	for i := 0; i < int(Config.NodeNum); i++ {
-		nodeinfo := &NodeInfo{Config.NodeCpu, Config.NodeMemory, 0, 0}
-		storage.Workers["worker"+fmt.Sprint(i)+":"+string(CResouceManger)] = nodeinfo.Clone()
+		nodeAddr := "worker" + fmt.Sprint(i) + ":" + string(CResouceManger)
+		nodeinfo := &NodeInfo{nodeAddr, Config.NodeCpu, Config.NodeMemory, 0, 0}
+		storage.Workers[nodeAddr] = nodeinfo
 	}
 }
 func shareStateStorageUpdate(comp interface{}) {
 	storage := comp.(*StateStorage)
 	timeNow := storage.Os.GetTime()
+
+	for !storage.Os.Net().Empty() {
+		newMessage, err := storage.Os.Net().Recv()
+		if err != nil {
+			panic(err)
+		}
+		switch newMessage.Content {
+		case "TaskCommit":
+			task := newMessage.Body.(TaskInfo)
+			if storage.Workers[task.Worker].CanAllocate(task.CpuRequest, task.MemoryRequest) {
+				task.Status = "CommitSuccess"
+				storage.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
+				storage.Os.Net().Send(Message{
+					From:    storage.Os.Net().GetAddr(),
+					To:      task.Worker,
+					Content: "TaskRun",
+					Body:    task,
+				})
+				LogInfo(storage.Os, "task commit success", task.Worker, task)
+			} else {
+				task.Status = "CommitFail"
+				storage.Os.Net().Send(Message{
+					From:    storage.Os.Net().GetAddr(),
+					To:      newMessage.From,
+					Content: "TaskCommitFail",
+					Body:    task,
+				})
+				LogInfo(storage.Os, "task commit fail ", storage.Workers[task.Worker], task)
+			}
+
+		case "TaskFinish":
+			taskInfo := newMessage.Body.(TaskInfo)
+			storage.Workers[newMessage.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)
+			LogInfo(storage.Os, "received TaskFinish", newMessage.From, taskInfo)
+
+		default:
+			panic("wrong type message,please check who has send this message to me!")
+		}
+	}
+
 	if timeNow.Sub(storage.LastSendTime).Milliseconds() > stateCopyUpdateMS {
 		storage.LastSendTime = timeNow
 
@@ -81,7 +125,7 @@ func shareStateStorageUpdate(comp interface{}) {
 
 func shareTaskgenSetup(c interface{}) {
 	taskgen := c.(*TaskGen)
-	taskgen.StartTime = taskgen.Os.GetTime()
+	taskgen.StartTime = taskgen.Os.GetTime().Add(time.Millisecond * stateCopyUpdateMS * 2)
 	for i := 0; i < ShareSchdulerNum; i++ {
 		taskgen.Receivers = append(taskgen.Receivers,
 			fmt.Sprintf("master%d", i)+":"+string(CScheduler),
@@ -94,14 +138,59 @@ func shareSchedulerSetup(s interface{}) {
 }
 func shareSchedulerUpdate(comp interface{}) {
 	scheduler := comp.(*Scheduler)
+
 	for !scheduler.Os.Net().Empty() {
 		newMessage, err := scheduler.Os.Net().Recv()
 		if err != nil {
 			panic(err)
 		}
-		LogInfo(scheduler.Os, scheduler.Os.Net().GetAddr(), "received", newMessage.Content, newMessage.Body)
+		switch newMessage.Content {
+		case "TaskDispense":
+			task := newMessage.Body.(TaskInfo)
+			task.Status = "WaitSchedule"
+			scheduler.WaitSchedule.InQueue(task)
+			LogInfo(scheduler.Os, "received TaskDispense", task)
+		case "TaskCommitFail":
+			task := newMessage.Body.(TaskInfo)
+			task.Status = "WaitSchedule"
+			scheduler.WaitSchedule.InQueue(task)
+			LogInfo(scheduler.Os, "reschedule task", task)
+		case "ClusterStateCopy":
+			nodeinfoList := newMessage.Body.(Vec[NodeInfo])
+			for k := range scheduler.Workers {
+				delete(scheduler.Workers, k)
+			}
+			for _, ni := range nodeinfoList {
+				scheduler.Workers[ni.Addr] = ni.Clone()
+			}
+		}
+	}
+
+	var MAX_SCHEDULE_TIMES = int(Config.SchedulerPerformance)
+	for i := 0; i < MAX_SCHEDULE_TIMES; i++ {
+		task, err := scheduler.WaitSchedule.Dequeue()
+		if err != nil {
+			break
+		}
+		dstWorker, ok := schdulingAlgorithm(scheduler, &task)
+		if ok {
+			task.Worker = dstWorker
+			task.Status = "TryAllocate"
+			scheduler.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
+			newMessage := Message{
+				From:    scheduler.Os.Net().GetAddr(),
+				To:      fmt.Sprintf("globalStateStorage:%s", string(CStateStorage)),
+				Content: "TaskCommit",
+				Body:    task,
+			}
+			scheduler.Os.Net().Send(newMessage)
+			LogInfo(scheduler.Os, "try to commit task allocate to globalStateStorage", task.Worker, task)
+		} else {
+			scheduler.WaitSchedule.InQueueFront(task)
+		}
 	}
 }
-func shareResourceManagerSetup(r interface{}) {
-
+func shareResourceManagerSetup(comp interface{}) {
+	rm := comp.(*ResourceManager)
+	rm.TaskFinishReceiver = "globalStateStorage" + ":" + string(CStateStorage)
 }

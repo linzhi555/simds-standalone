@@ -9,6 +9,9 @@ import (
 func CommonTaskgenUpdate(c interface{}) {
 	taskgen := c.(*TaskGen)
 	t := taskgen.Os.GetTime().Sub(taskgen.StartTime)
+	if t <= 0 {
+		return
+	}
 
 	taskNumPerSecond := Config.TaskNumFactor * float32(Config.NodeNum)
 

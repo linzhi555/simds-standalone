@@ -28,6 +28,7 @@ func (t *TaskInfo) Clone() *TaskInfo {
 }
 
 type NodeInfo struct {
+	Addr           string
 	Cpu            int32
 	Memory         int32
 	CpuAllocted    int32
