@@ -1,29 +1,123 @@
 package main
 
+//ecs_runner.go 使用 通用的ecs.go定义的通用ECS来模拟XXXCluster
+
 import (
+	"errors"
 	"fmt"
 	"log"
 	"simds-standalone/common"
 	"time"
 )
 
+// ZEROTIME 模拟开始的现实时间，以此作为模拟器的零点时间
 var ZEROTIME time.Time = time.Now()
 
+// MockOs 为组件提供模拟的系统调用
 type MockOs struct {
 	getTimeFunc func() time.Time
 	net         NetInterface
 }
 
+// GetTime 提供模拟时间
 func (o *MockOs) GetTime() time.Time {
 	return o.getTimeFunc()
 }
+
+// Net 提供模拟的网络接口
 func (o *MockOs) Net() NetInterface {
 	return o.net
 }
 
+// MockNetCard 模拟的网卡
+type MockNetCard struct {
+	Addr string
+	In   *Vec[Message]
+	Out  *Vec[Message]
+}
+
+// CreateMockNetCard 创建一个未连接网络的模拟网卡
+func CreateMockNetCard(name string) MockNetCard {
+	return MockNetCard{
+		Addr: name,
+	}
+}
+
+// Empty 实现NetInterface
+func (card MockNetCard) Empty() bool {
+	return card.In.Empty()
+}
+
+// Recv 实现NetInterface
+func (card MockNetCard) Recv() (Message, error) {
+	return card.In.Dequeue()
+}
+
+// Send 实现NetInterface
+func (card MockNetCard) Send(m Message) error {
+	card.Out.InQueue(m)
+	return errors.New("send fail")
+}
+
+// GetAddr 实现NetInterface
+func (card MockNetCard) GetAddr() string {
+	return card.Addr
+}
+
+// JoinNetWork 连接到MockNetwork
+func (card *MockNetCard) JoinNetWork(net *MockNetwork) {
+	card.In = &Vec[Message]{}
+	card.Out = &Vec[Message]{}
+	net.Outs[card.Addr] = card.In
+	net.Ins[card.Addr] = card.Out
+}
+
+// MockNetwork 模拟的网络组件
+type MockNetwork struct {
+	Os         OsApi
+	NetLatency int32
+	Waittings  Vec[Message]
+	Ins        map[string]*Vec[Message]
+	Outs       map[string]*Vec[Message]
+}
+
+// NewMockNetWork 创建新的模拟网络组件
+func NewMockNetWork(latency int32) *MockNetwork {
+	return &MockNetwork{
+		NetLatency: latency,
+		Waittings:  Vec[Message]{},
+		Ins:        make(map[string]*Vec[Message]),
+		Outs:       make(map[string]*Vec[Message]),
+	}
+}
+
+// Component 实现 NodeComponent
+func (n MockNetwork) Component() ComponentName { return CMockNetWork }
+
+// SetOsApi 实现 NodeComponent
+func (n *MockNetwork) SetOsApi(osapi OsApi) { n.Os = osapi }
+
+// String 用于Debug
+func (n MockNetwork) String() string {
+	var res string
+	res += "Waittings: \n"
+	for _, v := range n.Waittings {
+		res += fmt.Sprintln(v)
+	}
+	res += "Routes: \n"
+	for k := range n.Outs {
+		res += fmt.Sprintln(k)
+	}
+
+	return res
+}
+
+// EcsRunCluster 创建ECS ，为ECS添加模拟的网络组件 ， 为集群所有组件提供模拟的系统调用
+// 将cluster的的Setups Updates 转换为ECS 统一更新的system.
+// 运行集群
 func EcsRunCluster(cluster Cluster) {
 	simulator := NewEcs()
-	newNet := NewMockNetWork(Config.NetLatency * MiliSecond)
+	newNet := NewMockNetWork(Config.NetLatency)
 	getTimeFunc := func() time.Time { return ZEROTIME.Add(time.Duration(simulator.UpdateCount) * time.Microsecond * 100) }
 	card := CreateMockNetCard("network1" + ":" + string(CMockNetWork))
 	card.JoinNetWork(newNet)
@@ -58,6 +152,8 @@ func EcsRunCluster(cluster Cluster) {
 		simulator.AddEntities(EntityName(node.Name), inited...)
 	}
 
+	// 组件 方法装换为 ECS 的system
+
 	for k, f := range cluster.Setups {
 		simulator.AddSystem(SystemName(string(k)+"_setup"), covertFuncToSystem(k, f, true))
 	}
@@ -66,6 +162,7 @@ func EcsRunCluster(cluster Cluster) {
 		simulator.AddSystem(SystemName(string(k)+"_update"), covertFuncToSystem(k, f, false))
 	}
 
+	// 运行 120000 帧 ，每帧间隔0.1ms 模拟 12 秒的集群行为
 	frameNum := 120000
 	for i := 0; i < frameNum; i++ {
 		log.Println("simluating", i, "/", frameNum)
@@ -106,7 +203,7 @@ func covertFuncToSystem(c ComponentName, f func(interface{}), isSetup bool) func
 	}
 }
 
-func networkTick(ecs *ECS, entity EntityName, comp Component) Component {
+func networkTick(_ *ECS, _ EntityName, comp Component) Component {
 	n := comp.(*MockNetwork)
 
 	for _, in := range n.Ins {
@@ -141,12 +238,12 @@ func networkTick(ecs *ECS, entity EntityName, comp Component) Component {
 			needDelete = true
 			out.InQueue(m)
 		} else {
-			n.Waittings[i].LeftTime -= 1
+			n.Waittings[i].LeftTime--
 		}
 		if needDelete {
 			n.Waittings.Delete(i)
 		} else {
-			i += 1
+			i++
 		}
 
 	}
@@ -155,6 +252,7 @@ func networkTick(ecs *ECS, entity EntityName, comp Component) Component {
 
 }
 
+// LogInfo 在ECS运行组件的日志处理
 func LogInfo(osapi OsApi, ins ...interface{}) {
 	s := fmt.Sprint(osapi.GetTime().Sub(ZEROTIME).Milliseconds(), " ", "Info", " ", osapi.Net().GetAddr(), " ")
 	for _, item := range ins {

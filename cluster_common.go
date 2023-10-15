@@ -2,10 +2,13 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"simds-standalone/common"
 	"time"
 )
 
+// CommonTaskgenUpdate 通用的任务发生器，适
+// 用多种形式集群，通过Receivers字段来确定发送对象
 func CommonTaskgenUpdate(c interface{}) {
 	taskgen := c.(*TaskGen)
 	t := taskgen.Os.GetTime().Sub(taskgen.StartTime)
@@ -20,7 +23,7 @@ func CommonTaskgenUpdate(c interface{}) {
 	receiverNum := len(taskgen.Receivers)
 
 	if t < 10*time.Second {
-		for taskgen.CurTaskId < int(taskNumPerSecond*float32(t.Milliseconds())/float32(Second)) {
+		for taskgen.CurTaskId < int(taskNumPerSecond*float32(t.Milliseconds())/float32(1000)) {
 
 			newtask := TaskInfo{
 				Id:            fmt.Sprintf("task%d", taskgen.CurTaskId),
@@ -40,11 +43,19 @@ func CommonTaskgenUpdate(c interface{}) {
 			taskgen.Os.Net().Send(newMessage)
 			LogInfo(taskgen.Os, fmt.Sprintf(": send task to %s %v", receiverAddr, newMessage.Body))
 			TaskEventLog(taskgen.Os.GetTime(), &newtask, receiverAddr)
-			taskgen.CurTaskId += 1
+			taskgen.CurTaskId++
 		}
 	}
 }
 
+// CommonResourceManagerUpdate 通用的任务资源管理器
+// ，适用多种形式集群，接收下列信息-
+// 1. 直接运行,包括分配和运行
+// 2. 先分配不运行，
+// 3. 运行之前预分配，
+// 4. 取消之前预分配，
+// 同时监控任务状态，在任务结束后发送任务结束信息给TaskFinishReceiver
+// 该TaskFinishReceiver 可在组件初始化函数中指定
 func CommonResourceManagerUpdate(comp interface{}) {
 
 	rm := comp.(*ResourceManager)
@@ -142,4 +153,20 @@ func updateNodeInfo(rm *ResourceManager) {
 		rm.Node.CpuAllocted = cpu
 		rm.Node.MemoryAllocted = memory
 	}
+}
+
+func init() {
+	f, err := os.OpenFile("./test.log", os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		panic(err)
+	}
+	f.WriteString("time,taskid,type,nodeip,cpu,ram\n")
+	f.Close()
+}
+
+// TaskEventLog 任务转台信息输出至csv
+// 格式文件，由于任务延迟和集群状态分析
+func TaskEventLog(t time.Time, task *TaskInfo, host string) {
+	timestr := t.Format(time.RFC3339Nano)
+	common.AppendLineCsvFile("./test.log", []string{timestr, task.Id, task.Status, string(host), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest)})
 }

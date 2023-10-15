@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"simds-standalone/common"
-	"time"
 )
 
+// BuildCenterCluster 建立中心化调度的集群
+// 中心化集群有三类实体 user1 任务发生器, master1 调度器 , Config.NodeNum 个worker
+// 其三类实体分别有 Taskgen Schdueler ResourceManager 组件
+// 最后注册这些组件的初始化和运行更新行为
 func BuildCenterCluster() Cluster {
 	var cluster = createCluster()
 	var nodes []Node
@@ -35,19 +37,23 @@ func BuildCenterCluster() Cluster {
 
 	}
 	cluster.Nodes = nodes
-	cluster.RegisterFunc(CTaskGen, CenterTaskgen_setup, CommonTaskgenUpdate)
+	cluster.RegisterFunc(CTaskGen, CenterTaskgenSetup, CommonTaskgenUpdate)
 	cluster.RegisterFunc(CScheduler, CenterSchedulerSetup, CenterSchedulerUpdate)
 	cluster.RegisterFunc(CResouceManger, CenterResourceManagerSetup, CommonResourceManagerUpdate)
 
 	return cluster
 }
 
-func CenterTaskgen_setup(c interface{}) {
+// CenterTaskgenSetup 对中心化集群的任务发生器进行初始化
+// 发送对象只有一个，发送时间未测试开始时
+func CenterTaskgenSetup(c interface{}) {
 	taskgen := c.(*TaskGen)
 	taskgen.StartTime = taskgen.Os.GetTime()
 	taskgen.Receivers = append(taskgen.Receivers, "master1"+":"+string(CScheduler))
 }
 
+// CenterSchedulerSetup 模拟开始时对中心化集群的调度器组件进行初始化
+// 调度器注册所有的worker信息，包括任务发送地址和节点资源信息
 func CenterSchedulerSetup(comp interface{}) {
 	scheduler := comp.(*Scheduler)
 	for i := 0; i < int(Config.NodeNum); i++ {
@@ -59,6 +65,8 @@ func CenterSchedulerSetup(comp interface{}) {
 
 }
 
+// CenterSchedulerUpdate 模拟器每次tick时对中心化集群的调度器组件进行初始化
+// 从网络中取出消息进行处理，然后进行有次数限制的调度动作
 func CenterSchedulerUpdate(comp interface{}) {
 
 	scheduler := comp.(*Scheduler)
@@ -84,8 +92,8 @@ func CenterSchedulerUpdate(comp interface{}) {
 
 	}
 
-	var MAX_SCHEDULE_TIMES = int(Config.SchedulerPerformance)
-	for i := 0; i < MAX_SCHEDULE_TIMES; i++ {
+	var maxSchedulerTime = int(Config.SchedulerPerformance)
+	for i := 0; i < maxSchedulerTime; i++ {
 
 		task, err := scheduler.WaitSchedule.Dequeue()
 		if err != nil {
@@ -113,8 +121,7 @@ func CenterSchedulerUpdate(comp interface{}) {
 	}
 }
 
-// schedule the task,if it  can not find a worker for the task,return "",false
-// else return "addr of some worker",true
+// schdulingAlgorithm 简单的调度算法，找到第一个合适调度的节点,找不到 ok返回false
 func schdulingAlgorithm(scheduler *Scheduler, task *TaskInfo) (dstAddr string, ok bool) {
 	dstAddr = ""
 
@@ -136,22 +143,9 @@ func schdulingAlgorithm(scheduler *Scheduler, task *TaskInfo) (dstAddr string, o
 	return dstAddr, true
 }
 
+// CenterResourceManagerSetup 资源管理初始化，所有节点会发送任务结束通知给master1
 func CenterResourceManagerSetup(comp interface{}) {
 	rm := comp.(*ResourceManager)
 	rm.TaskFinishReceiver = "master1" + ":" + string(CScheduler)
 
-}
-
-func init() {
-	f, err := os.OpenFile("./test.log", os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		panic(err)
-	}
-	f.WriteString("time,taskid,type,nodeip,cpu,ram\n")
-	f.Close()
-}
-
-func TaskEventLog(t time.Time, task *TaskInfo, host string) {
-	timestr := t.Format(time.RFC3339Nano)
-	common.AppendLineCsvFile("./test.log", []string{timestr, task.Id, task.Status, string(host), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest)})
 }

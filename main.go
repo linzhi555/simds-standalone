@@ -5,26 +5,30 @@ import (
 	"simds-standalone/common"
 )
 
-var Dcss = flag.Bool("dcss", false, "run dcss")
-var ShareState = flag.Bool("share", false, "run share state cluster")
+var dcss = flag.Bool("dcss", false, "run dcss")
+var shareState = flag.Bool("share", false, "run share state cluster")
 
 func init() {
 	flag.Parse()
 }
 
 func main() {
+	// 模拟性能分析,调试用
 	common.StartPerf()
 	defer common.StopPerf()
 
+	// 创建所需集群
 	var cluster Cluster
-	if *Dcss {
+	if *dcss {
 		cluster = BuildDCSSCluster()
-	} else if *ShareState {
+	} else if *shareState {
 		cluster = BuildShareStateCluster()
 
 	} else {
 		cluster = BuildCenterCluster()
 	}
+
+	// 用ECS 运行该集群
 	EcsRunCluster(cluster)
 
 }

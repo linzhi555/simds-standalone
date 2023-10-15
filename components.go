@@ -1,63 +1,31 @@
 package main
 
 import (
-	"fmt"
 	"time"
 )
 
-const MiliSecond int32 = 1
-const Second int32 = 1000
+// 组件名定义
+const (
+	CMockNetWork   ComponentName = "MockNetwork"
+	CTaskGen       ComponentName = "TaskGen"
+	CScheduler     ComponentName = "Scheduler"
+	CResouceManger ComponentName = "ResourceManager"
+	CStateStorage  ComponentName = "StateStorage"
+)
 
-const CMockNetWork ComponentName = "MockNetwork"
-const CTaskGen ComponentName = "TaskGen"
-const CScheduler ComponentName = "Scheduler"
-const CResouceManger ComponentName = "ResourceManager"
-const CStateStorage ComponentName = "StateStorage"
-
+// OsApi 系统调用 抽象接口
 type OsApi interface {
 	GetTime() time.Time
 	Net() NetInterface
 }
 
+// NodeComponent 节点组件抽象
 type NodeComponent interface {
 	Component
 	SetOsApi(OsApi)
 }
 
-type MockNetwork struct {
-	Os         OsApi
-	NetLatency int32
-	Waittings  Vec[Message]
-	Ins        map[string]*Vec[Message]
-	Outs       map[string]*Vec[Message]
-}
-
-func NewMockNetWork(latency int32) *MockNetwork {
-	return &MockNetwork{
-		NetLatency: latency,
-		Waittings:  Vec[Message]{},
-		Ins:        make(map[string]*Vec[Message]),
-		Outs:       make(map[string]*Vec[Message]),
-	}
-}
-
-func (n MockNetwork) Component() ComponentName { return CMockNetWork }
-func (n *MockNetwork) SetOsApi(osapi OsApi)    { n.Os = osapi }
-
-func (n MockNetwork) String() string {
-	var res string
-	res += "Waittings: \n"
-	for _, v := range n.Waittings {
-		res += fmt.Sprintln(v)
-	}
-	res += "Routes: \n"
-	for k := range n.Outs {
-		res += fmt.Sprintln(k)
-	}
-
-	return res
-}
-
+// TaskGen 组件
 type TaskGen struct {
 	Os        OsApi
 	Host      string
@@ -66,6 +34,7 @@ type TaskGen struct {
 	Receivers []string
 }
 
+// NewTaskGen 创造空的TaskGen
 func NewTaskGen(hostname string) *TaskGen {
 	return &TaskGen{
 		Host:      hostname,
@@ -73,9 +42,13 @@ func NewTaskGen(hostname string) *TaskGen {
 	}
 }
 
+// Component For NodeComponent interface
 func (n TaskGen) Component() ComponentName { return CTaskGen }
-func (n *TaskGen) SetOsApi(osapi OsApi)    { n.Os = osapi }
 
+// SetOsApi for NodeComponent interface
+func (n *TaskGen) SetOsApi(osapi OsApi) { n.Os = osapi }
+
+// Scheduler 组件
 type Scheduler struct {
 	Os           OsApi
 	Host         string
@@ -85,6 +58,7 @@ type Scheduler struct {
 	TasksStatus  map[string]*TaskInfo
 }
 
+// NewScheduler 创造新的Scheduler
 func NewScheduler(hostname string) *Scheduler {
 	return &Scheduler{
 		Host:         hostname,
@@ -94,9 +68,13 @@ func NewScheduler(hostname string) *Scheduler {
 	}
 }
 
-func (n Scheduler) Component() ComponentName { return CScheduler }
-func (n *Scheduler) SetOsApi(osapi OsApi)    { n.Os = osapi }
+// Component For NodeComponent interface
+func (s Scheduler) Component() ComponentName { return CScheduler }
 
+// SetOsApi For NodeComponent interface
+func (s *Scheduler) SetOsApi(osapi OsApi) { s.Os = osapi }
+
+// GetAllWokersName 返回worker 名称列表
 func (s *Scheduler) GetAllWokersName() []string {
 	keys := make([]string, 0, len(s.Workers))
 	for k := range s.Workers {
@@ -105,6 +83,7 @@ func (s *Scheduler) GetAllWokersName() []string {
 	return keys
 }
 
+// StateStorage 组件，用于共享状态的存储
 type StateStorage struct {
 	Os           OsApi
 	Host         string
@@ -112,6 +91,7 @@ type StateStorage struct {
 	Workers      map[string]*NodeInfo
 }
 
+// NewStateStorage 创建新的StateStorage
 func NewStateStorage(hostname string) *StateStorage {
 	return &StateStorage{
 		Host:    hostname,
@@ -119,6 +99,7 @@ func NewStateStorage(hostname string) *StateStorage {
 	}
 }
 
+// StateCopy 复制一份集群状态拷贝
 func (s *StateStorage) StateCopy() Vec[NodeInfo] {
 	nodes := make(Vec[NodeInfo], 0, len(s.Workers))
 	for _, ni := range s.Workers {
@@ -127,9 +108,13 @@ func (s *StateStorage) StateCopy() Vec[NodeInfo] {
 	return nodes
 }
 
+// Component For NodeComponent interface
 func (s StateStorage) Component() ComponentName { return CStateStorage }
-func (s *StateStorage) SetOsApi(osapi OsApi)    { s.Os = osapi }
 
+// SetOsApi For NodeComponent interface
+func (s *StateStorage) SetOsApi(osapi OsApi) { s.Os = osapi }
+
+// ResourceManager 组件
 type ResourceManager struct {
 	Os                 OsApi
 	Host               string
@@ -138,6 +123,7 @@ type ResourceManager struct {
 	TaskFinishReceiver string // if it is not zero , the receiver wiil get the notifiction
 }
 
+// NewResourceManager 创建新的ResourceManager
 func NewResourceManager(host string) *ResourceManager {
 	return &ResourceManager{
 		Host:  host,
@@ -145,5 +131,8 @@ func NewResourceManager(host string) *ResourceManager {
 	}
 }
 
+// Component For NodeComponent interface
 func (n ResourceManager) Component() ComponentName { return CResouceManger }
-func (n *ResourceManager) SetOsApi(osapi OsApi)    { n.Os = osapi }
+
+// SetOsApi For NodeComponent interface
+func (n *ResourceManager) SetOsApi(osapi OsApi) { n.Os = osapi }

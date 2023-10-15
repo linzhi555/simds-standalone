@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Config 全局的配置,在main开始前初始化
 var Config struct {
 	NodeNum              int32
 	NetLatency           int32

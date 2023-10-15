@@ -5,9 +5,11 @@ import (
 	"time"
 )
 
-const ShareSchdulerNum = 3
+const shareSchdulerNum = 3
 const stateCopyUpdateMS = 200
 
+// BuildShareStateCluster 建立分布式调度的集群
+// 中心化集群有四类实体 user globalStateStorage master worker
 func BuildShareStateCluster() Cluster {
 	var cluster = createCluster()
 	var nodes []Node
@@ -25,7 +27,7 @@ func BuildShareStateCluster() Cluster {
 		},
 	})
 
-	for i := 0; i < ShareSchdulerNum; i++ {
+	for i := 0; i < shareSchdulerNum; i++ {
 		masterName := fmt.Sprintf("master%d", i)
 		nodes = append(nodes, Node{
 			masterName,
@@ -111,7 +113,7 @@ func shareStateStorageUpdate(comp interface{}) {
 		storage.LastSendTime = timeNow
 
 		stateCopy := storage.StateCopy()
-		for i := 0; i < ShareSchdulerNum; i++ {
+		for i := 0; i < shareSchdulerNum; i++ {
 			dist := fmt.Sprintf("master%d", i) + ":" + string(CScheduler)
 			storage.Os.Net().Send(Message{
 				From:    storage.Os.Net().GetAddr(),
@@ -126,14 +128,14 @@ func shareStateStorageUpdate(comp interface{}) {
 func shareTaskgenSetup(c interface{}) {
 	taskgen := c.(*TaskGen)
 	taskgen.StartTime = taskgen.Os.GetTime().Add(time.Millisecond * stateCopyUpdateMS * 2)
-	for i := 0; i < ShareSchdulerNum; i++ {
+	for i := 0; i < shareSchdulerNum; i++ {
 		taskgen.Receivers = append(taskgen.Receivers,
 			fmt.Sprintf("master%d", i)+":"+string(CScheduler),
 		)
 	}
 }
 
-func shareSchedulerSetup(s interface{}) {
+func shareSchedulerSetup(_ interface{}) {
 
 }
 func shareSchedulerUpdate(comp interface{}) {
@@ -166,8 +168,8 @@ func shareSchedulerUpdate(comp interface{}) {
 		}
 	}
 
-	var MAX_SCHEDULE_TIMES = int(Config.SchedulerPerformance)
-	for i := 0; i < MAX_SCHEDULE_TIMES; i++ {
+	var maxScheduleTimes = int(Config.SchedulerPerformance)
+	for i := 0; i < maxScheduleTimes; i++ {
 		task, err := scheduler.WaitSchedule.Dequeue()
 		if err != nil {
 			break

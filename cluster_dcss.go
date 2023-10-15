@@ -5,6 +5,9 @@ import (
 	"math/rand"
 )
 
+// BuildDCSSCluster 建立分布式调度的集群
+// 中心化集群有三类实体 user1 任务发生器, Config.NodeNum 个 node 实体
+// user1 有 Taskgen组件， node实体有既有 Scheduler 也有 ResourceManager 组件（既是调度器也能worker）
 func BuildDCSSCluster() Cluster {
 	var cluster = createCluster()
 	var nodes []Node
@@ -35,6 +38,8 @@ func BuildDCSSCluster() Cluster {
 	return cluster
 }
 
+// DcssTaskgenSetup 对中心化集群的任务发生器进行初始化
+// 发送对象是集群的所有node类实体的Scheduler组件
 func DcssTaskgenSetup(c interface{}) {
 	taskgen := c.(*TaskGen)
 	taskgen.StartTime = taskgen.Os.GetTime()
@@ -46,6 +51,9 @@ func DcssTaskgenSetup(c interface{}) {
 	}
 
 }
+
+// DcssSchedulerSetup 模拟开始时对分布式集群调度器组件进行初始化
+// 和中心化调度器的不同 workers 存储的时邻域信息
 func DcssSchedulerSetup(comp interface{}) {
 	scheduler := comp.(*Scheduler)
 
@@ -81,6 +89,9 @@ func DcssSchedulerSetup(comp interface{}) {
 
 }
 
+// DcssSchedulerUpdate 模拟器每次tick时对分布式集群的调度器组件进行初始化
+// 调度器组件可以自己收到任务直接运行，也可以将任务进行转发，之后处理转发失败以及成功信
+// 息，同时也要处理同类Scheduler的转发请求
 func DcssSchedulerUpdate(comp interface{}) {
 	scheduler := comp.(*Scheduler)
 
@@ -195,7 +206,7 @@ func dcssTaskDivideCancelHandle(scheduler *Scheduler, newMessage Message) {
 
 func dcssTaskDivideRejectHandle(scheduler *Scheduler, newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
-	scheduler.TasksStatus[task.Id].ScheduleFailCount += 1
+	scheduler.TasksStatus[task.Id].ScheduleFailCount++
 	neiborNum := Config.DcssNeibor
 	// if all neibors reject this task, so we i have to dispense the task to a random neibors,
 	// the distination neibors  may have a valid neibor to execute this task
@@ -231,6 +242,7 @@ func dcssFinishHandle(scheduler *Scheduler, newMessage Message) {
 	scheduler.LocalNode.SubAllocated(task.CpuRequest, task.MemoryRequest)
 }
 
+// DcssResourceManagerSetup 资源管理初始化，所有节点会发送任务结束通知给相同host的Scheduler组件
 func DcssResourceManagerSetup(comp interface{}) {
 	rm := comp.(*ResourceManager)
 	rm.TaskFinishReceiver = rm.Host + ":" + string(CScheduler)

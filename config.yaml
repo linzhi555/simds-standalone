@@ -1,10 +1,10 @@
-NodeNum:        100
-NetLatency:     5 
-DcssNeibor:     8
-NodeCpu:        10
-NodeMemory:     10
-TaskNumFactor:  9.0
-TaskCpu:        3
-TaskMemory:     3
-TaskLifeTime:   333
-SchedulerPerformance: 11.0
+NodeNum:        10000       # how many large the cluster
+NetLatency:     5          # the average network latency unit milisecond 
+DcssNeibor:     8          # in dcss mode : how many neibor of a node
+NodeCpu:        10         # the node cpu capacity
+NodeMemory:     10         # the node memory capacity
+TaskNumFactor:  9.0        # task/persecond = TaskNumFactor * NodeNum 
+TaskCpu:        3          # the average task cpu request
+TaskMemory:     3          # the average task memory request
+TaskLifeTime:   333        # the average task lifeTime
+SchedulerPerformance: 8.0  # how many time Scheduler execute scheduling algorithm in 0.1 ms
