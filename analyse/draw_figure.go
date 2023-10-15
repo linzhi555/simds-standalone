@@ -47,7 +47,7 @@ func outputLatencyResultFigure(fileName string, l TaskStageCostList) {
 	p.X.Tick.Marker = MyTicks{precise: 1}
 
 	xys := calPercentCurves(l)
-	newCurve, err := plotter.NewLine(xys)
+	newCurve, err := plotter.NewScatter(xys)
 	newCurve.Color = color.RGBA{R: 255, B: 0, A: 255}
 
 	if err != nil {
