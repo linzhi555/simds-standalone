@@ -6,7 +6,8 @@ import (
 )
 
 const shareSchdulerNum = 3
-const stateCopyUpdateMS = 200
+
+//const stateCopyUpdateMS = 200
 
 // BuildShareStateCluster 建立分布式调度的集群
 // 中心化集群有四类实体 user globalStateStorage master worker
@@ -109,7 +110,7 @@ func shareStateStorageUpdate(comp interface{}) {
 		}
 	}
 
-	if timeNow.Sub(storage.LastSendTime).Milliseconds() > stateCopyUpdateMS {
+	if timeNow.Sub(storage.LastSendTime).Milliseconds() > int64(Config.StateUpdatePeriod) {
 		storage.LastSendTime = timeNow
 
 		stateCopy := storage.StateCopy()
@@ -127,7 +128,8 @@ func shareStateStorageUpdate(comp interface{}) {
 
 func shareTaskgenSetup(c interface{}) {
 	taskgen := c.(*TaskGen)
-	taskgen.StartTime = taskgen.Os.GetTime().Add(time.Millisecond * stateCopyUpdateMS * 2)
+	//wait the schedulers until state updated, then launch the taskgen
+	taskgen.StartTime = taskgen.Os.GetTime().Add(time.Millisecond * time.Duration(Config.StateUpdatePeriod) * 2)
 	for i := 0; i < shareSchdulerNum; i++ {
 		taskgen.Receivers = append(taskgen.Receivers,
 			fmt.Sprintf("master%d", i)+":"+string(CScheduler),

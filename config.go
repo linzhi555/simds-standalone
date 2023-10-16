@@ -16,6 +16,7 @@ var Config struct {
 	TaskMemory           int32
 	TaskLifeTime         int32
 	SchedulerPerformance float32
+	StateUpdatePeriod    int32
 }
 
 func init() {
@@ -35,5 +36,6 @@ func init() {
 	Config.TaskMemory = int32(viper.GetInt("TaskMemory"))
 	Config.TaskLifeTime = int32(viper.GetInt("TaskLifeTime"))
 	Config.SchedulerPerformance = float32(viper.GetInt("SchedulerPerformance"))
+	Config.StateUpdatePeriod = int32(viper.GetInt("StateUpdatePeriod"))
 
 }

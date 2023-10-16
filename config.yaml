@@ -1,10 +1,18 @@
-NodeNum:        10000       # how many large the cluster
-NetLatency:     5          # the average network latency unit milisecond 
-DcssNeibor:     8          # in dcss mode : how many neibor of a node
+NodeNum:        1000      # how many large the cluster
+NetLatency:     10          # the average network latency, unit: milisecond 
 NodeCpu:        10         # the node cpu capacity
 NodeMemory:     10         # the node memory capacity
-TaskNumFactor:  9.0        # task/persecond = TaskNumFactor * NodeNum 
+TaskNumFactor:  8        # task/persecond = TaskNumFactor * NodeNum 
 TaskCpu:        3          # the average task cpu request
 TaskMemory:     3          # the average task memory request
-TaskLifeTime:   333        # the average task lifeTime
-SchedulerPerformance: 8.0  # how many time Scheduler execute scheduling algorithm in 0.1 ms
+TaskLifeTime:   333        # the average task lifeTime  , unit : milisecond
+
+
+#only in center and shareState 
+SchedulerPerformance: 10.0  # how many time Scheduler execute scheduling algorithm in 0.1 ms
+
+# only in dcss mode
+DcssNeibor:     8          #how many neibor of a node
+
+# only in share state cluster
+StateUpdatePeriod:   100   # the period of scheduler get the newest cluster state, unit : milisecond
