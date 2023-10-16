@@ -156,7 +156,7 @@ func updateNodeInfo(rm *ResourceManager) {
 }
 
 func init() {
-	f, err := os.OpenFile("./test.log", os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0666)
+	f, err := os.OpenFile("./tasks_event.log", os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -168,5 +168,5 @@ func init() {
 // 格式文件，由于任务延迟和集群状态分析
 func TaskEventLog(t time.Time, task *TaskInfo, host string) {
 	timestr := t.Format(time.RFC3339Nano)
-	common.AppendLineCsvFile("./test.log", []string{timestr, task.Id, task.Status, string(host), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest)})
+	common.AppendLineCsvFile("./tasks_event.log", []string{timestr, task.Id, task.Status, string(host), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest)})
 }
