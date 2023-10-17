@@ -14,7 +14,7 @@ simds-standalone(simulator of distribute cluster - standalone edition)
     - 运行状态共享集群测试 ```make shareTest ```
     - 分布式集群测试 ```make dcssTest ```
 - 模拟过程 所有组件的日志信息在 ./components.log
-- 模拟 所有任务的提交，开始，介绍 任务日志保存在 ./tasks_event.log
+- 模拟 所有任务的日志（包括提交，开始，结束)保存在 ./tasks_event.log
 - 分析结果在 ./target/{实验完成时刻}/ 
 
 ## 模拟器原理介绍
