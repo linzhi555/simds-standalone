@@ -1,11 +1,19 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"os"
+	"strings"
+
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 // Config 全局的配置,在main开始前初始化
 var Config struct {
+	Dcss                 bool
+	ShareState           bool
 	NodeNum              int32
 	NetLatency           int32
 	DcssNeibor           int32
@@ -20,22 +28,38 @@ var Config struct {
 }
 
 func init() {
+
+	pflag.BoolP("Dcss", "d", false, "run dcss")
+	pflag.BoolP("ShareState", "s", false, "run share state cluster")
+
+	pflag.Parse()
+	viper.BindPFlags(pflag.CommandLine)
+
 	viper.SetConfigName("config") // name of config file (without extension)
 	viper.AddConfigPath(".")      // optionally look for config in the working directory
 	if err := viper.ReadInConfig(); err != nil {
 		panic("config file not find")
 	}
+	viper.Unmarshal(&Config)
 
-	Config.NodeNum = int32(viper.GetInt("NodeNum"))
-	Config.NetLatency = int32(viper.GetInt("NetLatency"))
-	Config.DcssNeibor = int32(viper.GetInt("DcssNeibor"))
-	Config.NodeCpu = int32(viper.GetInt("NodeCpu"))
-	Config.NodeMemory = int32(viper.GetInt("NodeMemory"))
-	Config.TaskNumFactor = float32(viper.GetFloat64("TaskNumFactor"))
-	Config.TaskCpu = int32(viper.GetInt("TaskCpu"))
-	Config.TaskMemory = int32(viper.GetInt("TaskMemory"))
-	Config.TaskLifeTime = int32(viper.GetInt("TaskLifeTime"))
-	Config.SchedulerPerformance = float32(viper.GetInt("SchedulerPerformance"))
-	Config.StateUpdatePeriod = int32(viper.GetInt("StateUpdatePeriod"))
+}
+
+func LogConfig() {
+	fields := strings.FieldsFunc(fmt.Sprintf("%+v\n", Config), func(r rune) bool {
+		return r == '{' || r == '}' || r == ' '
+	})
+	confInfo := strings.Join(fields, "\n")
+	log.Println("config of this simulation is\n" + confInfo)
+
+	f, err := os.OpenFile("config.log", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+	_, err2 := f.WriteString(confInfo)
+
+	if err2 != nil {
+		log.Fatal(err2)
+	}
 
 }
