@@ -170,7 +170,7 @@ func shareSchedulerUpdate(comp interface{}) {
 		case "TaskCommitFail":
 			task := newMessage.Body.(TaskInfo)
 			task.Status = "WaitSchedule"
-			scheduler.WaitSchedule.InQueue(task)
+			scheduler.WaitSchedule.InQueueFront(task)
 			LogInfo(scheduler.Os, "reschedule task", task)
 		case "ClusterStateCopy":
 			nodeinfoList := newMessage.Body.(Vec[NodeInfo])
