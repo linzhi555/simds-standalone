@@ -3,7 +3,6 @@ package main
 //ecs_runner.go 使用 通用的ecs.go定义的通用ECS来模拟XXXCluster
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"simds-standalone/common"
@@ -56,7 +55,7 @@ func (card MockNetCard) Recv() (Message, error) {
 // Send 实现NetInterface
 func (card MockNetCard) Send(m Message) error {
 	card.Out.InQueue(m)
-	return errors.New("send fail")
+	return nil
 }
 
 // GetAddr 实现NetInterface

@@ -35,10 +35,7 @@ func (l TaskEventLine) Less(i, j int) bool {
 // read the TaskEvent csv file
 func ReadTaskEventCsv(csvfilePath string) TaskEventLine {
 
-	table, err := common.CsvToList(csvfilePath)
-	if err != nil {
-		panic(err)
-	}
+	table, _ := common.CsvToList(csvfilePath)
 
 	var eventLine []*TaskEvent
 	for _, line := range table {

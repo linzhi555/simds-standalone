@@ -10,7 +10,6 @@ import (
 
 var timeRate = flag.Int("timeRate", 1, "the time rate of the simulation")
 var logFile = flag.String("logFile", "./test.log", "the original log files")
-var taskStartFlag = flag.String("startFlag", "start", "the start event type,used in calculating the latency,can be changed to other type,to calculate different latency")
 var outputDir = flag.String("outputDir", "./target", "where to ouput the result")
 var verbose = flag.Bool("verbose", false, "show the process information")
 
@@ -26,7 +25,7 @@ func info(s string) {
 
 func main() {
 	info("test start,reading csv and sort.....")
-	events := ReadTaskEventCsv("./test.log")
+	events := ReadTaskEventCsv(*logFile)
 	info("adjust time rate...")
 	AdjustEventTimeByTimeRate(*timeRate, TaskEventLine(events))
 	info("analysing latency...")
