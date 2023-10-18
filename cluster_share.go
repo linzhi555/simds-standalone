@@ -82,21 +82,29 @@ func shareStateStorageUpdate(comp interface{}) {
 			if storage.Workers[task.Worker].CanAllocate(task.CpuRequest, task.MemoryRequest) {
 				task.Status = "CommitSuccess"
 				storage.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
-				storage.Os.Net().Send(Message{
+				err := storage.Os.Net().Send(Message{
 					From:    storage.Os.Net().GetAddr(),
 					To:      task.Worker,
 					Content: "TaskRun",
 					Body:    task,
 				})
+				if err != nil {
+					panic(err)
+				}
+
 				LogInfo(storage.Os, "task commit success", task.Worker, task)
 			} else {
 				task.Status = "CommitFail"
-				storage.Os.Net().Send(Message{
+				err := storage.Os.Net().Send(Message{
 					From:    storage.Os.Net().GetAddr(),
 					To:      newMessage.From,
 					Content: "TaskCommitFail",
 					Body:    task,
 				})
+				if err != nil {
+					panic(err)
+				}
+
 				LogInfo(storage.Os, "task commit fail ", storage.Workers[task.Worker], task)
 			}
 
@@ -116,13 +124,18 @@ func shareStateStorageUpdate(comp interface{}) {
 		stateCopy := storage.StateCopy()
 		for i := 0; i < shareSchdulerNum; i++ {
 			dist := fmt.Sprintf("master%d", i) + ":" + string(CScheduler)
-			storage.Os.Net().Send(Message{
+			err := storage.Os.Net().Send(Message{
 				From:    storage.Os.Net().GetAddr(),
 				To:      dist,
 				Content: "ClusterStateCopy",
 				Body:    *stateCopy.Clone(),
 			})
+			if err != nil {
+				panic(err)
+			}
+
 		}
+
 	}
 }
 
@@ -187,7 +200,10 @@ func shareSchedulerUpdate(comp interface{}) {
 				Content: "TaskCommit",
 				Body:    task,
 			}
-			scheduler.Os.Net().Send(newMessage)
+			err := scheduler.Os.Net().Send(newMessage)
+			if err != nil {
+				panic(err)
+			}
 			LogInfo(scheduler.Os, "try to commit task allocate to globalStateStorage", task.Worker, task)
 		} else {
 			scheduler.WaitSchedule.InQueueFront(task)

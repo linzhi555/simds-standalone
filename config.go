@@ -33,14 +33,20 @@ func init() {
 	pflag.BoolP("ShareState", "s", false, "run share state cluster")
 
 	pflag.Parse()
-	viper.BindPFlags(pflag.CommandLine)
+	err := viper.BindPFlags(pflag.CommandLine)
+	if err != nil {
+		panic(err)
+	}
 
 	viper.SetConfigName("config") // name of config file (without extension)
 	viper.AddConfigPath(".")      // optionally look for config in the working directory
 	if err := viper.ReadInConfig(); err != nil {
 		panic("config file not find")
 	}
-	viper.Unmarshal(&Config)
+	err = viper.Unmarshal(&Config)
+	if err != nil {
+		panic(err)
+	}
 
 }
 

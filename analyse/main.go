@@ -36,9 +36,17 @@ func main() {
 
 	info("output sorted events line...")
 	outputlogfile := path.Join(*outputDir, "all_events.log")
-	common.AppendLineCsvFile(outputlogfile, []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
+	err := common.AppendLineCsvFile(outputlogfile, []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
+	if err != nil {
+		panic(err)
+	}
+
 	for _, event := range events {
-		common.AppendLineCsvFile(outputlogfile, event.Strings())
+		err = common.AppendLineCsvFile(outputlogfile, event.Strings())
+		if err != nil {
+			panic(err)
+		}
+
 	}
 
 	info("analysing cluster status ...")

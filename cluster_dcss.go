@@ -146,7 +146,10 @@ func dcssTaskDispenseHandle(scheduler *Scheduler, newMessage Message) {
 				Content: "TaskDivide",
 				Body:    task,
 			}
-			scheduler.Os.Net().Send(newMessage)
+			err := scheduler.Os.Net().Send(newMessage)
+			if err != nil {
+				panic(err)
+			}
 		}
 		task.Status = "DiviDeStage2"
 	}
@@ -167,7 +170,10 @@ func dcssTaskDivideHandle(scheduler *Scheduler, newMessage Message) {
 	} else {
 		messageReply.Content = "TaskDivideReject"
 	}
-	scheduler.Os.Net().Send(messageReply)
+	err := scheduler.Os.Net().Send(messageReply)
+	if err != nil {
+		panic(err)
+	}
 }
 func dcssTaskDivideConfirmHandle(scheduler *Scheduler, newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
@@ -175,19 +181,27 @@ func dcssTaskDivideConfirmHandle(scheduler *Scheduler, newMessage Message) {
 
 	if t.Status == "DiviDeStage2" {
 		t.Status = "DiviDeStage3"
-		scheduler.Os.Net().Send(Message{
+		err := scheduler.Os.Net().Send(Message{
 			From:    newMessage.To,
 			To:      newMessage.From,
 			Content: "TaskDivideAllocate",
 			Body:    *scheduler.TasksStatus[task.Id],
 		})
+		if err != nil {
+			panic(err)
+		}
+
 	} else if t.Status == "DiviDeStage3" {
-		scheduler.Os.Net().Send(Message{
+		err := scheduler.Os.Net().Send(Message{
 			From:    newMessage.To,
 			To:      newMessage.From,
 			Content: "TaskDivideCancel",
 			Body:    *scheduler.TasksStatus[task.Id],
 		})
+		if err != nil {
+			panic(err)
+		}
+
 	}
 }
 func dcssTaskDivideAllocateHandle(scheduler *Scheduler, newMessage Message) {
@@ -221,7 +235,10 @@ func dcssTaskDivideRejectHandle(scheduler *Scheduler, newMessage Message) {
 			Content: "TaskDispense",
 			Body:    taskCopy,
 		}
-		scheduler.Os.Net().Send(newMessage)
+		err := scheduler.Os.Net().Send(newMessage)
+		if err != nil {
+			panic(err)
+		}
 		LogInfo(scheduler.Os, "TaskDivide finally fail, start a new TaskDispense", newMessage.Body)
 	}
 }
@@ -234,7 +251,10 @@ func dcssChangeTaskStatusLocally(scheduler *Scheduler, task *TaskInfo, contentTy
 		Content: contentType,
 		Body:    *task,
 	}
-	scheduler.Os.Net().Send(newMessage)
+	err := scheduler.Os.Net().Send(newMessage)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func dcssFinishHandle(scheduler *Scheduler, newMessage Message) {

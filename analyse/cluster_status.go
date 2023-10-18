@@ -35,7 +35,11 @@ func (l TaskEventLine) Less(i, j int) bool {
 // read the TaskEvent csv file
 func ReadTaskEventCsv(csvfilePath string) TaskEventLine {
 
-	table, _ := common.CsvToList(csvfilePath)
+	table, err := common.CsvToList(csvfilePath)
+	if err != nil {
+		panic(err)
+	}
+
 	var eventLine []*TaskEvent
 	for _, line := range table {
 		eventLine = append(eventLine, strings2TaskEvent(line))
@@ -140,9 +144,16 @@ func (l TaskEventLine) AnalyseSchedulerLatency(outPutDir string) {
 	outPutLogPath := path.Join(outPutDir, "latencyCurve.log")
 	outPutMetricPath := path.Join(outPutDir, "latency_metric.log")
 
-	common.AppendLineCsvFile(outPutLogPath, []string{"taskid", "latency"})
+	err := common.AppendLineCsvFile(outPutLogPath, []string{"taskid", "latency"})
+	if err != nil {
+		panic(err)
+	}
+
 	for _, line := range costList {
-		common.AppendLineCsvFile(outPutLogPath, []string{fmt.Sprint(line.Taskid), fmt.Sprint(line.Cost)})
+		err := common.AppendLineCsvFile(outPutLogPath, []string{fmt.Sprint(line.Taskid), fmt.Sprint(line.Cost)})
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	var sum time.Duration = 0
@@ -152,8 +163,15 @@ func (l TaskEventLine) AnalyseSchedulerLatency(outPutDir string) {
 	average := time.Duration(int64(sum) / int64(len(costList)))
 	high_90_per := costList[(len(costList)*9)/10].Cost
 	high_99_per := costList[(len(costList)*99)/100].Cost
-	common.AppendLineCsvFile(outPutMetricPath, []string{"average", "90%high", "99%high"})
-	common.AppendLineCsvFile(outPutMetricPath, []string{fmt.Sprint(average), fmt.Sprint(high_90_per), fmt.Sprint(high_99_per)})
+	err = common.AppendLineCsvFile(outPutMetricPath, []string{"average", "90%high", "99%high"})
+	if err != nil {
+		panic(err)
+	}
+
+	err = common.AppendLineCsvFile(outPutMetricPath, []string{fmt.Sprint(average), fmt.Sprint(high_90_per), fmt.Sprint(high_99_per)})
+	if err != nil {
+		panic(err)
+	}
 
 	outputLatencyResultFigure(outPutFigurePath, costList)
 }
@@ -163,9 +181,16 @@ func (l TaskEventLine) AnalyseTaskLifeTime(outPutDir string) {
 	outPutLogPath := path.Join(outPutDir, "lifeTimeCurve.log")
 	outPutMetricPath := path.Join(outPutDir, "lifeTime_metric.log")
 
-	common.AppendLineCsvFile(outPutLogPath, []string{"taskid", "lifetime"})
+	err := common.AppendLineCsvFile(outPutLogPath, []string{"taskid", "lifetime"})
+	if err != nil {
+		panic(err)
+	}
+
 	for _, line := range costList {
-		common.AppendLineCsvFile(outPutLogPath, []string{fmt.Sprint(line.Taskid), fmt.Sprint(line.Cost)})
+		err := common.AppendLineCsvFile(outPutLogPath, []string{fmt.Sprint(line.Taskid), fmt.Sprint(line.Cost)})
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	var sum time.Duration = 0
@@ -176,8 +201,15 @@ func (l TaskEventLine) AnalyseTaskLifeTime(outPutDir string) {
 	high_90_per := costList[(len(costList)*9)/10].Cost
 	high_99_per := costList[(len(costList)*99)/100].Cost
 
-	common.AppendLineCsvFile(outPutMetricPath, []string{"average", "90%high", "99%high"})
-	common.AppendLineCsvFile(outPutMetricPath, []string{fmt.Sprint(average), fmt.Sprint(high_90_per), fmt.Sprint(high_99_per)})
+	err = common.AppendLineCsvFile(outPutMetricPath, []string{"average", "90%high", "99%high"})
+	if err != nil {
+		panic(err)
+	}
+	err = common.AppendLineCsvFile(outPutMetricPath, []string{fmt.Sprint(average), fmt.Sprint(high_90_per), fmt.Sprint(high_99_per)})
+
+	if err != nil {
+		panic(err)
+	}
 }
 
 func AdjustEventTimeByTimeRate(timeRate int, events TaskEventLine) {

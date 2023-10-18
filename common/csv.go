@@ -79,7 +79,10 @@ func ListToCsv(table [][]string, tabletop []string, outpath string) {
 
 	w := csv.NewWriter(f)
 
-	w.WriteAll(temp)
+	err = w.WriteAll(temp)
+	if err != nil {
+		panic(err)
+	}
 	w.Flush()
 
 }

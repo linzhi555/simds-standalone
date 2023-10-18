@@ -111,7 +111,11 @@ func CenterSchedulerUpdate(comp interface{}) {
 				Content: "TaskRun",
 				Body:    task,
 			}
-			scheduler.Os.Net().Send(newMessage)
+			err := scheduler.Os.Net().Send(newMessage)
+			if err != nil {
+				panic(err)
+			}
+
 			LogInfo(scheduler.Os, "sendtask to", task.Worker, task)
 		} else {
 			scheduler.WaitSchedule.InQueueFront(task)

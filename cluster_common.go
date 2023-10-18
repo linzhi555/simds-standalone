@@ -40,7 +40,10 @@ func CommonTaskgenUpdate(c interface{}) {
 				Content: "TaskDispense",
 				Body:    newtask,
 			}
-			taskgen.Os.Net().Send(newMessage)
+			err := taskgen.Os.Net().Send(newMessage)
+			if err != nil {
+				panic(err)
+			}
 			LogInfo(taskgen.Os, fmt.Sprintf(": send task to %s %v", receiverAddr, newMessage.Body))
 			TaskEventLog(taskgen.Os.GetTime(), &newtask, receiverAddr)
 			taskgen.CurTaskId++
@@ -137,7 +140,11 @@ func informReceiverTaskStatus(rm *ResourceManager, t *TaskInfo, content string) 
 		Content: content,
 		Body:    *t,
 	}
-	rm.Os.Net().Send(newMessage)
+	err := rm.Os.Net().Send(newMessage)
+	if err != nil {
+		panic(err)
+	}
+
 }
 
 func updateNodeInfo(rm *ResourceManager) {
@@ -160,13 +167,18 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	f.WriteString("time,taskid,type,nodeip,cpu,ram\n")
-	f.Close()
+	_, err = f.WriteString("time,taskid,type,nodeip,cpu,ram\n")
+	if err != nil {
+		panic(err)
+	}
 }
 
 // TaskEventLog 任务转台信息输出至csv
 // 格式文件，由于任务延迟和集群状态分析
 func TaskEventLog(t time.Time, task *TaskInfo, host string) {
 	timestr := t.Format(time.RFC3339Nano)
-	common.AppendLineCsvFile("./tasks_event.log", []string{timestr, task.Id, task.Status, string(host), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest)})
+	err := common.AppendLineCsvFile("./tasks_event.log", []string{timestr, task.Id, task.Status, string(host), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest)})
+	if err != nil {
+		panic(err)
+	}
 }
