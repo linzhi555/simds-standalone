@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
+	"strings"
 )
 
 // BuildDCSSCluster 建立分布式调度的集群
@@ -57,35 +59,74 @@ func DcssTaskgenSetup(c interface{}) {
 func DcssSchedulerSetup(comp interface{}) {
 	scheduler := comp.(*Scheduler)
 
-	var neibors []string
-	// add self in the first for convernience, and ignore the first when actually register neibor
+	// init local node info
+	scheduler.LocalNode = &NodeInfo{scheduler.Os.Net().GetAddr(), Config.NodeCpu, Config.NodeMemory, 0, 0}
+
+	// init neibors
 	neiborNum := int(Config.DcssNeibor)
 	allNodeNum := int(Config.NodeNum)
-	neibors = append(neibors, scheduler.Os.Net().GetAddr())
-	for len(neibors) != neiborNum+1 {
-		newNeibor := fmt.Sprintf("node%d:Scheduler", rand.Intn(allNodeNum))
-		alreadyExisted := false
-		for _, n := range neibors {
-			if n == newNeibor {
-				alreadyExisted = true
-			}
-		}
-		if !alreadyExisted {
-			neibors = append(neibors, newNeibor)
-		}
+	var neibors []string = make([]string, 0, neiborNum)
+
+	selfIndex, err := strconv.Atoi(strings.TrimLeft(scheduler.Host, "node"))
+	if err != nil {
+		panic(err)
 	}
 
-	for _, n := range neibors[1:] {
+	for _, neiborIndex := range getNeigbor(allNodeNum, selfIndex, neiborNum) {
+		newNeibor := fmt.Sprintf("node%d:Scheduler", neiborIndex)
+		neibors = append(neibors, newNeibor)
+	}
 
+	for _, n := range neibors {
 		nodeInfo := &NodeInfo{n, Config.NodeCpu, Config.NodeMemory, 0, 0}
 		scheduler.Workers[n] = nodeInfo.Clone()
 	}
-	scheduler.LocalNode = &NodeInfo{scheduler.Os.Net().GetAddr(), Config.NodeCpu, Config.NodeMemory, 0, 0}
+
+	// for debug
 	keys := make([]string, 0, len(scheduler.Workers))
 	for k := range scheduler.Workers {
 		keys = append(keys, k)
 	}
-	LogInfo(scheduler.Os, fmt.Sprintf("Now,I have %d neibor, they are %s", len(scheduler.Workers), keys))
+	LogInfo(scheduler.Os, fmt.Sprintf("index %d,Now,I have %d neibor, they are %s", selfIndex, len(scheduler.Workers), keys))
+
+}
+
+// 创建邻域的算法，输入 一个节点的编号（selfIndex ） 返回其领域的一系列编号
+func getNeigbor(allNodes int, selfIndex int, neigborNum int) []int {
+	if neigborNum <= 2 {
+		panic("neigborNum can not smaller than 2 ")
+	}
+
+	if allNodes < neigborNum*2 {
+		panic("allNodes num can not smaller than neigborNum*2")
+	}
+
+	if selfIndex < 0 || selfIndex > allNodes-1 {
+		panic("wrong index")
+	}
+
+	// 所有节点连接左右两个节点，这样网络保证有一个全局的大环
+	left := (selfIndex - 1 + allNodes) % allNodes
+	right := (selfIndex + 1) % allNodes
+
+	var selected map[int]bool = map[int]bool{}
+	selected[left] = true
+	selected[right] = true
+
+	// 填充剩余的其他邻域 ，从其他的节点随机选
+
+	for len(selected) < neigborNum {
+		temp := rand.Intn(allNodes)
+		if temp != selfIndex {
+			selected[temp] = true
+		}
+	}
+
+	neibors := make([]int, 0, len(selected))
+	for k := range selected {
+		neibors = append(neibors, k)
+	}
+	return neibors
 
 }
 

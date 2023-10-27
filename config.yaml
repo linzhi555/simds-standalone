@@ -1,4 +1,4 @@
-NodeNum:        100      # how many large the cluster
+NodeNum:        10000      # how many large the cluster
 NetLatency:     5          # the average network latency, unit: milisecond 
 NodeCpu:        10         # the node cpu capacity
 NodeMemory:     10         # the node memory capacity
@@ -15,4 +15,4 @@ SchedulerPerformance: 6.0  # how many time Scheduler execute scheduling algorith
 DcssNeibor:     8          #how many neibor of a node
 
 # only in share state cluster
-StateUpdatePeriod:   100   # the period of scheduler get the newest cluster state, unit : milisecond
+StateUpdatePeriod:   300   # the period of scheduler get the newest cluster state, unit : milisecond
