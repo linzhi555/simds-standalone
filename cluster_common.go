@@ -11,43 +11,36 @@ import (
 // 用多种形式集群，通过Receivers字段来确定发送对象
 func CommonTaskgenUpdate(c interface{}) {
 	taskgen := c.(*TaskGen)
-	t := taskgen.Os.GetTime().Sub(taskgen.StartTime)
-	if t <= 0 {
+	timeNow := taskgen.Os.GetTime().Sub(taskgen.StartTime)
+	if timeNow <= 0 {
 		return
 	}
 
-	taskNumPerSecond := Config.TaskNumFactor * float32(Config.NodeNum)
-
-	taskgenAddr := "user1" + ":" + string(CTaskGen)
+	taskgenAddr := taskgen.Os.Net().GetAddr()
 
 	receiverNum := len(taskgen.Receivers)
 
-	if t < 10*time.Second {
-		for taskgen.CurTaskId < int(taskNumPerSecond*float32(t.Milliseconds())/float32(1000)) {
-
-			newtask := TaskInfo{
-				Id:            fmt.Sprintf("task%d", taskgen.CurTaskId),
-				CpuRequest:    common.RandIntWithRange(Config.TaskCpu, 0.5),
-				MemoryRequest: common.RandIntWithRange(Config.TaskMemory, 0.5),
-				LifeTime:      time.Duration(common.RandIntWithRange(Config.TaskLifeTime, 0.5)) * time.Millisecond,
-				Status:        "submit",
-			}
-
-			receiverAddr := taskgen.Receivers[taskgen.CurTaskId%receiverNum]
-			newMessage := Message{
-				From:    taskgenAddr,
-				To:      receiverAddr,
-				Content: "TaskDispense",
-				Body:    newtask,
-			}
-			err := taskgen.Os.Net().Send(newMessage)
-			if err != nil {
-				panic(err)
-			}
-			LogInfo(taskgen.Os, fmt.Sprintf(": send task to %s %v", receiverAddr, newMessage.Body))
-			TaskEventLog(taskgen.Os.GetTime(), &newtask, receiverAddr)
-			taskgen.CurTaskId++
+	for taskgen.CurTaskId < len(taskgen.Src) {
+		if taskgen.Src[taskgen.CurTaskId].time > timeNow {
+			break
 		}
+
+		newtask := taskgen.Src[taskgen.CurTaskId].task
+		receiverAddr := taskgen.Receivers[taskgen.CurTaskId%receiverNum]
+		newMessage := Message{
+			From:    taskgenAddr,
+			To:      receiverAddr,
+			Content: "TaskDispense",
+			Body:    newtask,
+		}
+		err := taskgen.Os.Net().Send(newMessage)
+		if err != nil {
+			panic(err)
+		}
+
+		LogInfo(taskgen.Os, fmt.Sprintf(": send task to %s %v", receiverAddr, newMessage.Body))
+		TaskEventLog(taskgen.Os.GetTime(), &newtask, receiverAddr)
+		taskgen.CurTaskId++
 	}
 }
 

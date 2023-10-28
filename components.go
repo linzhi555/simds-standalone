@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"simds-standalone/common"
 	"time"
 )
 
@@ -32,14 +34,85 @@ type TaskGen struct {
 	StartTime time.Time
 	CurTaskId int
 	Receivers []string
+	Src       []SrcNode
 }
+
+type SrcNode struct {
+	time time.Duration
+	task TaskInfo
+}
+
+// var TaskSrcGenerate func() []SrcNode = noWaveTaskStream
+var TaskSrcGenerate func() []SrcNode = onePeakTaskStream
 
 // NewTaskGen 创造空的TaskGen
 func NewTaskGen(hostname string) *TaskGen {
-	return &TaskGen{
+
+	taskgen := &TaskGen{
 		Host:      hostname,
 		CurTaskId: 0,
 	}
+
+	taskgen.Src = TaskSrcGenerate()
+
+	return taskgen
+}
+
+// 负载没有波动的连续任务流
+func noWaveTaskStream() []SrcNode {
+	taskNumPerSecond := Config.TaskNumFactor * float32(Config.NodeNum)
+	allTasksNum := int(10 * taskNumPerSecond)
+	src := make([]SrcNode, 0, allTasksNum)
+	for i := 0; i < allTasksNum; i++ {
+		newTask := TaskInfo{
+			Id:            fmt.Sprintf("task%d", i),
+			CpuRequest:    common.RandIntWithRange(Config.TaskCpu, 0.5),
+			MemoryRequest: common.RandIntWithRange(Config.TaskMemory, 0.5),
+			LifeTime:      time.Duration(common.RandIntWithRange(Config.TaskLifeTime, 0.5)) * time.Millisecond,
+			Status:        "submit",
+		}
+
+		t := time.Duration(int64(i) * 10 * int64(time.Second) / int64(allTasksNum))
+
+		src = append(src, SrcNode{t, newTask})
+
+	}
+	return src
+}
+
+func pow2(x int64) int64 {
+	return x * x
+}
+
+// 有一个峰值的连续任务流
+func onePeakTaskStream() []SrcNode {
+	taskNumPerSecond := Config.TaskNumFactor * float32(Config.NodeNum)
+	allTasksNum := int(10 * taskNumPerSecond)
+	src := make([]SrcNode, 0, allTasksNum)
+	for i := 0; i < allTasksNum; i++ {
+		newTask := TaskInfo{
+			Id:            fmt.Sprintf("task%d", i),
+			CpuRequest:    common.RandIntWithRange(Config.TaskCpu, 0.5),
+			MemoryRequest: common.RandIntWithRange(Config.TaskMemory, 0.5),
+			LifeTime:      time.Duration(common.RandIntWithRange(Config.TaskLifeTime, 0.5)) * time.Millisecond,
+			Status:        "submit",
+		}
+
+		var t time.Duration
+		if i <= allTasksNum/4 {
+			t = time.Duration(int64(i)*10*int64(time.Second)/int64(allTasksNum)) * 3 / 2
+		} else if i <= allTasksNum*3/4 {
+			t = src[allTasksNum/4].time
+			t += time.Duration(int64(i-(allTasksNum/4)) * 10 * int64(time.Second) / int64(allTasksNum) * 3 / 4)
+		} else {
+			t = src[allTasksNum*3/4].time
+			t += time.Duration(int64(i-(allTasksNum*3/4)) * 10 * int64(time.Second) / int64(allTasksNum) * 3 / 2)
+		}
+
+		src = append(src, SrcNode{time.Duration(t), newTask})
+
+	}
+	return src
 }
 
 // Component For NodeComponent interface
