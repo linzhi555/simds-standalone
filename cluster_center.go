@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"simds-standalone/common"
 )
 
@@ -92,8 +93,8 @@ func CenterSchedulerUpdate(comp interface{}) {
 
 	}
 
-	var maxSchedulerTime = int(Config.SchedulerPerformance)
-	for i := 0; i < maxSchedulerTime; i++ {
+	var maxScheduleTime = schdulingAlgorithmTimes(Config.SchedulerPerformance)
+	for i := 0; i < maxScheduleTime; i++ {
 
 		task, err := scheduler.WaitSchedule.Dequeue()
 		if err != nil {
@@ -123,6 +124,22 @@ func CenterSchedulerUpdate(comp interface{}) {
 		}
 
 	}
+}
+
+// 在一个调度器中，每次更新执行调度算法的次数，该函数的影响参数是
+// performance : 该机器的性能参数 unit tasks / second
+func schdulingAlgorithmTimes(performance float32) int {
+	times_float := performance / 10000 // 每次更新相当于时间过去0.1毫秒，是 一秒的万分之一
+
+	base := int(times_float)
+	var times_int int
+	if rand.Float32() < times_float-float32(base) {
+		times_int = base + 1
+	} else {
+		times_int = base
+	}
+
+	return times_int
 }
 
 // schdulingAlgorithm 简单的调度算法，找到第一个合适调度的节点,找不到 ok返回false

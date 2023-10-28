@@ -183,7 +183,7 @@ func shareSchedulerUpdate(comp interface{}) {
 		}
 	}
 
-	var maxScheduleTimes = int(Config.SchedulerPerformance)
+	var maxScheduleTimes = schdulingAlgorithmTimes(Config.SchedulerPerformance)
 	for i := 0; i < maxScheduleTimes; i++ {
 		task, err := scheduler.WaitSchedule.Dequeue()
 		if err != nil {
