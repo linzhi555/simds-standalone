@@ -196,13 +196,13 @@ func (m *ClusterMetric) Strings() []string {
 }
 
 type ClusterStatus struct {
-	Time               time.Time
-	AverageTaskLatency time.Duration
-	Metric             ClusterMetric
+	Time        time.Time
+	TaskLatency time.Duration
+	Metric      ClusterMetric
 }
 
 func (status *ClusterStatus) Strings() []string {
-	return append([]string{status.Time.Format(time.RFC3339Nano), fmt.Sprint(status.AverageTaskLatency)}, status.Metric.Strings()...)
+	return append([]string{status.Time.Format(time.RFC3339Nano), fmt.Sprint(status.TaskLatency)}, status.Metric.Strings()...)
 }
 
 type ClusterStatusLine []ClusterStatus
@@ -389,19 +389,20 @@ func (c *Cluster) CalStatusCurves(outputDir string) (statusLine []ClusterStatus)
 		case FINISH:
 			c.Nodes[e.NodeIp].RemoveTask(e.TaskId)
 		}
-		if e.Time.Sub(lastRecordTime) >= time.Millisecond*3 {
-			averageLatency := time.Duration(0)
+		if e.Time.Sub(lastRecordTime) >= time.Millisecond*10 {
+			latencyMax := time.Duration(0)
 			tasksNum := int64(len(taskAfterLastRecord))
 
 			if tasksNum != 0 {
 				for _, task := range taskAfterLastRecord {
-					averageLatency += taskLatencyMap[task]
+					latency := taskLatencyMap[task]
+					if latency > latencyMax {
+						latencyMax = latency
+					}
 				}
-				averageLatency = time.Duration(int64(averageLatency) / tasksNum)
 			}
 
-			statusLine = append(statusLine, ClusterStatus{e.Time, averageLatency, c.CalMetrics()})
-			fmt.Println(c.CalMetrics())
+			statusLine = append(statusLine, ClusterStatus{e.Time, latencyMax, c.CalMetrics()})
 			taskAfterLastRecord = []string{}
 			lastRecordTime = e.Time
 		}

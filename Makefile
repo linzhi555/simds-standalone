@@ -17,6 +17,8 @@ analyse:
 	@mkdir -p $(Folder)
 	@cp ./config.log $(Folder)
 	go run ./analyse -logFile ./tasks_event.log  -verbose -outputDir $(Folder)
+	cp ./draw.py $(Folder)
+	cd $(Folder) && python3 draw.py
 
 testCompose:
 	bash ./test_compose.sh
