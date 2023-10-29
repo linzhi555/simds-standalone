@@ -22,7 +22,9 @@ def draw_cluster_status():
         next(plots)
         for row in plots:
             t.append(parseRFCnano(row[0]))  
-            avg_latency.append(pd.Timedelta(row[1]).microseconds/1000.0)
+            latency = pd.Timedelta(row[1]).total_seconds()*1000
+            avg_latency.append(latency)
+            print(row[1],latency)
             avg_cpu.append(float(row[2])*100)
             avg_ram.append(float(row[3])*100)
             var_cpu.append(float(row[4])*100)
@@ -34,11 +36,13 @@ def draw_cluster_status():
     ax1.set_ylabel("resource usage percentage unit: %")
 
     ax2 = plt.twinx()
-    ax2.plot(t,avg_latency,lw=1,color='y')
+    ax2.plot(t,avg_latency,lw=1,color='y',antialiased=True)
     ax2.set_ylabel("task lantency unit: ms")
     
     plt.title('Data from CSV')
     plt.xlabel('Time')
+
+    plt.show()
     plt.savefig('./cluster_status.png')
 
 
