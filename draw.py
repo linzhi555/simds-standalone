@@ -42,7 +42,6 @@ def draw_cluster_status():
     plt.title('Data from CSV')
     plt.xlabel('Time')
 
-    plt.show()
     plt.savefig('./cluster_status.png')
 
 
