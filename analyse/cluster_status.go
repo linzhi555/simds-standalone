@@ -45,6 +45,22 @@ func ReadTaskEventCsv(csvfilePath string) TaskEventLine {
 	return eventLine
 }
 
+// outout eventsLine to csv
+func (l TaskEventLine) Output(outputDir string) {
+	outputlogfile := path.Join(outputDir, "all_events.log")
+	err := common.AppendLineCsvFile(outputlogfile, []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
+	if err != nil {
+		panic(err)
+	}
+
+	for _, event := range l {
+		err = common.AppendLineCsvFile(outputlogfile, event.Strings())
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
 const (
 	_time   = 0
 	_taskid = 1
@@ -135,8 +151,152 @@ func (l TaskEventLine) AnalyseStageDuration(stage1 string, stage2 string) TaskSt
 	return res
 }
 
-func (l TaskEventLine) AnalyseSchedulerLatency(outPutDir string) {
-	costList := l.AnalyseStageDuration(SUBMIT, START)
+type Node struct {
+	Ip         string
+	CpuCap     float32 //cpu capacity
+	RamCap     float32 //ram capacity
+	Tasks      map[string]struct{}
+	CpuUsedPer float32
+	RamUsedPer float32
+}
+
+func NewNode(ip string, cpu, ram float32) *Node {
+	return &Node{
+		Ip:         ip,
+		CpuCap:     cpu,
+		RamCap:     ram,
+		Tasks:      map[string]struct{}{},
+		CpuUsedPer: 0,
+		RamUsedPer: 0,
+	}
+}
+
+func (n *Node) AddTask(taskid string) {
+	n.Tasks[taskid] = struct{}{}
+}
+
+func (n *Node) RemoveTask(taskid string) {
+	delete(n.Tasks, taskid)
+}
+
+type ClusterMetric struct {
+	CpuUsedPerAverage  float32
+	RamUsedPerAverage  float32
+	CpuUsedPerVariance float32
+	RamUsedPerVariance float32
+}
+
+func (m *ClusterMetric) Strings() []string {
+	return []string{
+		fmt.Sprint(m.CpuUsedPerAverage),
+		fmt.Sprint(m.RamUsedPerAverage),
+		fmt.Sprint(m.CpuUsedPerVariance),
+		fmt.Sprint(m.RamUsedPerVariance),
+	}
+}
+
+type ClusterStatus struct {
+	Time               time.Time
+	AverageTaskLatency time.Duration
+	Metric             ClusterMetric
+}
+
+func (status *ClusterStatus) Strings() []string {
+	return append([]string{status.Time.Format(time.RFC3339Nano), fmt.Sprint(status.AverageTaskLatency)}, status.Metric.Strings()...)
+}
+
+type ClusterStatusLine []ClusterStatus
+
+func (l ClusterStatusLine) Output(outputDir string) {
+	outputlogfile := path.Join(outputDir, "cluster_status.log")
+	err := common.AppendLineCsvFile(outputlogfile, []string{"time", "taskLatency", "cpuAvg", "ramAvg", "cpuVar", "ramVar"})
+	if err != nil {
+		panic(err)
+	}
+	for _, event := range l {
+		err = common.AppendLineCsvFile(outputlogfile, event.Strings())
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+type Cluster struct {
+	AllEvents       TaskEventLine
+	SubmitEvents    map[string]*TaskEvent
+	TaskLatencyList TaskStageCostList
+	Nodes           map[string]*Node
+}
+
+// create a new cluster according the taskevent logs.
+// if the ip appears in the logs then create this node.
+func InitCluster(l TaskEventLine) *Cluster {
+	var cluster Cluster
+	cluster.AllEvents = l
+	cluster.Nodes = make(map[string]*Node)
+	cluster.SubmitEvents = make(map[string]*TaskEvent)
+
+	for _, event := range l {
+		if event.Type == SUBMIT {
+			cluster.SubmitEvents[event.TaskId] = event
+			continue
+		}
+
+		if event.Type != START {
+			continue
+		}
+		if _, ok := cluster.Nodes[event.NodeIp]; ok == true {
+			continue
+		}
+
+		cluster.Nodes[event.NodeIp] = NewNode(event.NodeIp, 10.0, 10.0)
+	}
+
+	return &cluster
+}
+
+func (c *Cluster) CalMetrics() ClusterMetric {
+	for _, node := range c.Nodes {
+		var cpuUsed, ramUsed float32 = 0, 0
+		for t := range node.Tasks {
+			cpuUsed += c.SubmitEvents[t].Cpu
+			ramUsed += c.SubmitEvents[t].Ram
+		}
+
+		node.CpuUsedPer = cpuUsed / node.CpuCap
+		node.RamUsedPer = ramUsed / node.RamCap
+	}
+
+	var allCpu, allRam float32 = 0.0, 0.0
+	for _, node := range c.Nodes {
+		allCpu += node.CpuUsedPer
+		allRam += node.RamUsedPer
+	}
+	averageCpuUsedPer := allCpu / float32(len(c.Nodes))
+	averageRamUsedPer := allRam / float32(len(c.Nodes))
+
+	var cpuUsedPerVariance, ramUsedPerVariance float32 = 0.0, 0.0
+	for _, node := range c.Nodes {
+		cpuUsedPerVariance += pow2(node.CpuUsedPer - averageCpuUsedPer)
+		ramUsedPerVariance += pow2(node.RamUsedPer - averageRamUsedPer)
+	}
+	cpuUsedPerVariance /= float32(len(c.Nodes))
+	ramUsedPerVariance /= float32(len(c.Nodes))
+
+	return ClusterMetric{
+		CpuUsedPerAverage:  averageCpuUsedPer,
+		RamUsedPerAverage:  averageRamUsedPer,
+		CpuUsedPerVariance: cpuUsedPerVariance,
+		RamUsedPerVariance: ramUsedPerVariance,
+	}
+}
+
+func pow2(a float32) float32 {
+	return a * a
+}
+
+func (c *Cluster) AnalyseSchedulerLatency(outPutDir string) {
+	costList := c.AllEvents.AnalyseStageDuration(SUBMIT, START)
 	outPutFigurePath := path.Join(outPutDir, "latencyCurve.png")
 	outPutLogPath := path.Join(outPutDir, "latencyCurve.log")
 	outPutMetricPath := path.Join(outPutDir, "latency_metric.log")
@@ -170,11 +330,13 @@ func (l TaskEventLine) AnalyseSchedulerLatency(outPutDir string) {
 		panic(err)
 	}
 
+	c.TaskLatencyList = costList
+
 	outputLatencyResultFigure(outPutFigurePath, costList)
 }
 
-func (l TaskEventLine) AnalyseTaskLifeTime(outPutDir string) {
-	costList := l.AnalyseStageDuration(START, FINISH)
+func (c *Cluster) AnalyseTaskLifeTime(outPutDir string) {
+	costList := c.AllEvents.AnalyseStageDuration(START, FINISH)
 	outPutLogPath := path.Join(outPutDir, "lifeTimeCurve.log")
 	outPutMetricPath := path.Join(outPutDir, "lifeTime_metric.log")
 
@@ -209,116 +371,42 @@ func (l TaskEventLine) AnalyseTaskLifeTime(outPutDir string) {
 	}
 }
 
-func AdjustEventTimeByTimeRate(timeRate int, events TaskEventLine) {
-	zeroTime := events[0].Time
-	for i := range events {
-		events[i].Time = zeroTime.Add(events[i].Time.Sub(zeroTime) / time.Duration(timeRate))
-	}
-}
+func (c *Cluster) CalStatusCurves(outputDir string) (statusLine []ClusterStatus) {
+	lastRecordTime := c.AllEvents[0].Time
+	taskAfterLastRecord := []string{}
 
-type Node struct {
-	Ip         string
-	CpuCap     float32 //cpu capacity
-	RamCap     float32 //ram capacity
-	CpuUsed    float32
-	RamUsed    float32
-	CpuUsedPer float32 // Cpu Usage percentage
-	RamUsedPer float32
-}
-
-func (n *Node) AddTask(cpu float32, ram float32) {
-	n.CpuUsed += cpu
-	n.RamUsed += ram
-
-	n.CpuUsedPer = n.CpuUsed / n.CpuCap
-	n.RamUsedPer = n.RamUsed / n.RamCap
-}
-
-func (n *Node) RemoveTask(cpu float32, ram float32) {
-	n.CpuUsed -= cpu
-	n.RamUsed -= ram
-
-	//	if n.CpuUsed <0.0{
-	//		n.CpuUsed = 0.0
-	//	}
-	//	if n.RamUsed <0.0{
-	//		n.RamUsed = 0.0
-	//	}
-
-	n.CpuUsedPer = n.CpuUsed / n.CpuCap
-	n.RamUsedPer = n.RamUsed / n.RamCap
-}
-
-type ClusterMetric struct {
-	CpuUsedPerAverage  float32
-	RamUsedPerAverage  float32
-	CpuUsedPerVariance float32
-	RamUsedPerVariance float32
-}
-
-type ClusterStatus struct {
-	Time   time.Time
-	Metric ClusterMetric
-}
-
-type Cluster map[string]*Node
-
-// create a new cluster according the taskevent logs.
-// if the ip appears in the logs then create this node.
-func InitCluster(l TaskEventLine) Cluster {
-	var cluster Cluster = make(Cluster)
-
-	for _, event := range l {
-		if event.Type != START {
-			continue
-		}
-		if _, ok := cluster[event.NodeIp]; ok == true {
-			continue
-		}
-		cluster[event.NodeIp] = &Node{event.NodeIp, 10.0, 10.0, 0.0, 0.0, 0.0, 0.0}
+	taskLatencyMap := map[string]time.Duration{}
+	for _, record := range c.TaskLatencyList {
+		taskLatencyMap[record.Taskid] = record.Cost
 	}
 
-	return cluster
-}
-
-func (c Cluster) CalMetrics() ClusterMetric {
-	var allCpu, allRam float32 = 0.0, 0.0
-	var cpuUsedPerVariance, ramUsedPerVariance float32 = 0.0, 0.0
-	for _, node := range c {
-		allCpu += node.CpuUsedPer
-		allRam += node.RamUsedPer
-	}
-	averageCpuUsedPer := allCpu / float32(len(c))
-	averageRamUsedPer := allRam / float32(len(c))
-
-	for _, node := range c {
-		cpuUsedPerVariance += pow2(node.CpuUsedPer - averageCpuUsedPer)
-		ramUsedPerVariance += pow2(node.RamUsedPer - averageRamUsedPer)
-	}
-	cpuUsedPerVariance /= float32(len(c))
-	ramUsedPerVariance /= float32(len(c))
-
-	return ClusterMetric{
-		averageCpuUsedPer,
-		averageRamUsedPer,
-		cpuUsedPerVariance,
-		ramUsedPerVariance,
-	}
-}
-
-func pow2(a float32) float32 {
-	return a * a
-}
-
-func (c Cluster) CalStatusCurves(events []*TaskEvent) (statusLine []ClusterStatus) {
-	for _, e := range events {
+	for _, e := range c.AllEvents {
 		switch e.Type {
+		case SUBMIT:
+			taskAfterLastRecord = append(taskAfterLastRecord, e.TaskId)
 		case START:
-			c[e.NodeIp].AddTask(e.Cpu, e.Ram)
+			c.Nodes[e.NodeIp].AddTask(e.TaskId)
 		case FINISH:
-			c[e.NodeIp].RemoveTask(e.Cpu, e.Ram)
+			c.Nodes[e.NodeIp].RemoveTask(e.TaskId)
 		}
-		statusLine = append(statusLine, ClusterStatus{e.Time, c.CalMetrics()})
+		if e.Time.Sub(lastRecordTime) >= time.Millisecond*3 {
+			averageLatency := time.Duration(0)
+			tasksNum := int64(len(taskAfterLastRecord))
+
+			if tasksNum != 0 {
+				for _, task := range taskAfterLastRecord {
+					averageLatency += taskLatencyMap[task]
+				}
+				averageLatency = time.Duration(int64(averageLatency) / tasksNum)
+			}
+
+			statusLine = append(statusLine, ClusterStatus{e.Time, averageLatency, c.CalMetrics()})
+			fmt.Println(c.CalMetrics())
+			taskAfterLastRecord = []string{}
+			lastRecordTime = e.Time
+		}
 	}
+
+	ClusterStatusLine(statusLine).Output(outputDir)
 	return
 }
