@@ -1,4 +1,4 @@
-.PHONY:centerTest dcssTest analyse fmt
+.PHONY:centerTest dcssTest analyse fmt testCompose
 
 centerTest:
 	go run . >  ./componets.log
@@ -17,6 +17,9 @@ analyse:
 	@mkdir -p $(Folder)
 	@cp ./config.log $(Folder)
 	go run ./analyse -logFile ./tasks_event.log  -verbose -outputDir $(Folder)
+
+testCompose:
+	bash ./test_compose.sh
 
 fmt:
 	gofmt -l -w .
