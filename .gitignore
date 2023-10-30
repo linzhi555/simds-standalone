@@ -1,3 +1,4 @@
 *.log
 *.prof
 target/*
+*/target/*
