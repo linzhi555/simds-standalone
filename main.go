@@ -20,11 +20,11 @@ func main() {
 	} else if Config.ShareState {
 		log.Println("run share state cluster")
 		cluster = BuildShareStateCluster()
-
-	} else {
-
+	} else if Config.Center {
 		log.Println("run centralized cluster")
 		cluster = BuildCenterCluster()
+	} else {
+		panic("pleas specify which cluster to run")
 	}
 
 	LogConfig()

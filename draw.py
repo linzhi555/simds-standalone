@@ -24,7 +24,6 @@ def draw_cluster_status():
             t.append(parseRFCnano(row[0]))  
             latency = pd.Timedelta(row[1]).total_seconds()*1000
             avg_latency.append(latency)
-            print(row[1],latency)
             avg_cpu.append(float(row[2])*100)
             avg_ram.append(float(row[3])*100)
             var_cpu.append(float(row[4])*100)

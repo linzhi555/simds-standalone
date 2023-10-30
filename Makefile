@@ -1,27 +1,29 @@
 .PHONY:centerTest dcssTest analyse fmt testCompose
 
+Config=./config.yaml
 centerTest:
-	go run . >  ./componets.log
+	go run . -c $(Config) --Center >  ./componets.log
 	@make analyse 
 dcssTest:
-	go run . --Dcss >  ./componets.log
+	go run . -c $(Config) --Dcss >  ./componets.log
 	@make analyse
 
 shareTest:
-	go run .  --ShareState > ./componets.log
+	go run .   -c $(Config) --ShareState > ./componets.log
 	@make analyse
 
-Folder= target/$(shell date '+%m_%d_%H_%M_%S')
 
+TargetFolder= ./target/$(shell date '+%m_%d_%H_%M_%S')
 analyse:
-	@mkdir -p $(Folder)
-	@cp ./config.log $(Folder)
-	go run ./analyse -logFile ./tasks_event.log  -verbose -outputDir $(Folder)
-	cp ./draw.py $(Folder)
-	cd $(Folder) && python3 draw.py
+	@mkdir -p $(TargetFolder)
+	@cp ./config.log $(TargetFolder)
+	go run ./analyse -logFile ./tasks_event.log  -verbose -outputDir $(TargetFolder)
+	cp ./draw.py $(TargetFolder)
+	cd $(TargetFolder) && python3 draw.py
 
+ComposeFolder = ./test_compose
 testCompose:
-	bash ./test_compose.sh
+	bash ./test_compose.sh $(ComposeFolder)
 
 fmt:
 	gofmt -l -w .

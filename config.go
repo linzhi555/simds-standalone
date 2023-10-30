@@ -12,6 +12,7 @@ import (
 
 // Config 全局的配置,在main开始前初始化
 var Config struct {
+	Center               bool
 	Dcss                 bool
 	ShareState           bool
 	NodeNum              int32
@@ -29,17 +30,18 @@ var Config struct {
 
 func init() {
 
-	pflag.BoolP("Dcss", "d", false, "run dcss")
-	pflag.BoolP("ShareState", "s", false, "run share state cluster")
-
+	configFile := pflag.StringP("configFile", "c", "./config.yaml", "the config file path")
+	pflag.Bool("Dcss", false, "run dcss")
+	pflag.Bool("ShareState", false, "run share state cluster")
+	pflag.Bool("Center", false, "run centralized cluster")
 	pflag.Parse()
+
 	err := viper.BindPFlags(pflag.CommandLine)
 	if err != nil {
 		panic(err)
 	}
 
-	viper.SetConfigName("config") // name of config file (without extension)
-	viper.AddConfigPath(".")      // optionally look for config in the working directory
+	viper.SetConfigFile(*configFile)
 	if err := viper.ReadInConfig(); err != nil {
 		panic("config file not find")
 	}
