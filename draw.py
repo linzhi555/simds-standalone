@@ -26,10 +26,10 @@ def draw_cluster_status():
             avg_latency.append(latency)
             avg_cpu.append(float(row[2])*100)
             avg_ram.append(float(row[3])*100)
-            var_cpu.append(float(row[4])*100)
-            var_ram.append(float(row[5])*100)
+            var_cpu.append(float(row[4]))
+            var_ram.append(float(row[5]))
     fig = plt.figure()
-    ax1 = fig.add_subplot(111)
+    ax1 = fig.add_subplot(211)
     ax1.plot(t,avg_cpu,lw=1,color='r')
     ax1.plot(t,avg_ram,lw=1,color='b')
     ax1.set_ylabel("resource usage percentage unit: %")
@@ -41,6 +41,11 @@ def draw_cluster_status():
     plt.title('Data from CSV')
     plt.xlabel('Time')
 
+
+    ax3 = fig.add_subplot(212)
+    ax3.plot(t,var_cpu,lw=1)
+    ax3.plot(t,var_ram,lw=1)
+    ax3.set_ylabel("resource variance")
     plt.savefig('./cluster_status.png')
 
 
