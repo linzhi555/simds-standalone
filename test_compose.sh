@@ -4,16 +4,19 @@ for config in $(ls $1/*.yaml);do
     echo $config
     base=$(basename $config)
     configname=${base/%".yaml"}
-    echo "run three test , test : $configname"
-
-    # if dcss_only.txt is in this folder then just run dcss test
-    if [ -f $1/dcss_only.txt ];then
-        echo " just run dcss test only"
-        make dcssTest   Config=$config TargetFolder="$1/target/${configname}_dcss"
-        continue
+    cluster=""
+    ls $1/*.run
+    if [ $? -eq 0 ];then
+        for clusterf in $(ls $1/*.run);do
+            temp=$(basename $clusterf)
+            cluster="$cluster ${temp/%".run"}"
+        done
+    else
+        cluster="center share dcss"
     fi
 
-    make centerTest Config=$config TargetFolder="$1/target/${configname}_center"
-    make shareTest  Config=$config TargetFolder="$1/target/${configname}_share"
-    make dcssTest   Config=$config TargetFolder="$1/target/${configname}_dcss"
+    echo "start test for $cluster"
+    for c in $cluster;do
+        make ${c}Test Config=$config TargetFolder="$1/target/${configname}_${c}"
+    done
 done
