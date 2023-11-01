@@ -201,20 +201,21 @@ type ClusterStatus struct {
 	Metric      ClusterMetric
 }
 
-func (status *ClusterStatus) Strings() []string {
-	return append([]string{status.Time.Format(time.RFC3339Nano), fmt.Sprint(status.TaskLatency)}, status.Metric.Strings()...)
+func (status *ClusterStatus) Strings(startTime time.Time) []string {
+	return append([]string{fmt.Sprint(status.Time.Sub(startTime).Milliseconds()), fmt.Sprint(status.TaskLatency)}, status.Metric.Strings()...)
 }
 
 type ClusterStatusLine []ClusterStatus
 
 func (l ClusterStatusLine) Output(outputDir string) {
 	outputlogfile := path.Join(outputDir, "cluster_status.log")
-	err := common.AppendLineCsvFile(outputlogfile, []string{"time", "taskLatency", "cpuAvg", "ramAvg", "cpuVar", "ramVar"})
+	err := common.AppendLineCsvFile(outputlogfile, []string{"time_ms", "taskLatency", "cpuAvg", "ramAvg", "cpuVar", "ramVar"})
 	if err != nil {
 		panic(err)
 	}
-	for _, event := range l {
-		err = common.AppendLineCsvFile(outputlogfile, event.Strings())
+	startTime := l[0].Time
+	for _, status := range l {
+		err = common.AppendLineCsvFile(outputlogfile, status.Strings(startTime))
 		if err != nil {
 			panic(err)
 		}
