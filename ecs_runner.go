@@ -220,7 +220,6 @@ func networkTick(_ *ECS, _ EntityName, comp Component) Component {
 				panic(err)
 			}
 
-			LogInfo(n.Os, ": new message waitting to be send", newM)
 			n.Waittings.InQueue(newM)
 		}
 
@@ -229,7 +228,7 @@ func networkTick(_ *ECS, _ EntityName, comp Component) Component {
 		m := n.Waittings[i]
 		needDelete := false
 		if m.LeftTime == 0 {
-			LogInfo(n.Os, ": new message sended", m)
+			LogInfo(n.Os, ": new message sended", m.From, m.To, m.Content)
 			out, ok := n.Outs[m.To]
 			if !ok {
 				panic(m.To + ":net can not reach")
