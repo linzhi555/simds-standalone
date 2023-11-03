@@ -25,7 +25,23 @@ def net_analyse():
     for i in records:
         intervals[i//10] += 1
     return [t,intervals]
-    
+
+def task_speed_analyse():
+    os.system("grep  'TaskGen : send task to' ./components.log > ./task_speed.log")
+    records = []
+    with open('./task_speed.log','r') as logfile:
+        l=logfile.readline()
+        while l:
+            records.append(int(l.split(" ")[0]))
+            l=logfile.readline()
+    os.system("rm ./task_speed.log")
+
+    intervals = [0]*(records[-1]//10+1)
+    t=[i/100 for i in range (0,len(intervals))]
+    for i in records:
+        intervals[i//10] += 1
+    return [t,intervals]
+
 
 
 def draw_cluster_status():
@@ -72,9 +88,15 @@ def draw_cluster_status():
     
     res=net_analyse()
     ax4 = fig.add_subplot(313)
-    ax4.plot(res[0],res[1],lw=1)
-    ax4.set_ylabel("net message number per 10ms",fontsize=FONT_SIZE)
+    ax4.plot(res[0],res[1],lw=1,label="all type of request")
+    ax4.set_ylabel("request rate, unit: amount of recent 10ms",fontsize=FONT_SIZE,)
     ax4.set_xlabel("time unit: s",fontsize=FONT_SIZE)
+
+    res=task_speed_analyse()
+    ax4.plot(res[0],res[1],lw=1,label="task submission")
+    ax4.legend()
+
+
     plt.savefig('./cluster_status.png')
 
 
