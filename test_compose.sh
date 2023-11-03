@@ -1,5 +1,6 @@
 echo $1
 rm -rf  $1/target/
+mkdir -p $1/target/
 for config in $(ls $1/*.yaml);do
     echo $config
     base=$(basename $config)
