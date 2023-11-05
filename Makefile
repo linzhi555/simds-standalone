@@ -13,7 +13,9 @@ shareTest:
 	@make analyse
 
 
-TargetFolder= ./target/$(shell date '+%m_%d_%H_%M_%S')
+timeNow := $(shell date '+%m_%d_%H_%M_%S')
+TargetFolder= ./target/$(timeNow)
+
 analyse:
 	@mkdir -p $(TargetFolder)
 	@cp ./config.log $(TargetFolder)
