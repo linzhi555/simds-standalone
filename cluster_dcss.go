@@ -173,7 +173,7 @@ func dcssTaskDispenseHandle(scheduler *Scheduler, newMessage Message) {
 	} else {
 
 		LogInfo(scheduler.Os, "start divide ", task)
-		task.Status = "DiviDeStage1"
+		task.Status = "DivideStage1"
 		task.ScheduleFailCount = 0 // this is for count how many neibor reject this task
 		keys := make([]string, 0, len(scheduler.Workers))
 		for k := range scheduler.Workers {
@@ -192,7 +192,7 @@ func dcssTaskDispenseHandle(scheduler *Scheduler, newMessage Message) {
 				panic(err)
 			}
 		}
-		task.Status = "DiviDeStage2"
+		task.Status = "DivideStage2"
 	}
 	scheduler.TasksStatus[task.Id] = &task
 
@@ -220,8 +220,8 @@ func dcssTaskDivideConfirmHandle(scheduler *Scheduler, newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
 	t := scheduler.TasksStatus[task.Id]
 
-	if t.Status == "DiviDeStage2" {
-		t.Status = "DiviDeStage3"
+	if t.Status == "DivideStage2" {
+		t.Status = "DivideStage3"
 		err := scheduler.Os.Net().Send(Message{
 			From:    newMessage.To,
 			To:      newMessage.From,
@@ -232,7 +232,7 @@ func dcssTaskDivideConfirmHandle(scheduler *Scheduler, newMessage Message) {
 			panic(err)
 		}
 
-	} else if t.Status == "DiviDeStage3" {
+	} else if t.Status == "DivideStage3" {
 		err := scheduler.Os.Net().Send(Message{
 			From:    newMessage.To,
 			To:      newMessage.From,

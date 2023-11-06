@@ -1,3 +1,6 @@
+// config.go 统一管理配置
+// 命令行能配置核心的参数配置文件位置，运行集群类型，输出文件位置
+// config.yaml 配置剩余运行的参数
 package main
 
 import (
@@ -12,9 +15,8 @@ import (
 
 // Config 全局的配置,在main开始前初始化
 var Config struct {
-	Center               bool
-	Dcss                 bool
-	ShareState           bool
+	OutputDir            string
+	Cluster              string
 	NodeNum              int32
 	NetLatency           int32
 	DcssNeibor           int32
@@ -31,9 +33,8 @@ var Config struct {
 func init() {
 
 	configFile := pflag.StringP("configFile", "c", "./config.yaml", "the config file path")
-	pflag.Bool("Dcss", false, "run dcss")
-	pflag.Bool("ShareState", false, "run share state cluster")
-	pflag.Bool("Center", false, "run centralized cluster")
+	pflag.String("Cluster", "", "which type cluster to run,for example Dcss,Center,ShareState...")
+	pflag.String("OutputDir", ".", "where to output the result files")
 	pflag.Parse()
 
 	err := viper.BindPFlags(pflag.CommandLine)
@@ -49,17 +50,17 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-
 }
 
-func LogConfig() {
+// 输出分析后的最终配置结果
+func LogConfig(outputPath string) {
 	fields := strings.FieldsFunc(fmt.Sprintf("%+v\n", Config), func(r rune) bool {
 		return r == '{' || r == '}' || r == ' '
 	})
 	confInfo := strings.Join(fields, "\n")
 	log.Println("config of this simulation is\n" + confInfo)
 
-	f, err := os.OpenFile("config.log", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	f, err := os.OpenFile(outputPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}

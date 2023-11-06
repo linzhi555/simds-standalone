@@ -2,14 +2,14 @@
 
 Config=./config.yaml
 centerTest:
-	go run . -c $(Config) --Center >  ./components.log
+	go run . -c $(Config) --Cluster Center >  ./components.log
 	@make analyse 
 dcssTest:
-	go run . -c $(Config) --Dcss >  ./components.log
+	go run . -c $(Config) --Cluster Dcss >  ./components.log
 	@make analyse
 
 shareTest:
-	go run .   -c $(Config) --ShareState > ./components.log
+	go run .   -c $(Config) --Cluster ShareState > ./components.log
 	@make analyse
 
 
