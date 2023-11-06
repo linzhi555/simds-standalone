@@ -189,10 +189,10 @@ func (s *StateStorage) SetOsApi(osapi OsApi) { s.Os = osapi }
 
 // ResourceManager 组件
 type ResourceManager struct {
-	Os                 OsApi
-	Host               string
-	Tasks              map[string]*TaskInfo
-	Node               NodeInfo
+	Os    OsApi
+	Host  string
+	Tasks map[string]*TaskInfo
+	//Node               NodeInfo // do not store the information , calculate when needed from tasks
 	TaskFinishReceiver string // if it is not zero , the receiver wiil get the notifiction
 }
 

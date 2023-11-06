@@ -13,6 +13,7 @@ SchedulerPerformance: 30000  # how many time Scheduler execute scheduling algori
 
 # only in dcss mode
 DcssNeibor:     8          #how many neibor of a node
+DcssDividePolicy     : "random"  #
 
 # only in share state cluster
 StateUpdatePeriod:       274

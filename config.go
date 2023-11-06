@@ -20,6 +20,7 @@ var Config struct {
 	NodeNum              int32
 	NetLatency           int32
 	DcssNeibor           int32
+	DcssDividePolicy     string
 	NodeCpu              int32
 	NodeMemory           int32
 	TaskNumFactor        float32

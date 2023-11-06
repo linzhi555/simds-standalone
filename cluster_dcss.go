@@ -160,53 +160,111 @@ func DcssSchedulerUpdate(comp interface{}) {
 		}
 
 	}
+
+	// 在dcss 调度器当中 待调度队列的任务会在自身资源空闲时运行
+	if !scheduler.WaitSchedule.Empty() {
+		// 平均 每 10 次更新(10*0.1 = 1ms)调度一次
+		if rand.Float32() < 0.1 {
+			scheduleTask(scheduler)
+		}
+	}
+
+}
+
+func scheduleTask(scheduler *Scheduler) {
+	task, err := scheduler.WaitSchedule.Dequeue()
+	if err != nil {
+		panic(err)
+	}
+	if scheduler.LocalNode.CanAllocateTask(&task) {
+		_runLocally(scheduler, task)
+	} else {
+		switch Config.DcssDividePolicy {
+		case "always":
+			LogInfo(scheduler.Os, "lack of resource, divide process start", task)
+			_divideTask(scheduler, task)
+		case "random":
+			n := rand.Float32()
+			if n < 0.1 {
+				LogInfo(scheduler.Os, "lack of resource, dispense task directly", task)
+				_dispenseTask(scheduler, task)
+			} else if n < 0.2 {
+				LogInfo(scheduler.Os, "lack of resource, divide process start", task)
+				_divideTask(scheduler, task)
+			} else {
+				LogInfo(scheduler.Os, "lack of resource, run task later", task, scheduler.WaitSchedule.Len())
+				scheduler.WaitSchedule.InQueueFront(task)
+			}
+		default:
+			panic("wrong divide policy")
+
+		}
+	}
 }
 
 func dcssTaskDispenseHandle(scheduler *Scheduler, newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
 	task.Status = "Scheduling"
-	if scheduler.LocalNode.CanAllocateTask(&task) {
-		task.Status = "allocate"
-		scheduler.LocalNode.AddAllocated(task.CpuRequest, task.MemoryRequest)
-		dcssChangeTaskStatusLocally(scheduler, &task, "TaskRun")
-		LogInfo(scheduler.Os, "run task locally", task)
-	} else {
-
-		LogInfo(scheduler.Os, "start divide ", task)
-		task.Status = "DivideStage1"
-		task.ScheduleFailCount = 0 // this is for count how many neibor reject this task
-		keys := make([]string, 0, len(scheduler.Workers))
-		for k := range scheduler.Workers {
-			keys = append(keys, k)
-		}
-
-		for _, neibor := range keys {
-			newMessage := Message{
-				From:    scheduler.Os.Net().GetAddr(),
-				To:      neibor,
-				Content: "TaskDivide",
-				Body:    task,
-			}
-			err := scheduler.Os.Net().Send(newMessage)
-			if err != nil {
-				panic(err)
-			}
-		}
-		task.Status = "DivideStage2"
-	}
-	scheduler.TasksStatus[task.Id] = &task
+	scheduler.WaitSchedule.InQueue(task)
 
 }
+
+func _runLocally(scheduler *Scheduler, task TaskInfo) {
+	task.Status = "allocate"
+	scheduler.LocalNode.AddAllocated(task.CpuRequest, task.MemoryRequest)
+	_dcssChangeTaskStatusLocally(scheduler, &task, "TaskRun")
+}
+
+func _divideTask(scheduler *Scheduler, task TaskInfo) {
+	LogInfo(scheduler.Os, "start divide ", task)
+	task.Status = "DivideStage1"
+	task.ScheduleFailCount = 0 // this is for count how many neibor reject this task
+	keys := make([]string, 0, len(scheduler.Workers))
+	for k := range scheduler.Workers {
+		keys = append(keys, k)
+	}
+
+	for _, neibor := range keys {
+		newMessage := Message{
+			From:    scheduler.Os.Net().GetAddr(),
+			To:      neibor,
+			Content: "TaskDivide",
+			Body:    task,
+		}
+		err := scheduler.Os.Net().Send(newMessage)
+		if err != nil {
+			panic(err)
+		}
+	}
+	task.Status = "DivideStage2"
+	scheduler.TasksStatus[task.Id] = &task
+}
+
+func _dispenseTask(scheduler *Scheduler, task TaskInfo) {
+	neibors := scheduler.GetAllWokersName()
+	dstNeibor := neibors[rand.Intn(len(neibors))]
+	newMessage := Message{
+		From:    scheduler.Os.Net().GetAddr(),
+		To:      dstNeibor,
+		Content: "TaskDispense",
+		Body:    task,
+	}
+	err := scheduler.Os.Net().Send(newMessage)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func dcssTaskDivideHandle(scheduler *Scheduler, newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
 	messageReply := newMessage
 	messageReply.To = newMessage.From
 	messageReply.From = newMessage.To
-	if scheduler.LocalNode.CanAllocateTask(&task) {
+	if scheduler.LocalNode.CanAllocateTask(&task) && scheduler.WaitSchedule.Empty() {
 		messageReply.Content = "TaskDivideConfirm"
 		task.Status = "needStart"
 		scheduler.LocalNode.AddAllocated(task.CpuRequest, task.MemoryRequest)
-		dcssChangeTaskStatusLocally(scheduler, &task, "TaskPreAllocate")
+		_dcssChangeTaskStatusLocally(scheduler, &task, "TaskPreAllocate")
 		scheduler.TasksStatus[task.Id] = &task
 	} else {
 		messageReply.Content = "TaskDivideReject"
@@ -248,14 +306,14 @@ func dcssTaskDivideConfirmHandle(scheduler *Scheduler, newMessage Message) {
 func dcssTaskDivideAllocateHandle(scheduler *Scheduler, newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
 	if scheduler.TasksStatus[task.Id].Status == "needStart" {
-		dcssChangeTaskStatusLocally(scheduler, &task, "TaskStart")
+		_dcssChangeTaskStatusLocally(scheduler, &task, "TaskStart")
 	}
 }
 
 func dcssTaskDivideCancelHandle(scheduler *Scheduler, newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
 	if scheduler.TasksStatus[task.Id].Status == "needStart" {
-		dcssChangeTaskStatusLocally(scheduler, &task, "TaskCancelAllocate")
+		_dcssChangeTaskStatusLocally(scheduler, &task, "TaskCancelAllocate")
 	}
 }
 
@@ -266,25 +324,14 @@ func dcssTaskDivideRejectHandle(scheduler *Scheduler, newMessage Message) {
 	// if all neibors reject this task, so we i have to dispense the task to a random neibors,
 	// the distination neibors  may have a valid neibor to execute this task
 	if scheduler.TasksStatus[task.Id].ScheduleFailCount == int32(neiborNum) {
-		var taskCopy TaskInfo = *scheduler.TasksStatus[task.Id]
-		neibors := scheduler.GetAllWokersName()
-		dstNeibor := neibors[rand.Intn(len(neibors))]
-
-		newMessage := Message{
-			From:    scheduler.Os.Net().GetAddr(),
-			To:      dstNeibor,
-			Content: "TaskDispense",
-			Body:    taskCopy,
-		}
-		err := scheduler.Os.Net().Send(newMessage)
-		if err != nil {
-			panic(err)
-		}
+		var taskCopy TaskInfo = *(scheduler.TasksStatus[task.Id])
+		_dispenseTask(scheduler, taskCopy)
+		delete(scheduler.TasksStatus, taskCopy.Id)
 		LogInfo(scheduler.Os, "TaskDivide finally fail, start a new TaskDispense", newMessage.Body)
 	}
 }
 
-func dcssChangeTaskStatusLocally(scheduler *Scheduler, task *TaskInfo, contentType string) {
+func _dcssChangeTaskStatusLocally(scheduler *Scheduler, task *TaskInfo, contentType string) {
 	dstWorker := scheduler.Host + ":" + string(CResouceManger)
 	newMessage := Message{
 		From:    scheduler.Os.Net().GetAddr(),
@@ -301,6 +348,7 @@ func dcssChangeTaskStatusLocally(scheduler *Scheduler, task *TaskInfo, contentTy
 func dcssFinishHandle(scheduler *Scheduler, newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
 	scheduler.LocalNode.SubAllocated(task.CpuRequest, task.MemoryRequest)
+
 }
 
 // DcssResourceManagerSetup 资源管理初始化，所有节点会发送任务结束通知给相同host的Scheduler组件

@@ -113,17 +113,16 @@ func CommonResourceManagerUpdate(comp interface{}) {
 	for id, t := range rm.Tasks {
 		if t.Status == "start" && hostTime.After(t.StartTime.Add(t.LifeTime)) {
 			t.Status = "finish"
-			LogInfo(rm.Os, "Task Finished", t)
 			TaskEventLog(hostTime, t, rm.Os.Net().GetAddr())
 			if rm.TaskFinishReceiver != "" {
 				informReceiverTaskStatus(rm, t, "TaskFinish")
 			}
-
 			delete(rm.Tasks, id)
+			nodeinfo := _calculateNodeInfo(rm)
+			LogInfo(rm.Os, "Task Finished", t, "now, nodeinfo is", nodeinfo)
 		}
 	}
 
-	updateNodeInfo(rm)
 }
 
 func informReceiverTaskStatus(rm *ResourceManager, t *TaskInfo, content string) {
@@ -140,7 +139,7 @@ func informReceiverTaskStatus(rm *ResourceManager, t *TaskInfo, content string) 
 
 }
 
-func updateNodeInfo(rm *ResourceManager) {
+func _calculateNodeInfo(rm *ResourceManager) NodeInfo {
 	var cpu int32 = 0
 	var memory int32 = 0
 
@@ -149,10 +148,14 @@ func updateNodeInfo(rm *ResourceManager) {
 		memory += t.MemoryRequest
 	}
 
-	if rm.Node.CpuAllocted != cpu || rm.Node.MemoryAllocted != memory {
-		rm.Node.CpuAllocted = cpu
-		rm.Node.MemoryAllocted = memory
+	var nodeinfo NodeInfo = NodeInfo{
+		Addr:           rm.Os.Net().GetAddr(),
+		Cpu:            Config.NodeCpu,
+		Memory:         Config.NodeMemory,
+		CpuAllocted:    cpu,
+		MemoryAllocted: memory,
 	}
+	return nodeinfo
 }
 
 func init() {

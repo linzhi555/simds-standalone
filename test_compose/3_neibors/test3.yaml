@@ -12,7 +12,9 @@ TaskLifeTime:   333        # the average task lifeTime  , unit : milisecond
 SchedulerPerformance: 100000  # how many time Scheduler execute scheduling algorithm in 1s
 
 # only in dcss mode
-DcssNeibor:     10          #how many neibor of a node
+DcssNeibor:     7          #how many neibor of a node
+DcssDividePolicy     : "random"  #
+
 
 # only in share state cluster
 StateUpdatePeriod:   100   # the period of scheduler get the newest cluster state, unit : milisecond
