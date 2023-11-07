@@ -34,8 +34,7 @@ def task_speed_analyse():
         while l:
             records.append(int(l.split(" ")[0]))
             l=logfile.readline()
-    os.system("rm ./task_speed.log")
-
+        os.system("rm ./task_speed.log")
     intervals = [0]*(records[-1]//10+1)
     t=[i/100 for i in range (0,len(intervals))]
     for i in records:
@@ -89,14 +88,16 @@ def draw_cluster_status():
     
     res=net_analyse()
     ax4 = fig.add_subplot(313)
-    ax4.plot(res[0],res[1],lw=1,label="all type of request")
+    ax4.plot(res[0],res[1],lw=1,color='y',label="all type of request")
     ax4.set_ylabel("request rate, unit: amount of recent 10ms",fontsize=FONT_SIZE,)
     ax4.set_xlabel("time unit: s",fontsize=FONT_SIZE)
+    ax4.legend(loc="upper left")
 
     res=task_speed_analyse()
-    ax4.plot(res[0],res[1],lw=1,label="task submission")
-    ax4.set_yscale("log",base=2)
-    ax4.legend()
+    ax5 = plt.twinx()
+    ax5.plot(res[0],res[1],lw=1,color='b',label="task submission")
+    ax5.set_ylabel("task submission rate, unit: amount of recent 10ms",fontsize=FONT_SIZE,)
+    ax5.legend()
 
 
     plt.savefig('./cluster_status.png')
