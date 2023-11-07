@@ -76,6 +76,7 @@ def draw_cluster_status():
     ax2.plot(t,avg_latency,lw=1,color='y',label="task latency")
     ax2.set_ylabel("task lantency unit: ms",fontsize=FONT_SIZE)
     ax2.legend(loc="upper right")
+    ax2.set_yscale("log",base=10)
     
 
 
@@ -94,6 +95,7 @@ def draw_cluster_status():
 
     res=task_speed_analyse()
     ax4.plot(res[0],res[1],lw=1,label="task submission")
+    ax4.set_yscale("log",base=2)
     ax4.legend()
 
 
