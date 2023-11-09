@@ -1,29 +1,35 @@
 .PHONY:centerTest dcssTest analyse fmt testCompose
 
 Config=./config.yaml
-centerTest:
-	go run . -c $(Config) --Cluster Center >  ./components.log
-	@make analyse 
-dcssTest:
-	go run . -c $(Config) --Cluster Dcss >  ./components.log
-	@make analyse
-
-shareTest:
-	go run .   -c $(Config) --Cluster ShareState > ./components.log
-	@make analyse
+timeNow:=$(shell date '+%m_%d_%H_%M_%S')
+TargetFolder=./target/$(timeNow)
 
 
-timeNow := $(shell date '+%m_%d_%H_%M_%S')
-TargetFolder= ./target/$(timeNow)
+centerTest: preDeal
+	@mkdir -p $(TargetFolder)
+	go run . -c $(Config) --OutputDir $(TargetFolder) --Cluster Center >  $(TargetFolder)/components.log
+	@make analyse TargetFolder=$(TargetFolder)
+dcssTest: preDeal
+	@mkdir -p $(TargetFolder)
+	go run . -c $(Config) --OutputDir $(TargetFolder) --Cluster Dcss >  $(TargetFolder)/components.log
+	@make analyse TargetFolder=$(TargetFolder)
+
+shareTest: preDeal
+	@mkdir -p $(TargetFolder)
+	go run .   -c $(Config) --OutputDir $(TargetFolder) --Cluster ShareState > $(TargetFolder)/components.log
+	@make analyse TargetFolder=$(TargetFolder)
+
+preDeal:
+	if [ -d $(TargetFolder) ];then echo "target folder is not empty";exit 1;fi
+	@mkdir -p $(TargetFolder)
+
+
 
 analyse:
-	@mkdir -p $(TargetFolder)
-	@cp ./config.log $(TargetFolder)
-	go run ./analyse -logFile ./tasks_event.log  -verbose -outputDir $(TargetFolder)
+	go run ./analyse -logFile $(TargetFolder)/tasks_event.log  -verbose -outputDir $(TargetFolder)
 	cp ./py/draw.py $(TargetFolder)
-	cp ./components.log $(TargetFolder)
 	cd $(TargetFolder) && python3 draw.py 
-	rm $(TargetFolder)/components.log
+	#rm $(TargetFolder)/components.log
 
 ComposeFolder = ./test_compose
 testCompose:
