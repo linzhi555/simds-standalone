@@ -28,7 +28,9 @@ preDeal:
 analyse:
 	go run ./analyse -logFile $(TargetFolder)/tasks_event.log  -verbose -outputDir $(TargetFolder)
 	cp ./py/draw.py $(TargetFolder)
-	cd $(TargetFolder) && python3 draw.py 
+	cd $(TargetFolder) && grep  'TaskGen : send task to' ./components.log > ./task_speed.log \
+	&& grep  'Info network.*sended' ./components.log > ./net.log \
+	&& python3 draw.py 
 	#rm $(TargetFolder)/components.log
 
 ComposeFolder = ./test_compose

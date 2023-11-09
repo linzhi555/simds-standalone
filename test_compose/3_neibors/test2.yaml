@@ -13,7 +13,7 @@ SchedulerPerformance: 100000  # how many time Scheduler execute scheduling algor
 
 # only in dcss mode
 DcssNeibor:     5          #how many neibor of a node
-DcssDividePolicy     : "random"  #
+DcssDividePolicy: "always"
 
 # only in share state cluster
 StateUpdatePeriod:   100   # the period of scheduler get the newest cluster state, unit : milisecond

@@ -87,9 +87,9 @@ func pow2(x int64) int64 {
 // 有一个峰值的连续任务流
 func onePeakTaskStream() []SrcNode {
 	taskNumPerSecond := Config.TaskNumFactor * float32(Config.NodeNum)
-	allTasksNum := int(10 * taskNumPerSecond)
-	src := make([]SrcNode, 0, allTasksNum)
-	for i := 0; i < allTasksNum; i++ {
+	baseTimeDelta := int64(time.Second) / int64(taskNumPerSecond)
+	src := make([]SrcNode,0)
+	for i := 0; ; i++ {
 		newTask := TaskInfo{
 			Id:            fmt.Sprintf("task%d", i),
 			CpuRequest:    common.RandIntWithRange(Config.TaskCpu, 0.5),
@@ -97,17 +97,30 @@ func onePeakTaskStream() []SrcNode {
 			LifeTime:      time.Duration(common.RandIntWithRange(Config.TaskLifeTime, 0.5)) * time.Millisecond,
 			Status:        "submit",
 		}
-
+		
 		var t time.Duration
-		if i <= allTasksNum/4 {
-			t = time.Duration(int64(i)*10*int64(time.Second)/int64(allTasksNum)) * 3 / 2
-		} else if i <= allTasksNum*3/4 {
-			t = src[allTasksNum/4].time
-			t += time.Duration(int64(i-(allTasksNum/4)) * 10 * int64(time.Second) / int64(allTasksNum) * 3 / 4)
-		} else {
-			t = src[allTasksNum*3/4].time
-			t += time.Duration(int64(i-(allTasksNum*3/4)) * 10 * int64(time.Second) / int64(allTasksNum) * 3 / 2)
+
+		if i==0{
+			t = time.Duration(0)
+		}else if src[i-1].time < 2 * time.Second {
+			t = src[i-1].time + time.Duration(baseTimeDelta * 3 / 2)
+		}else if src[i-1].time < 4 * time.Second{
+			t = src[i-1].time + time.Duration(baseTimeDelta * 3 / 4)
+		}else if src[i-1].time < 10 * time.Second{
+			t = src[i-1].time + time.Duration(baseTimeDelta * 3 / 2)
+		}else {
+			break
 		}
+
+		//if i <= allTasksNum/4 {
+		//	t = time.Duration(int64(i)*10*int64(time.Second)/int64(allTasksNum)) * 3 / 2
+		//} else if i <= allTasksNum*3/4 {
+		//	t = src[allTasksNum/4].time
+		//	t += time.Duration(int64(i-(allTasksNum/4)) * 10 * int64(time.Second) / int64(allTasksNum) * 3 / 4)
+		//} else {
+		//	t = src[allTasksNum*3/4].time
+		//	t += time.Duration(int64(i-(allTasksNum*3/4)) * 10 * int64(time.Second) / int64(allTasksNum) * 3 / 2)
+		//}
 
 		src = append(src, SrcNode{time.Duration(t), newTask})
 

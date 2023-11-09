@@ -2,3 +2,4 @@
 *.prof
 target/*
 test_compose/*/target
+py/__pycache__

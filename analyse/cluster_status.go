@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"path"
 	"simds-standalone/common"
 	"sort"
@@ -209,7 +211,11 @@ type ClusterStatusLine []ClusterStatus
 
 func (l ClusterStatusLine) Output(outputDir string) {
 	outputlogfile := path.Join(outputDir, "cluster_status.log")
-	err := common.AppendLineCsvFile(outputlogfile, []string{"time_ms", "taskLatency", "cpuAvg", "ramAvg", "cpuVar", "ramVar"})
+	err := os.Remove(outputlogfile)
+	if err!= nil{
+		log.Println(err)
+	}
+	err = common.AppendLineCsvFile(outputlogfile, []string{"time_ms", "taskLatency", "cpuAvg", "ramAvg", "cpuVar", "ramVar"})
 	if err != nil {
 		panic(err)
 	}
@@ -390,7 +396,7 @@ func (c *Cluster) CalStatusCurves(outputDir string) (statusLine []ClusterStatus)
 		case FINISH:
 			c.Nodes[e.NodeIp].RemoveTask(e.TaskId)
 		}
-		if e.Time.Sub(lastRecordTime) >= time.Millisecond*10 {
+		if e.Time.Sub(lastRecordTime) >= time.Millisecond*100 {
 			latencyMax := time.Duration(0)
 			tasksNum := int64(len(taskAfterLastRecord))
 

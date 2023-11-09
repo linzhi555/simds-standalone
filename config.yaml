@@ -9,7 +9,7 @@ TaskLifeTime:   333        # the average task lifeTime  , unit : milisecond
 
 
 #only in center and shareState 
-SchedulerPerformance: 100000  # how many time Scheduler execute scheduling algorithm in 1s
+SchedulerPerformance: 4000  # how many time Scheduler execute scheduling algorithm in 1s
 
 # only in dcss mode
 DcssNeibor:     8          #how many neibor of a node
