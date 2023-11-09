@@ -75,9 +75,9 @@ def draw_cluster_status():
     ax2.plot(t,avg_latency,lw=1,color='y',label="task latency")
     ax2.set_ylabel("task lantency unit: ms",fontsize=FONT_SIZE)
     ax2.legend(loc="upper right")
-    ax2.set_yscale("log",base=10)
-    
 
+    if max(avg_latency)>10000:
+        ax2.set_yscale("log",base=10)
 
     ax3 = fig.add_subplot(312)
     ax3.plot(t,var_cpu,lw=1,label="cpu variance")
