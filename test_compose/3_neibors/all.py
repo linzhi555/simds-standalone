@@ -5,11 +5,13 @@ import os
 
 def longName(s):
     if s == "center":
-        return "centralized"
+        return "Centralized"
     if s == "share":
-        return "share state"
+        return "Share state"
     if s == "dcss":
-        return "distributed"
+        return "Beehive"
+
+
 
 
 neibors=[0,4,5,7,10,14]

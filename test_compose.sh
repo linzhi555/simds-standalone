@@ -37,11 +37,11 @@ done
 
 mkdir -p $DIR/target/all
 cp $DIR/*.yaml $DIR/target/all
-for config in $(ls $DIR/*.yaml);do
-    echo $config
-    configname=$(basename_no_extension $config '.yaml')
-    for c in $Clusters;do
-        cp $DIR/target/${configname}_${c}/cluster_status.png $DIR/target/all/${configname}_${c}.png
-    done
-done
+#for config in $(ls $DIR/*.yaml);do
+#    echo $config
+#    configname=$(basename_no_extension $config '.yaml')
+#    for c in $Clusters;do
+#        cp $DIR/target/${configname}_${c}/cluster_status.png $DIR/target/all/${configname}_${c}.png
+#    done
+#done
 

@@ -24,6 +24,7 @@ def net_commuication_rate_curves(filename):
     t=[i/100 for i in range (0,len(intervals))]
     for i in records:
         intervals[i//10] += 1
+    intervals = [100 * i for i in intervals]
     return [t,intervals]
 
 def task_submit_rate_curves(filename):
@@ -38,6 +39,7 @@ def task_submit_rate_curves(filename):
     t=[i/100 for i in range (0,len(intervals))]
     for i in records:
         intervals[i//10] += 1
+    intervals = [100 * i for i in intervals]
     return [t,intervals]
 
 
@@ -101,27 +103,37 @@ def draw_cluster_status():
     res=net_commuication_rate_curves("./net.log")
     ax4 = fig.add_subplot(313)
     ax4.plot(res[0],res[1],lw=1,color='y',label="all type of request")
-    ax4.set_ylabel("request rate, unit: amount of recent 10ms",fontsize=FONT_SIZE,)
-    ax4.set_xlabel("time unit: s",fontsize=FONT_SIZE)
+    ax4.set_ylabel("request rate, (amount/s)",fontsize=FONT_SIZE,)
+    ax4.set_xlabel("time (s)",fontsize=FONT_SIZE)
     ax4.legend(loc="upper left")
 
     res=task_submit_rate_curves("./task_speed.log")
     ax5 = plt.twinx()
     ax5.plot(res[0],res[1],lw=1,color='b',label="task submission")
-    ax5.set_ylabel("task submission rate, unit: amount of recent 10ms",fontsize=FONT_SIZE,)
+    ax5.set_ylabel("task submission rate, (amount/s)",fontsize=FONT_SIZE,)
     ax5.legend()
     plt.savefig('./cluster_status.png')
 
 def draw_muilt_lantencyCurve(tests):
     plt.cla()
+
+    hasFailTask=False
     for t in tests:
-        staus = cluster_status_curves(os.path.join(t[0],"cluster_status.log"))
+        status = cluster_status_curves(os.path.join(t[0],"cluster_status.log"))
         #staus[0] = staus[0][::10]
         #staus[1] = staus[1][::10]
-        plt.plot(staus[0],staus[1],lw=1,label=t[1])
-
-    if max(staus[1])>10000:
+        plt.plot(status[0],status[1],lw=1,label=t[1])
+        if max(status[1])>20000:
+            hasFailTask=True
+    if hasFailTask:
         plt.yscale("log",base=10)
+        #y=list(range(0,2000,200))
+        #yticks=y.copy()
+        #ylabels=y.copy()
+        #ylabels[-1] = r"$\infty$"
+        #_,axes = plt.subplots()
+        #axes.set_yticks(yticks)
+        #axes.set_yticklabels(ylabels)
 
 
     plt.legend()
@@ -157,7 +169,7 @@ def draw_muilt_net_busy(tests):
         staus = net_commuication_rate_curves(os.path.join(t[0],"net.log"))
         plt.plot(staus[0],staus[1],lw=1,label=t[1])
     plt.legend()
-    plt.ylabel("net request rate \n (number/10ms)",fontsize=FONT_SIZE)
+    plt.ylabel("net request rate \n (number/s)",fontsize=FONT_SIZE)
     plt.subplots_adjust(left=0.2) 
     plt.xlabel("time (s)",fontsize=FONT_SIZE)
     plt.savefig('./net_busy_compare.png')
@@ -166,7 +178,7 @@ def draw_task_submission_rate(tests):
     plt.cla()
     staus = task_submit_rate_curves(os.path.join(tests[0][0],"./task_speed.log"))
     plt.plot(staus[0],staus[1],lw=1)
-    plt.ylabel("task submission rate \n (number/10ms)",fontsize=FONT_SIZE)
+    plt.ylabel("task submission rate \n (number/s)",fontsize=FONT_SIZE)
     plt.subplots_adjust(left=0.2) 
     plt.xlabel("time (s)",fontsize=FONT_SIZE)
     plt.savefig('./task_submission_rate.png')

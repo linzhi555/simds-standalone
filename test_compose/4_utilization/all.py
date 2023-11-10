@@ -5,19 +5,23 @@ import os
 
 def longName(s):
     if s == "center":
-        return "centralized"
+        return "Centralized"
     if s == "share":
-        return "share state"
+        return "Share state"
     if s == "dcss":
-        return "distributed"
+        return "Beehive"
 
 
-task_rate=[0,6.0,6.2,6.4,6.6,6.8]
+
+
+
+
+load=["","80%","83%","85%","88%","0.90%"]
 for cluster in ["center","share","dcss"]:
     tests = []
     for i in range(1,6):
         folder = "./target/test{id}_{c}/".format(c=cluster,id=i)
-        tests.append([folder, "task rate factor {num}".format(num=task_rate[i])])
+        tests.append([folder, "max utilization {num}".format(num=load[i])])
     draw.draw_muilt_lantencyCurve(tests)
     draw.draw_muilt_avg_resource (tests)
     draw.draw_muilt_var_resource (tests)
