@@ -170,7 +170,8 @@ def draw_muilt_net_busy(tests):
         plt.plot(staus[0],staus[1],lw=1,label=t[1])
     plt.legend()
     plt.ylabel("net request rate \n (number/s)",fontsize=FONT_SIZE)
-    plt.subplots_adjust(left=0.2) 
+    plt.subplots_adjust(left=0.25) 
+    plt.ticklabel_format(style='plain')
     plt.xlabel("time (s)",fontsize=FONT_SIZE)
     plt.savefig('./net_busy_compare.png')
 
