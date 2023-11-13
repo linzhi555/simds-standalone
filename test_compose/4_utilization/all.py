@@ -16,7 +16,7 @@ def longName(s):
 
 
 
-load=["","80%","83%","85%","88%","0.90%"]
+load=["","80%","83%","85%","88%","90%"]
 for cluster in ["center","share","dcss"]:
     tests = []
     for i in range(1,6):

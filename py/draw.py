@@ -42,6 +42,18 @@ def task_submit_rate_curves(filename):
     intervals = [100 * i for i in intervals]
     return [t,intervals]
 
+def task_latency_CDF_curves(filename):
+    """任务延迟的累积分布函数 CDF"""
+    records = []
+    with open(filename,'r') as csvfile:
+        plots = csv.reader(csvfile, delimiter=',')
+        next(plots)
+        for row in plots:
+            latency = pd.Timedelta(row[1]).total_seconds()*1000
+            records.append(latency)
+    ticks = [(i+1)/len(records)*100 for i in range(0,len(records))]
+    return [records,ticks]
+
 
 
 
@@ -183,6 +195,20 @@ def draw_task_submission_rate(tests):
     plt.subplots_adjust(left=0.2) 
     plt.xlabel("time (s)",fontsize=FONT_SIZE)
     plt.savefig('./task_submission_rate.png')
+
+def draw_task_latency_CDF(tests):
+    """画多个实验的任务延迟的累积概率分布函数"""
+    plt.cla()
+    for t in tests:
+        staus = task_latency_CDF_curves(os.path.join(t[0],"latencyCurve.log"))
+        plt.plot(staus[0],staus[1],lw=1,label=t[1])
+    plt.legend()
+    plt.ylabel("task latency CDF \n (%)",fontsize=FONT_SIZE)
+    plt.subplots_adjust(left=0.25,bottom=0.15) 
+    plt.ticklabel_format(style='plain')
+    plt.xlabel("task latency(ms)",fontsize=FONT_SIZE)
+    plt.savefig('./latency_CDF_compare.png')
+
 
 
 
