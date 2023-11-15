@@ -229,6 +229,7 @@ func networkTick(_ *ECS, _ EntityName, comp Component) Component {
 		needDelete := false
 		if m.LeftTime == 0 {
 			LogInfo(n.Os, ": new message sended", m.From, m.To, m.Content)
+			NetEventLog(_getTime_ms(n.Os), "sended", &m)
 			out, ok := n.Outs[m.To]
 			if !ok {
 				panic(m.To + ":net can not reach")
@@ -249,10 +250,13 @@ func networkTick(_ *ECS, _ EntityName, comp Component) Component {
 	return n
 
 }
+func _getTime_ms(osapi OsApi) int64 {
+	return osapi.GetTime().Sub(ZEROTIME).Milliseconds()
+}
 
 // LogInfo 在ECS运行组件的日志处理
 func LogInfo(osapi OsApi, ins ...interface{}) {
-	s := fmt.Sprint(osapi.GetTime().Sub(ZEROTIME).Milliseconds(), " ", "Info", " ", osapi.Net().GetAddr(), " ")
+	s := fmt.Sprint(_getTime_ms(osapi), " ", "Info", " ", osapi.Net().GetAddr(), " ")
 	for _, item := range ins {
 		s += fmt.Sprint(item, " ")
 	}

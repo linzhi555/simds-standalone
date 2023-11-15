@@ -26,6 +26,7 @@ for cluster in ["center","share","dcss"]:
     draw.draw_muilt_avg_resource (tests)
     draw.draw_muilt_var_resource (tests)
     draw.draw_muilt_net_busy (tests)
+    draw.draw_task_latency_CDF(tests)
     os.system("mkdir -p ./target/all/{c} && mv *.png ./target/all/{c}".format(c=cluster))
 
 

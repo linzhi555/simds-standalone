@@ -24,6 +24,7 @@ for i in range(1,6):
     draw.draw_muilt_avg_resource (tests)
     draw.draw_muilt_var_resource (tests)
     draw.draw_muilt_net_busy (tests)
+    draw.draw_task_latency_CDF(tests)
     os.system("mkdir -p ./target/all/net_latency_{num}ms && mv *.png ./target/all/net_latency_{num}ms".format(num=nodes_num[i]))
 
 
@@ -37,6 +38,7 @@ for cluster in ["center","share","dcss"]:
     draw.draw_muilt_avg_resource (tests)
     draw.draw_muilt_var_resource (tests)
     draw.draw_muilt_net_busy (tests)
+    draw.draw_task_latency_CDF(tests)
     os.system("mkdir -p ./target/all/{c} && mv *.png ./target/all/{c}".format(c=cluster))
 
 

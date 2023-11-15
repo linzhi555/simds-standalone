@@ -212,7 +212,7 @@ type ClusterStatusLine []ClusterStatus
 func (l ClusterStatusLine) Output(outputDir string) {
 	outputlogfile := path.Join(outputDir, "cluster_status.log")
 	err := os.Remove(outputlogfile)
-	if err!= nil{
+	if err != nil {
 		log.Println(err)
 	}
 	err = common.AppendLineCsvFile(outputlogfile, []string{"time_ms", "taskLatency", "cpuAvg", "ramAvg", "cpuVar", "ramVar"})
@@ -256,7 +256,7 @@ func InitCluster(l TaskEventLine) *Cluster {
 			continue
 		}
 
-		cluster.Nodes[event.NodeIp] = NewNode(event.NodeIp, 10.0, 10.0)
+		cluster.Nodes[event.NodeIp] = NewNode(event.NodeIp, float32(*nodeCPU), float32(*nodeMemory))
 	}
 
 	return &cluster

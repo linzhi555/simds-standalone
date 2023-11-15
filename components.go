@@ -88,7 +88,7 @@ func pow2(x int64) int64 {
 func onePeakTaskStream() []SrcNode {
 	taskNumPerSecond := Config.TaskNumFactor * float32(Config.NodeNum)
 	baseTimeDelta := int64(time.Second) / int64(taskNumPerSecond)
-	src := make([]SrcNode,0)
+	src := make([]SrcNode, 0)
 	for i := 0; ; i++ {
 		newTask := TaskInfo{
 			Id:            fmt.Sprintf("task%d", i),
@@ -97,18 +97,18 @@ func onePeakTaskStream() []SrcNode {
 			LifeTime:      time.Duration(common.RandIntWithRange(Config.TaskLifeTime, 0.5)) * time.Millisecond,
 			Status:        "submit",
 		}
-		
+
 		var t time.Duration
 
-		if i==0{
+		if i == 0 {
 			t = time.Duration(0)
-		}else if src[i-1].time < 2 * time.Second {
-			t = src[i-1].time + time.Duration(baseTimeDelta * 3 / 2)
-		}else if src[i-1].time < 4 * time.Second{
-			t = src[i-1].time + time.Duration(baseTimeDelta * 3 / 4)
-		}else if src[i-1].time < 10 * time.Second{
-			t = src[i-1].time + time.Duration(baseTimeDelta * 3 / 2)
-		}else {
+		} else if src[i-1].time < 2*time.Second {
+			t = src[i-1].time + time.Duration(baseTimeDelta*3/2)
+		} else if src[i-1].time < 4*time.Second {
+			t = src[i-1].time + time.Duration(baseTimeDelta*3/4)
+		} else if src[i-1].time < 10*time.Second {
+			t = src[i-1].time + time.Duration(baseTimeDelta*3/2)
+		} else {
 			break
 		}
 

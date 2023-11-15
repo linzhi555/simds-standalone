@@ -13,7 +13,7 @@ func main() {
 	common.StartPerf()
 	defer common.StopPerf()
 
-	initTaskEventLog()
+	initLogs()
 	LogConfig(path.Join(Config.OutputDir, "config.log"))
 
 	clusterMarket := map[string]func() Cluster{

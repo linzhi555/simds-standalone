@@ -5,6 +5,7 @@ import pandas as pd
 import os
 
 FONT_SIZE=20
+LEGEND_SIZE = 12
 
 #def parseRFCnano(dt_str):
 #    # 解析日期时间部分
@@ -13,13 +14,12 @@ FONT_SIZE=20
 #    return x
 
 def net_commuication_rate_curves(filename):
-    #os.system("grep  'Info network.*sended' ./components.log > ./net.log")
     records = []
-    with open(filename,'r') as logfile:
-        l=logfile.readline()
-        while l:
-            records.append(int(l.split(" ")[0]))
-            l=logfile.readline()
+    with open(filename,'r') as csvfile:
+        plots = csv.reader(csvfile, delimiter=',')
+        next(plots)
+        for row in plots:
+            records.append(int(row[0]))
     intervals = [0]*(records[-1]//10+1)
     t=[i/100 for i in range (0,len(intervals))]
     for i in records:
@@ -95,12 +95,12 @@ def draw_cluster_status():
     ax1.plot(t,avg_ram,lw=1,color='b',label="memory average")
     ax1.set_ylabel("resource usage percentage unit: %",fontsize=FONT_SIZE)
     ax1.set_xlabel("time unit: s",fontsize=FONT_SIZE)
-    ax1.legend(loc="upper left")
+    ax1.legend(fontsize=LEGEND_SIZE,loc="upper left")
 
     ax2 = plt.twinx()
     ax2.plot(t,avg_latency,lw=1,color='y',label="task latency")
     ax2.set_ylabel("task lantency unit: ms",fontsize=FONT_SIZE)
-    ax2.legend(loc="upper right")
+    ax2.legend(fontsize=LEGEND_SIZE,loc="upper right")
 
     if max(avg_latency)>10000:
         ax2.set_yscale("log",base=10)
@@ -110,20 +110,20 @@ def draw_cluster_status():
     ax3.plot(t,var_ram,lw=1,label="ram variance")
     ax3.set_ylabel("resource variance",fontsize=FONT_SIZE)
     ax3.set_xlabel("time unit: s",fontsize=FONT_SIZE)
-    ax3.legend()
+    ax3.legend(fontsize=LEGEND_SIZE)
     
-    res=net_commuication_rate_curves("./net.log")
+    res=net_commuication_rate_curves("./network_event.log")
     ax4 = fig.add_subplot(313)
     ax4.plot(res[0],res[1],lw=1,color='y',label="all type of request")
     ax4.set_ylabel("request rate, (amount/s)",fontsize=FONT_SIZE,)
     ax4.set_xlabel("time (s)",fontsize=FONT_SIZE)
-    ax4.legend(loc="upper left")
+    ax4.legend(fontsize=LEGEND_SIZE,loc="upper left")
 
     res=task_submit_rate_curves("./task_speed.log")
     ax5 = plt.twinx()
     ax5.plot(res[0],res[1],lw=1,color='b',label="task submission")
     ax5.set_ylabel("task submission rate, (amount/s)",fontsize=FONT_SIZE,)
-    ax5.legend()
+    ax5.legend(fontsize=LEGEND_SIZE)
     plt.savefig('./cluster_status.png')
 
 def draw_muilt_lantencyCurve(tests):
@@ -148,7 +148,7 @@ def draw_muilt_lantencyCurve(tests):
         #axes.set_yticklabels(ylabels)
 
 
-    plt.legend()
+    plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("worst task lantency (ms)",fontsize=FONT_SIZE)
     plt.xlabel("time (s)",fontsize=FONT_SIZE)
 
@@ -159,7 +159,7 @@ def draw_muilt_avg_resource(tests):
     for t in tests:
         staus = cluster_status_curves(os.path.join(t[0],"cluster_status.log"))
         plt.plot(staus[0],staus[2],lw=1,label=t[1])
-    plt.legend()
+    plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("resource utilization (%)",fontsize=FONT_SIZE)
     plt.xlabel("time (s)",fontsize=FONT_SIZE)
 
@@ -170,7 +170,7 @@ def draw_muilt_var_resource(tests):
     for t in tests:
         staus = cluster_status_curves(os.path.join(t[0],"cluster_status.log"))
         plt.plot(staus[0],staus[4],lw=1,label=t[1])
-    plt.legend()
+    plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("cluster utilization variance",fontsize=FONT_SIZE)
     plt.xlabel("time (s)",fontsize=FONT_SIZE)
     plt.savefig('./variance_compare.png')
@@ -178,14 +178,26 @@ def draw_muilt_var_resource(tests):
 def draw_muilt_net_busy(tests):
     plt.cla()
     for t in tests:
-        staus = net_commuication_rate_curves(os.path.join(t[0],"net.log"))
+        staus = net_commuication_rate_curves(os.path.join(t[0],"network_event.log"))
         plt.plot(staus[0],staus[1],lw=1,label=t[1])
-    plt.legend()
+    plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("net request rate \n (number/s)",fontsize=FONT_SIZE)
     plt.subplots_adjust(left=0.25) 
     plt.ticklabel_format(style='plain')
     plt.xlabel("time (s)",fontsize=FONT_SIZE)
-    plt.savefig('./net_busy_compare.png')
+    plt.savefig('./net_busy_compare_cluster.png')
+
+    plt.cla()
+    for t in tests:
+        staus = net_commuication_rate_curves(os.path.join(t[0],"network_most_busy.log"))
+        plt.plot(staus[0],staus[1],lw=1,label=t[1])
+    plt.legend(fontsize=LEGEND_SIZE)
+    plt.ylabel("net request rate \n (number/s)",fontsize=FONT_SIZE)
+    plt.subplots_adjust(left=0.25) 
+    plt.ticklabel_format(style='plain')
+    plt.xlabel("time (s)",fontsize=FONT_SIZE)
+    plt.savefig('./net_busy_compare_most_busy.png')
+
 
 def draw_task_submission_rate(tests):
     plt.cla()
@@ -202,7 +214,7 @@ def draw_task_latency_CDF(tests):
     for t in tests:
         staus = task_latency_CDF_curves(os.path.join(t[0],"latencyCurve.log"))
         plt.plot(staus[0],staus[1],lw=1,label=t[1])
-    plt.legend()
+    plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("task latency CDF \n (%)",fontsize=FONT_SIZE)
     plt.subplots_adjust(left=0.25,bottom=0.15) 
     plt.ticklabel_format(style='plain')
