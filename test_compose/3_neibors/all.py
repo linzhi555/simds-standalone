@@ -7,7 +7,7 @@ def longName(s):
     if s == "center":
         return "Centralized"
     if s == "share":
-        return "Share state"
+        return "Shared state"
     if s == "dcss":
         return "Beehive"
 
