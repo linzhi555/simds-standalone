@@ -16,4 +16,4 @@ DcssNeibor:     8          #how many neibor of a node
 DcssDividePolicy     : "always"  #
 
 # only in share state cluster
-StateUpdatePeriod:   100   # the period of scheduler get the newest cluster state, unit : milisecond
+StateUpdatePeriod:   300   # the period of scheduler get the newest cluster state, unit : milisecond

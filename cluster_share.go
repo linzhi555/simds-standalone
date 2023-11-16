@@ -67,6 +67,14 @@ func shareStateStorageSetup(comp interface{}) {
 		storage.Workers[nodeAddr] = nodeinfo
 	}
 }
+
+type CommitReply struct {
+	NodeInfo
+	TaskInfo
+}
+
+func (CommitReply) MessageBody() {}
+
 func shareStateStorageUpdate(comp interface{}) {
 	storage := comp.(*StateStorage)
 	timeNow := storage.Os.GetTime()
@@ -99,7 +107,10 @@ func shareStateStorageUpdate(comp interface{}) {
 					From:    storage.Os.Net().GetAddr(),
 					To:      newMessage.From,
 					Content: "TaskCommitFail",
-					Body:    task,
+					Body: CommitReply{
+						*storage.Workers[task.Worker],
+						task,
+					},
 				})
 				if err != nil {
 					panic(err)
@@ -168,15 +179,20 @@ func shareSchedulerUpdate(comp interface{}) {
 			scheduler.WaitSchedule.InQueue(task)
 			LogInfo(scheduler.Os, "received TaskDispense", task)
 		case "TaskCommitFail":
-			task := newMessage.Body.(TaskInfo)
+			reply := newMessage.Body.(CommitReply)
+			task := reply.TaskInfo
 			task.Status = "WaitSchedule"
 			scheduler.WaitSchedule.InQueueFront(task)
+
+			nodeinfo := reply.NodeInfo
+			scheduler.Workers[task.Worker] = nodeinfo.Clone()
+
 			LogInfo(scheduler.Os, "reschedule task", task)
 		case "ClusterStateCopy":
 			nodeinfoList := newMessage.Body.(Vec[NodeInfo])
-			for k := range scheduler.Workers {
-				delete(scheduler.Workers, k)
-			}
+			//for k := range scheduler.Workers {
+			//	delete(scheduler.Workers, k)
+			//}
 			for _, ni := range nodeinfoList {
 				scheduler.Workers[ni.Addr] = ni.Clone()
 			}
