@@ -6,7 +6,8 @@ import os
 
 FONT_SIZE=20
 LEGEND_SIZE = 12
-
+FAIL_TASK_LATENCY = 5000
+INFINITY=100000
 #def parseRFCnano(dt_str):
 #    # 解析日期时间部分
 #    dt = dt_str.split('+')[0]
@@ -50,8 +51,8 @@ def task_latency_CDF_curves(filename):
         next(plots)
         for row in plots:
             latency = pd.Timedelta(row[1]).total_seconds()*1000
-            if latency > 9999:
-                latency = 10000
+            if latency > FAIL_TASK_LATENCY-1:
+                latency = INFINITY
             records.append(latency)
     ticks = [(i+1)/len(records)*100 for i in range(0,len(records))]
     return [records,ticks]
@@ -69,17 +70,14 @@ def cluster_status_curves(filename):
     with open(filename,'r') as csvfile:
         plots = csv.reader(csvfile, delimiter=',')
         next(plots)
-        hasTaskFailed=False
         for row in plots:
             t.append(int(row[0])/1000)  
             latency = pd.Timedelta(row[1]).total_seconds()*1000
-            # task latency larger than 10000ms is seen as failed
-            if latency > 10000 :
-                hasTaskFailed = True
-            if not hasTaskFailed :
-                max_latency.append(latency)
+            # task latency larger or equal than FAIL_TASK_LATENCY ms is seen as failed
+            if latency > FAIL_TASK_LATENCY-1 :
+                max_latency.append(INFINITY)
             else:
-                max_latency.append(10000)
+                max_latency.append(latency)
             avg_cpu.append(float(row[2])*100)
             avg_ram.append(float(row[3])*100)
             var_cpu.append(float(row[4]))
@@ -111,7 +109,7 @@ def draw_cluster_status():
     ax2.set_ylabel("task lantency unit: ms",fontsize=FONT_SIZE)
     ax2.legend(fontsize=LEGEND_SIZE,loc="upper right")
 
-    if max(avg_latency)>10000:
+    if max(avg_latency)>FAIL_TASK_LATENCY-1:
         ax2.set_yscale("log",base=10)
 
     ax3 = fig.add_subplot(312)
@@ -148,11 +146,11 @@ def draw_muilt_lantencyCurve(tests):
         latency=status[1]
         plt.plot(t,latency,lw=1,label=test[1])
 
-        if max(latency) > 999:
+        if max(latency) > FAIL_TASK_LATENCY-1:
             plt.yscale("log",base=10)
         failTaskT=[]
         for i in range (len(latency)):
-            if latency[i] >= 9999:
+            if latency[i] > FAIL_TASK_LATENCY-1:
                 failTaskT.append(t[i])
         if len(failTaskT)>0:
             plt.plot(failTaskT, [max(latency) for _ in range(len(failTaskT))], 'ro')
@@ -232,7 +230,7 @@ def draw_task_latency_CDF(tests):
     for t in tests:
         staus = task_latency_CDF_curves(os.path.join(t[0],"latencyCurve.log"))
         plt.plot(staus[0],staus[1],lw=1,label=t[1])
-        if max(staus[0]) > 999:
+        if max(staus[0]) >= FAIL_TASK_LATENCY-1:
             plt.xscale("log",base=10)
 
 
