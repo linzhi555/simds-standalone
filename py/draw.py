@@ -230,11 +230,11 @@ def draw_task_latency_CDF(tests):
     for t in tests:
         staus = task_latency_CDF_curves(os.path.join(t[0],"latencyCurve.log"))
         plt.plot(staus[0],staus[1],lw=1,label=t[1])
-        if max(staus[0]) >= FAIL_TASK_LATENCY-1:
-            plt.xscale("log",base=10)
+        #if max(staus[0]) >= FAIL_TASK_LATENCY-1:
 
 
     plt.legend(fontsize=LEGEND_SIZE)
+    plt.ylim(97,100.2)
     plt.ylabel("task latency CDF \n (%)",fontsize=FONT_SIZE)
     plt.subplots_adjust(left=0.25,bottom=0.15) 
     #plt.ticklabel_format(style='plain')
