@@ -1,3 +1,4 @@
+#!/bin/bash
 outpath=./target/test_compose
 rm -r $outpath
 mkdir -p $outpath
