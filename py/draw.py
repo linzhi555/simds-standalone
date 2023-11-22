@@ -25,13 +25,13 @@ def net_commuication_rate_curves(filename: str) -> list:
         intervals[i // 10] += 1
     intervals = [100 * i for i in intervals]
 
-    # 滤波使曲线光滑
-    oldy = np.array(intervals)
     y = np.array(intervals)
-    halfSampleNum = 4
-    for i in range(halfSampleNum, len(intervals) - halfSampleNum):
-        y[i] = oldy[i - halfSampleNum:i +
-                    halfSampleNum].sum() / (2 * halfSampleNum)
+    # 滤波使曲线光滑
+    #oldy = np.array(intervals)
+    #halfSampleNum = 4
+    #for i in range(halfSampleNum, len(intervals) - halfSampleNum):
+    #    y[i] = oldy[i - halfSampleNum:i +
+    #                halfSampleNum].sum() / (2 * halfSampleNum)
     return [t, y]
 
 
@@ -219,7 +219,7 @@ def draw_muilt_net_busy(tests: list):
     for t in tests:
         staus = net_commuication_rate_curves(
             os.path.join(t[0], "network_event.log"))
-        plt.plot(staus[0], staus[1], lw=1.5, label=t[1])
+        plt.plot(staus[0], staus[1], lw=1.0, label=t[1])
     plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("Net Request Rate \n (number/s)", fontsize=FONT_SIZE)
     plt.ticklabel_format(style='plain')
@@ -234,7 +234,7 @@ def draw_muilt_net_busy(tests: list):
     for t in tests:
         staus = net_commuication_rate_curves(
             os.path.join(t[0], "network_most_busy.log"))
-        plt.plot(staus[0], staus[1], lw=1.5, label=t[1])
+        plt.plot(staus[0], staus[1], lw=1.0, label=t[1])
     plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("Net Request Rate \n (number/s)", fontsize=FONT_SIZE)
     plt.ticklabel_format(style='plain')
