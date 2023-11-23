@@ -5,7 +5,7 @@ import numpy as np
 import os
 
 FONT_SIZE = 20
-LEGEND_SIZE = 12
+LEGEND_SIZE = 15
 LINE_WIDTH = 2.0
 FAIL_TASK_LATENCY = 5000
 INFINITY = 100000
@@ -148,6 +148,8 @@ def draw_in_current_test_folder():
     )
     ax5.legend(fontsize=LEGEND_SIZE)
 
+    plt.yticks(fontsize=FONT_SIZE*0.8)
+    plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
     plt.savefig('./cluster_status.png')
 
@@ -178,8 +180,11 @@ def draw_muilt_lantencyCurve(tests: list):
     plt.ylabel("Worst Task Lantency (ms)", fontsize=FONT_SIZE)
     plt.xlabel("Time (s)", fontsize=FONT_SIZE)
 
+
+    plt.yticks(fontsize=FONT_SIZE*0.8)
+    plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
-    plt.subplots_adjust(left=0.13, right=0.93)
+    plt.subplots_adjust(left=0.19, right=0.93,bottom=0.15)
     plt.savefig('./lantency_compare.png')
 
 
@@ -193,8 +198,10 @@ def draw_muilt_avg_resource(tests: list):
     plt.ylabel("Resource Utilization (%)", fontsize=FONT_SIZE)
     plt.xlabel("Time (s)", fontsize=FONT_SIZE)
 
+    plt.yticks(fontsize=FONT_SIZE*0.8)
+    plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
-    plt.subplots_adjust(left=0.12, right=0.93)
+    plt.subplots_adjust(left=0.13, right=0.93)
     plt.savefig('./load_compare.png')
 
 
@@ -208,8 +215,11 @@ def draw_muilt_var_resource(tests: list):
     plt.ylabel("Cluster Utilization Variance", fontsize=FONT_SIZE)
     plt.xlabel("Time (s)", fontsize=FONT_SIZE)
 
+
+    plt.yticks(fontsize=FONT_SIZE*0.8)
+    plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
-    plt.subplots_adjust(left=0.12, right=0.93)
+    plt.subplots_adjust(left=0.20, right=0.93)
     plt.savefig('./variance_compare.png')
 
 
@@ -226,8 +236,12 @@ def draw_muilt_net_busy(tests: list):
     #plt.yscale("log",base=10)
     plt.xlabel("Time (s)", fontsize=FONT_SIZE)
 
+
+    plt.legend(fontsize=LEGEND_SIZE,bbox_to_anchor=(1.1, 1), loc='upper right',)
+    plt.yticks(fontsize=FONT_SIZE*0.8)
+    plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
-    plt.subplots_adjust(left=0.22, right=0.93)
+    plt.subplots_adjust(left=0.3, right=0.93)
     plt.savefig('./net_busy_compare_cluster.png')
 
     plt.cla()
@@ -235,14 +249,17 @@ def draw_muilt_net_busy(tests: list):
         staus = net_commuication_rate_curves(
             os.path.join(t[0], "network_most_busy.log"))
         plt.plot(staus[0], staus[1], lw=1.0, label=t[1])
-    plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("Net Request Rate \n (number/s)", fontsize=FONT_SIZE)
     plt.ticklabel_format(style='plain')
     #plt.yscale("log",base=10)
     plt.xlabel("Time (s)", fontsize=FONT_SIZE)
 
+
+    plt.legend(fontsize=LEGEND_SIZE,bbox_to_anchor=(1.1, 1), loc='upper right',)
+    plt.yticks(fontsize=FONT_SIZE*0.8)
+    plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
-    plt.subplots_adjust(left=0.22, right=0.93)
+    plt.subplots_adjust(left=0.3, right=0.93)
     plt.savefig('./net_busy_compare_most_busy.png')
 
 
@@ -256,8 +273,11 @@ def draw_task_submission_rate(tests: list):
     plt.subplots_adjust(left=0.2)
     plt.xlabel("Time (s)", fontsize=FONT_SIZE)
 
+
+    plt.yticks(fontsize=FONT_SIZE*0.8)
+    plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
-    plt.subplots_adjust(left=0.22, right=0.93)
+    plt.subplots_adjust(left=0.24, right=0.93)
     plt.savefig('./task_submission_rate.png')
 
 
@@ -273,8 +293,10 @@ def draw_task_latency_CDF(tests: list):
     plt.xlabel("Task Latency(ms)", fontsize=FONT_SIZE)
 
     plt.grid(True)
-    plt.subplots_adjust(left=0.15, right=0.94, bottom=0.15)
+    plt.subplots_adjust(left=0.18, right=0.94, bottom=0.15)
 
+    plt.yticks(fontsize=FONT_SIZE*0.8)
+    plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.savefig('./latency_CDF_compare_full.png')
     plt.ylim(0.95, 1.002)
     plt.savefig('./latency_CDF_compare.png')
