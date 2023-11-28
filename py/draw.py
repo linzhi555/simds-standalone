@@ -184,7 +184,7 @@ def draw_muilt_lantencyCurve(tests: list):
     plt.yticks(fontsize=FONT_SIZE*0.8)
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
-    plt.subplots_adjust(left=0.19, right=0.93,bottom=0.15)
+    plt.subplots_adjust(left=0.19, right=0.93,bottom=0.15,top=0.95)
     plt.savefig('./lantency_compare.png')
 
 
@@ -201,7 +201,7 @@ def draw_muilt_avg_resource(tests: list):
     plt.yticks(fontsize=FONT_SIZE*0.8)
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
-    plt.subplots_adjust(left=0.13, right=0.93)
+    plt.subplots_adjust(left=0.13, right=0.93,top=0.95)
     plt.savefig('./load_compare.png')
 
 
@@ -219,7 +219,7 @@ def draw_muilt_var_resource(tests: list):
     plt.yticks(fontsize=FONT_SIZE*0.8)
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
-    plt.subplots_adjust(left=0.20, right=0.93)
+    plt.subplots_adjust(left=0.20, right=0.93,top=0.95)
     plt.savefig('./variance_compare.png')
 
 
@@ -241,7 +241,7 @@ def draw_muilt_net_busy(tests: list):
     plt.yticks(fontsize=FONT_SIZE*0.8)
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
-    plt.subplots_adjust(left=0.3, right=0.93)
+    plt.subplots_adjust(left=0.3, right=0.93,top=0.95)
     plt.savefig('./net_busy_compare_cluster.png')
 
     plt.cla()
@@ -259,7 +259,7 @@ def draw_muilt_net_busy(tests: list):
     plt.yticks(fontsize=FONT_SIZE*0.8)
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
-    plt.subplots_adjust(left=0.3, right=0.93)
+    plt.subplots_adjust(left=0.3, right=0.93,top=0.95)
     plt.savefig('./net_busy_compare_most_busy.png')
 
 
@@ -270,14 +270,14 @@ def draw_task_submission_rate(tests: list):
         os.path.join(tests[0][0], "./task_speed.log"))
     plt.plot(staus[0], staus[1], lw=LINE_WIDTH)
     plt.ylabel("Task Submission Rate \n (number/s)", fontsize=FONT_SIZE)
-    plt.subplots_adjust(left=0.2)
+    plt.subplots_adjust(left=0.2,top=0.95 )
     plt.xlabel("Time (s)", fontsize=FONT_SIZE)
 
 
     plt.yticks(fontsize=FONT_SIZE*0.8)
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
-    plt.subplots_adjust(left=0.24, right=0.93)
+    plt.subplots_adjust(left=0.24, right=0.93,top=0.95)
     plt.savefig('./task_submission_rate.png')
 
 
@@ -293,7 +293,7 @@ def draw_task_latency_CDF(tests: list):
     plt.xlabel("Task Latency(ms)", fontsize=FONT_SIZE)
 
     plt.grid(True)
-    plt.subplots_adjust(left=0.18, right=0.94, bottom=0.15)
+    plt.subplots_adjust(left=0.18, right=0.94, bottom=0.15,top=0.95)
 
     plt.yticks(fontsize=FONT_SIZE*0.8)
     plt.xticks(fontsize=FONT_SIZE*0.8)

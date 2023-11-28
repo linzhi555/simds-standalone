@@ -14,12 +14,12 @@ def longName(s):
 
 
 
-policy=[0,"always","random",4,7,10]
+policy=[0,"greedy","random"]
 for cluster in ["dcss"]:
     tests = []
     for i in range(1,3):
         folder = "./target/test{id}_{c}/".format(c=cluster,id=i)
-        tests.append([folder, "divide policy: {p}".format(p=policy[i])])
+        tests.append([folder, "{p} policy".format(p=policy[i])])
     draw.draw_task_submission_rate(tests)
     draw.draw_muilt_lantencyCurve(tests)
     draw.draw_muilt_avg_resource (tests)
