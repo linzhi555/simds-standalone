@@ -65,6 +65,8 @@ func DcssSchedulerSetup(comp interface{}) {
 	// init neibors
 	neiborNum := int(Config.DcssNeibor)
 	allNodeNum := int(Config.NodeNum)
+	neiborRandom := int(Config.DcssNeiborRandom)
+
 	var neibors []string = make([]string, 0, neiborNum)
 
 	selfIndex, err := strconv.Atoi(strings.TrimLeft(scheduler.Host, "node"))
@@ -72,7 +74,7 @@ func DcssSchedulerSetup(comp interface{}) {
 		panic(err)
 	}
 
-	for _, neiborIndex := range getNeigbor(allNodeNum, selfIndex, neiborNum) {
+	for _, neiborIndex := range getNeigbor(allNodeNum, selfIndex, neiborNum, neiborRandom) {
 		newNeibor := fmt.Sprintf("node%d:Scheduler", neiborIndex)
 		neibors = append(neibors, newNeibor)
 	}
@@ -92,12 +94,12 @@ func DcssSchedulerSetup(comp interface{}) {
 }
 
 // 创建邻域的算法，输入 一个节点的编号（selfIndex ） 返回其领域的一系列编号
-func getNeigbor(allNodes int, selfIndex int, neigborNum int) []int {
-	if neigborNum <= 2 {
+func getNeigbor(allNodes int, selfIndex int, neiborNum int, neiborRandom int) []int {
+	if neiborNum <= 2 {
 		panic("neigborNum can not smaller than 2 ")
 	}
 
-	if allNodes < neigborNum*2 {
+	if allNodes < neiborNum*2 {
 		panic("allNodes num can not smaller than neigborNum*2")
 	}
 
@@ -105,29 +107,39 @@ func getNeigbor(allNodes int, selfIndex int, neigborNum int) []int {
 		panic("wrong index")
 	}
 
-	// 所有节点连接左右两个节点，这样网络保证有一个全局的大环
-	left := (selfIndex - 1 + allNodes) % allNodes
-	right := (selfIndex + 1) % allNodes
+	if neiborRandom > neiborNum-2 {
+		panic("to many random neigbor")
+	}
 
-	var selected map[int]bool = map[int]bool{}
-	selected[left] = true
-	selected[right] = true
-
-	// 填充剩余的其他邻域 ，从其他的节点随机选
-
-	for len(selected) < neigborNum {
-		temp := rand.Intn(allNodes)
-		if temp != selfIndex {
-			selected[temp] = true
+	neinodes := make([]int, 0)
+	res := make(map[int]struct{})
+	// 规则邻居的编号
+	leftNei := 0
+	rightNei := 0
+	for q := 0; q < neiborNum-neiborRandom; q++ {
+		if q%2 == 0 {
+			//加左邻居
+			nextLeft := (selfIndex - leftNei - 1 + allNodes) % allNodes
+			res[nextLeft] = struct{}{}
+			leftNei++
+		} else {
+			nextRight := (selfIndex + rightNei + 1 + allNodes) % allNodes
+			res[nextRight] = struct{}{}
+			rightNei++
 		}
 	}
-
-	neibors := make([]int, 0, len(selected))
-	for k := range selected {
-		neibors = append(neibors, k)
+	// 随机邻居的编号
+	for len(res) < neiborNum {
+		index := rand.Intn(allNodes)
+		if index == selfIndex {
+			continue
+		}
+		res[index] = struct{}{}
 	}
-	return neibors
-
+	for k := range res {
+		neinodes = append(neinodes, k)
+	}
+	return neinodes
 }
 
 // DcssSchedulerUpdate 模拟器每次tick时对分布式集群的调度器组件进行初始化

@@ -15,7 +15,6 @@ func main() {
 
 	initLogs()
 	LogConfig(path.Join(Config.OutputDir, "config.log"))
-
 	clusterMarket := map[string]func() Cluster{
 		"Dcss":       BuildDCSSCluster,
 		"ShareState": BuildShareStateCluster,

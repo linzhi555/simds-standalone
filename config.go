@@ -19,6 +19,7 @@ var Config struct {
 	Cluster              string
 	NodeNum              int32
 	NetLatency           int32
+	DcssNeiborRandom     int32
 	DcssNeibor           int32
 	DcssDividePolicy     string
 	NodeCpu              int32
@@ -50,6 +51,9 @@ func init() {
 	err = viper.Unmarshal(&Config)
 	if err != nil {
 		panic(err)
+	}
+	if Config.DcssNeiborRandom == 0 {
+		Config.DcssNeiborRandom = Config.DcssNeibor - 2
 	}
 }
 
