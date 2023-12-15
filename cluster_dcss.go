@@ -65,7 +65,7 @@ func DcssSchedulerSetup(comp interface{}) {
 	// init neibors
 	neiborNum := int(Config.DcssNeibor)
 	allNodeNum := int(Config.NodeNum)
-	neiborRandom := int(Config.DcssNeiborRandom)
+	neiborRandom := int(Config.DcssNeiborRandomP*(float32(Config.DcssNeibor)))
 
 	var neibors []string = make([]string, 0, neiborNum)
 

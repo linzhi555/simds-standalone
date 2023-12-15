@@ -1,0 +1,13 @@
+DcssDividePolicy: always
+DcssNeibor: 8
+DcssNeiborRandomP: 0.5
+NetLatency: 5
+NodeCpu: 10
+NodeMemory: 10
+NodeNum: 400
+SchedulerPerformance: 4000
+StateUpdatePeriod: 300
+TaskCpu: 3
+TaskLifeTime: 333
+TaskMemory: 3
+TaskNumFactor: 6
