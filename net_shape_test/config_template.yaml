@@ -13,7 +13,7 @@ SchedulerPerformance: 4000  # how many time Scheduler execute scheduling algorit
 
 # only in dcss mode
 DcssNeibor:     8          #how many neibor of a node
-DcssNeiborRandomP:      0.3         #how many random neibor of a node
+DcssNeiborRandomP:      0.5         #how many random neibor of a node
 DcssDividePolicy     : "always"  #
 
 # only in share state cluster
