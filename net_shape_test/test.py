@@ -20,10 +20,10 @@ class Cluster():
         self.specialConfig = specialConfig
 
 clusters = []
-clusters.append(Cluster("center","centralized cluster","make centerTest"))
-clusters.append(Cluster("share","shared cluster","make shareTest"))
-clusters.append(Cluster("dcss_regular","Hive regular neighbor","make dcssTest", specialConfig={'DcssNeiborRandomP':0.0}))
-clusters.append(Cluster("dcss_random","Hive random neighbor","make dcssTest",specialConfig={'DcssNeiborRandomP':0.5}))
+clusters.append(Cluster("center","centralized","make centerTest"))
+clusters.append(Cluster("share","shared","make shareTest"))
+clusters.append(Cluster("dcss_regular","Hive regular","make dcssTest", specialConfig={'DcssNeiborRandomP':0.0}))
+clusters.append(Cluster("dcss_random","Hive random","make dcssTest",specialConfig={'DcssNeiborRandomP':0.5}))
 print(clusters)
 
 nodeNumTests = [1,2,4,7,10]
@@ -46,7 +46,7 @@ def draw_node_num_test():
         tests = []
         for cluster in clusters:
             folder = "net_shape_test/target/node_num/{}_{}k".format(cluster.name,nodeNum)
-            tests.append([folder, "{c} {num}k nodes".format(c=cluster.describ,num=nodeNum)])
+            tests.append([folder, "{c} {num}k ".format(c=cluster.describ,num=nodeNum)])
         draw.draw_task_submission_rate(tests)
         draw.draw_muilt_lantencyCurve(tests)
         draw.draw_muilt_avg_resource (tests)
@@ -54,6 +54,22 @@ def draw_node_num_test():
         draw.draw_muilt_net_busy (tests)
         draw.draw_task_latency_CDF(tests)
         os.system("mkdir -p net_shape_test/target/node_num/all/nodes_{num}k && mv *.png net_shape_test/target/node_num/all/nodes_{num}k".format(num=nodeNum))
+
+    for cluster in clusters:
+        tests = []
+        for nodeNum in nodeNumTests:
+            folder = "net_shape_test/target/node_num/{}_{}k".format(cluster.name,nodeNum)
+            tests.append([folder, "{c} {num}k ".format(c=cluster.describ,num=nodeNum)])
+        draw.draw_task_submission_rate(tests)
+        draw.draw_muilt_lantencyCurve(tests)
+        draw.draw_muilt_avg_resource (tests)
+        draw.draw_muilt_var_resource (tests)
+        draw.draw_muilt_net_busy (tests)
+        draw.draw_task_latency_CDF(tests)
+        os.system("mkdir -p net_shape_test/target/node_num/all/{c} && mv *.png net_shape_test/target/node_num/all/{c}".format(c = cluster.name))
+
+
+
 
 possblities = [0.0,0.3,0.6,1.0]
 
@@ -90,6 +106,7 @@ def test_utilization():
     for factor,util in zip(TaskNumFactors,utilizations):
         for cluster in clusters:
             configCopy = config.copy()
+            configCopy["NodeNum"] =  4 * 1000
             configCopy["TaskNumFactor"] = factor
             configOut = "net_shape_test/config.yaml"
             targetOut = "net_shape_test/target/utilization/{}_{}".format(cluster.name,util)
@@ -145,13 +162,21 @@ def draw_uliliztion_test():
     #test_with_parameters("TaskNumFactor",utilizationTests)
     #draw_test_result("TaskNumFactor",utilizationTests)
 
+import argparse
+parser = argparse.ArgumentParser(description='run net shape test')
+parser.add_argument('--draw_only', dest='drawOnly', help='only draw the rusult')
+parser.set_defaults(drawOnly=False)
+args = parser.parse_args()
 
 if __name__ == "__main__":
-    test_node_num()
+    if not args.drawOnly:
+        test_node_num()
     draw_node_num_test()
 
-    test_neibor_random_P()
+    if not args.drawOnly:
+        test_neibor_random_P()
     draw_neibor_random_P_test()
 
-    test_utilization()
+    if not args.drawOnly:
+        test_utilization()
     draw_uliliztion_test()

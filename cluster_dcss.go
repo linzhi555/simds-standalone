@@ -107,7 +107,7 @@ func getNeigbor(allNodes int, selfIndex int, neiborNum int, neiborRandom int) []
 		panic("wrong index")
 	}
 
-	if neiborRandom > neiborNum-2 {
+	if neiborRandom > neiborNum {
 		panic("to many random neigbor")
 	}
 
