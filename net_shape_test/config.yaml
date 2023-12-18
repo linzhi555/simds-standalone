@@ -1,10 +1,10 @@
 DcssDividePolicy: always
-DcssNeibor: 8
-DcssNeiborRandomP: 1.0
+DcssNeibor: 20
+DcssNeiborRandomP: 0.5
 NetLatency: 5
 NodeCpu: 10
 NodeMemory: 10
-NodeNum: 4000
+NodeNum: 10000
 SchedulerPerformance: 4000
 StateUpdatePeriod: 300
 TaskCpu: 3

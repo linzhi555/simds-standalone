@@ -20,10 +20,10 @@ class Cluster():
         self.specialConfig = specialConfig
 
 clusters = []
-clusters.append(Cluster("center","centralized","make centerTest"))
-clusters.append(Cluster("share","shared","make shareTest"))
-clusters.append(Cluster("dcss_regular","Hive regular","make dcssTest", specialConfig={'DcssNeiborRandomP':0.0}))
-clusters.append(Cluster("dcss_random","Hive random","make dcssTest",specialConfig={'DcssNeiborRandomP':0.5}))
+clusters.append(Cluster("center","Centralized","make centerTest"))
+clusters.append(Cluster("share","Shared State","make shareTest"))
+clusters.append(Cluster("dcss_regular","LN BeeHive ","make dcssTest", specialConfig={'DcssNeiborRandomP':0.0}))
+clusters.append(Cluster("dcss_random","WSN Beehive","make dcssTest",specialConfig={'DcssNeiborRandomP':0.5}))
 print(clusters)
 
 nodeNumTests = [1,2,4,7,10]
@@ -53,7 +53,7 @@ def draw_node_num_test():
         draw.draw_muilt_var_resource (tests)
         draw.draw_muilt_net_busy (tests)
         draw.draw_task_latency_CDF(tests)
-        os.system("mkdir -p net_shape_test/target/node_num/all/nodes_{num}k && mv *.png net_shape_test/target/node_num/all/nodes_{num}k".format(num=nodeNum))
+        os.system("mkdir -p net_shape_test/target/all/node_num/nodes_{num}k && mv *.png net_shape_test/target/all/node_num/nodes_{num}k".format(num=nodeNum))
 
     for cluster in clusters:
         tests = []
@@ -66,10 +66,7 @@ def draw_node_num_test():
         draw.draw_muilt_var_resource (tests)
         draw.draw_muilt_net_busy (tests)
         draw.draw_task_latency_CDF(tests)
-        os.system("mkdir -p net_shape_test/target/node_num/all/{c} && mv *.png net_shape_test/target/node_num/all/{c}".format(c = cluster.name))
-
-
-
+        os.system("mkdir -p net_shape_test/target/all/node_num/{c} && mv *.png net_shape_test/target/all/node_num/{c}".format(c = cluster.name))
 
 possblities = [0.0,0.3,0.6,1.0]
 
@@ -90,7 +87,12 @@ def draw_neibor_random_P_test():
     for p in possblities:
         cluster = clusters[3]
         folder = "net_shape_test/target/neibor_random_p/randomP_{}".format(p)
-        tests.append([folder, "random neighbor p {} ".format(p)])
+        label = ""
+        if p < 0.01 :
+            label = "Lattice Network"
+        else :
+            label = "WS Network p={}".format(p)
+        tests.append([folder, label])
     draw.draw_task_submission_rate(tests)
     draw.draw_muilt_lantencyCurve(tests)
     draw.draw_muilt_avg_resource (tests)
@@ -177,6 +179,6 @@ if __name__ == "__main__":
         test_neibor_random_P()
     draw_neibor_random_P_test()
 
-    if not args.drawOnly:
-        test_utilization()
-    draw_uliliztion_test()
+    #if not args.drawOnly:
+    #    test_utilization()
+    #draw_uliliztion_test()

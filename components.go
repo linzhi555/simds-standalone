@@ -104,7 +104,7 @@ func onePeakTaskStream() []SrcNode {
 			t = time.Duration(0)
 		} else if src[i-1].time < 2*time.Second {
 			t = src[i-1].time + time.Duration(baseTimeDelta*3/2)
-		} else if src[i-1].time < 4*time.Second {
+		} else if src[i-1].time < 8*time.Second {
 			t = src[i-1].time + time.Duration(baseTimeDelta*3/4)
 		} else if src[i-1].time < 10*time.Second {
 			t = src[i-1].time + time.Duration(baseTimeDelta*3/2)
