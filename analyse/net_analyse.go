@@ -36,7 +36,8 @@ func OutputNetEventList(outputDir string, events []NetEvent) {
 
 }
 
-func parseNetEventCSV(table [][]string) []NetEvent {
+func parseNetEventCSV(csvPath string ) []NetEvent {
+	table, _ := common.CsvToList(csvPath)
 	var res []NetEvent
 	for _, l := range table {
 		res = append(res, NetEvent{
@@ -104,8 +105,7 @@ func highestPeek(events []NetEvent) int {
 }
 
 func AnalyseNet(csvPath string, outputDir string) {
-	table, _ := common.CsvToList(csvPath)
-	allEvents := parseNetEventCSV(table)
+	allEvents := parseNetEventCSV(csvPath)
 	allEventsByHost := separateByReceiver(allEvents)
 	index := mostBusyHost(allEventsByHost)
 	OutputNetEventList(outputDir, allEventsByHost[index])
