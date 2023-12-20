@@ -161,8 +161,8 @@ func EcsRunCluster(cluster Cluster) {
 		simulator.AddSystem(SystemName(string(k)+"_update"), covertFuncToSystem(k, f, false))
 	}
 
-	// 运行 200000 帧 ，每帧间隔0.1ms 模拟 20 秒的集群行为
-	frameNum := 200000
+	// 运行 150000 帧 ，每帧间隔0.1ms 模拟 15 秒的集群行为
+	frameNum := 150000
 	for i := 0; i < frameNum; i++ {
 		log.Println("simluating", i, "/", frameNum)
 		simulator.Update()
