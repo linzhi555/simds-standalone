@@ -15,7 +15,7 @@ type NetEvent struct {
 	To     string
 }
 
-func OutputNetEventList(outputDir string, events []NetEvent) {
+func OutputNetEventList(outputDir string, events []*NetEvent) {
 	outputlogfile := path.Join(outputDir, "network_most_busy.log")
 	err := os.Remove(outputlogfile)
 	if err != nil {
@@ -36,11 +36,11 @@ func OutputNetEventList(outputDir string, events []NetEvent) {
 
 }
 
-func parseNetEventCSV(csvPath string ) []NetEvent {
+func parseNetEventCSV(csvPath string ) []*NetEvent {
 	table, _ := common.CsvToList(csvPath)
-	var res []NetEvent
+	var res []*NetEvent
 	for _, l := range table {
-		res = append(res, NetEvent{
+		res = append(res, &NetEvent{
 			TimeMS: common.Str_to_int64(l[0]),
 			Type:   l[1],
 			From:   l[2],
@@ -50,7 +50,7 @@ func parseNetEventCSV(csvPath string ) []NetEvent {
 	return res
 }
 
-func mostBusyHost(events [][]NetEvent) int {
+func mostBusyHost(events [][]*NetEvent) int {
 	mostBusyIndex := 0
 	mostBusyValue := -1
 	for i, hostEvents := range events {
@@ -63,13 +63,13 @@ func mostBusyHost(events [][]NetEvent) int {
 	return mostBusyIndex
 }
 
-func separateByReceiver(allEvents []NetEvent) [][]NetEvent {
-	table := map[string][]NetEvent{}
+func separateByReceiver(allEvents []*NetEvent) [][]*NetEvent {
+	table := map[string][]*NetEvent{}
 	for _, event := range allEvents {
 		table[event.To] = append(table[event.To], event)
 	}
 
-	res := [][]NetEvent{}
+	res := [][]*NetEvent{}
 	for _, list := range table {
 		res = append(res, list)
 	}
@@ -78,7 +78,7 @@ func separateByReceiver(allEvents []NetEvent) [][]NetEvent {
 }
 
 // return the highes peek value of network in whole process
-func highestPeek(events []NetEvent) int {
+func highestPeek(events []*NetEvent) int {
 	// records is the map record net message number of n th 10ms key: n th 10ms,value : message number
 	records := map[int64]int{}
 
