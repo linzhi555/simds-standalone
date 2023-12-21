@@ -166,18 +166,21 @@ def draw_uliliztion_test():
 
 import argparse
 parser = argparse.ArgumentParser(description='run net shape test')
-parser.add_argument('--draw_only', dest='drawOnly', help='only draw the rusult')
+parser.add_argument('--draw_only', dest='drawOnly', help='only draw the result')
 parser.set_defaults(drawOnly=False)
 args = parser.parse_args()
 
 if __name__ == "__main__":
-    if not args.drawOnly:
-        test_node_num()
-    draw_node_num_test()
 
     if not args.drawOnly:
         test_neibor_random_P()
     draw_neibor_random_P_test()
+
+
+    if not args.drawOnly:
+        test_node_num()
+    draw_node_num_test()
+
 
     #if not args.drawOnly:
     #    test_utilization()

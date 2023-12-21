@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path"
@@ -36,17 +38,35 @@ func OutputNetEventList(outputDir string, events []*NetEvent) {
 
 }
 
-func parseNetEventCSV(csvPath string ) []*NetEvent {
-	table, _ := common.CsvToList(csvPath)
-	var res []*NetEvent
-	for _, l := range table {
-		res = append(res, &NetEvent{
-			TimeMS: common.Str_to_int64(l[0]),
-			Type:   l[1],
-			From:   l[2],
-			To:     l[3],
-		})
+func parseNetEventCSV(csvPath string) []*NetEvent {
+	fs, err := os.Open(csvPath)
+	if err != nil {
+		log.Fatal("can not open ", csvPath)
 	}
+	defer fs.Close()
+	r := csv.NewReader(fs)
+	var res []*NetEvent
+	for i := 0; ; i++ {
+		row, err := r.Read()
+		if err != nil && err != io.EOF {
+			panic("fail to read" + err.Error())
+		}
+		if err == io.EOF {
+			break
+		}
+		if i == 0 {
+			continue
+		} else {
+			res = append(res, &NetEvent{
+				TimeMS: common.Str_to_int64(row[0]),
+				Type:   row[1],
+				From:   row[2],
+				To:     row[3],
+			})
+
+		}
+	}
+
 	return res
 }
 

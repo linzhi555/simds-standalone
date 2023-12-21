@@ -19,7 +19,7 @@ var Config struct {
 	Cluster              string
 	NodeNum              int32
 	NetLatency           int32
-	DcssNeiborRandomP     float32
+	DcssNeiborRandomP    float32
 	DcssNeibor           int32
 	DcssDividePolicy     string
 	NodeCpu              int32
