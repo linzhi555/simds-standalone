@@ -223,6 +223,7 @@ func shareSchedulerUpdate(comp interface{}) {
 			LogInfo(scheduler.Os, "try to commit task allocate to globalStateStorage", task.Worker, task)
 		} else {
 			scheduler.WaitSchedule.InQueueFront(task)
+			break
 		}
 	}
 }

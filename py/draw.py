@@ -174,7 +174,7 @@ def draw_muilt_lantencyCurve(tests: list):
 
         t = status[0]
         latency = status[1]
-        plt.plot(t, latency, lw=LINE_WIDTH,marker=marker.next(),markevery=8, label=test[1])
+        plt.plot(t, latency, lw=LINE_WIDTH,marker=marker.next(),markevery=8, markersize=10,label=test[1])
 
         if max(latency) > FAIL_TASK_LATENCY - 1:
             plt.yscale("log", base=10)
@@ -204,7 +204,7 @@ def draw_muilt_avg_resource(tests: list):
     plt.cla()
     for t in tests:
         staus = cluster_status_curves(os.path.join(t[0], "cluster_status.log"))
-        plt.plot(staus[0], staus[2], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=8)
+        plt.plot(staus[0], staus[2], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=8,markersize=10)
     plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("Resource Utilization (%)", fontsize=FONT_SIZE)
     plt.xlabel("Time (s)", fontsize=FONT_SIZE)
@@ -222,7 +222,7 @@ def draw_muilt_var_resource(tests: list):
     plt.cla()
     for t in tests:
         staus = cluster_status_curves(os.path.join(t[0], "cluster_status.log"))
-        plt.plot(staus[0], staus[4], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=8)
+        plt.plot(staus[0], staus[4], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=8,markersize=10)
     plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("Cluster Utilization Variance", fontsize=FONT_SIZE)
     plt.xlabel("Time (s)", fontsize=FONT_SIZE)
@@ -299,7 +299,7 @@ def draw_task_latency_CDF(tests: list):
     plt.cla()
     for t in tests:
         staus = task_latency_CDF_curves(os.path.join(t[0], "latencyCurve.log"))
-        plt.plot(staus[0], staus[1], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=int(len(staus[0])/70))
+        plt.plot(staus[0], staus[1], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=int(len(staus[0])/200),markersize=10)
         #if max(staus[0]) >= FAIL_TASK_LATENCY-1:
     plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("Cumulative Probability", fontsize=FONT_SIZE)
