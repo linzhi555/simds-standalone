@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const shareSchdulerNum = 3
+const shareSchdulerNum = 5
 
 //const stateCopyUpdateMS = 200
 
