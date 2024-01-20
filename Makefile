@@ -3,20 +3,11 @@
 Config=./config.yaml
 timeNow:=$(shell date '+%m_%d_%H_%M_%S')
 TargetFolder=./target/$(timeNow)
+Cluster=Center
 
-
-centerTest: preDeal
+test: preDeal
 	@mkdir -p $(TargetFolder)
-	go run . -c $(Config) --OutputDir $(TargetFolder) --Cluster Center >  $(TargetFolder)/components.log
-	@make analyse TargetFolder=$(TargetFolder)
-dcssTest: preDeal
-	@mkdir -p $(TargetFolder)
-	go run . -c $(Config) --OutputDir $(TargetFolder) --Cluster Dcss >  $(TargetFolder)/components.log
-	@make analyse TargetFolder=$(TargetFolder)
-
-shareTest: preDeal
-	@mkdir -p $(TargetFolder)
-	go run .   -c $(Config) --OutputDir $(TargetFolder) --Cluster ShareState > $(TargetFolder)/components.log
+	go run . -c $(Config) --OutputDir $(TargetFolder) --Cluster $(Cluster) >  $(TargetFolder)/components.log
 	@make analyse TargetFolder=$(TargetFolder)
 
 preDeal:

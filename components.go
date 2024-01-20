@@ -13,6 +13,7 @@ const (
 	CScheduler     ComponentName = "Scheduler"
 	CResouceManger ComponentName = "ResourceManager"
 	CStateStorage  ComponentName = "StateStorage"
+	CRaftManager  ComponentName = "RaftManager"
 )
 
 // OsApi 系统调用 抽象接口
@@ -222,3 +223,37 @@ func (n ResourceManager) Component() ComponentName { return CResouceManger }
 
 // SetOsApi For NodeComponent interface
 func (n *ResourceManager) SetOsApi(osapi OsApi) { n.Os = osapi }
+
+
+
+type RaftRole string
+const (
+	Follower RaftRole = "Follower"
+	Leader RaftRole = "Leader"
+	Candidate RaftRole = "Candidate"
+)
+
+// RaftManager 组件
+type RaftManager struct {
+	Os    OsApi
+	Host  string
+	Role  RaftRole
+	StartTime time.Time
+	LastHeartBeat time.Time // the last time of leader heartbeat
+	LeaderTimeout time.Time   // how long for judging  the leader is dead
+	LeaderAddr string
+}
+
+// NewRaftManager 创建新的Raft节点组件
+func NewRaftManager(host string) *RaftManager {
+	return &RaftManager{
+		Host:  host,
+	}
+}
+
+// Component For NodeComponent interface
+func (r RaftManager) Component() ComponentName { return CRaftManager }
+
+// SetOsApi For NodeComponent interface
+func (r *RaftManager) SetOsApi(osapi OsApi) { r.Os = osapi }
+

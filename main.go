@@ -15,10 +15,13 @@ func main() {
 
 	initLogs()
 	LogConfig(path.Join(Config.OutputDir, "config.log"))
+
+	// 请将添加的集群在这里注册
 	clusterMarket := map[string]func() Cluster{
 		"Dcss":       BuildDCSSCluster,
 		"ShareState": BuildShareStateCluster,
 		"Center":     BuildCenterCluster,
+		"Raft":		  BuildRaftCluster,
 	}
 	clusterBuilder, ok := clusterMarket[Config.Cluster]
 	if !ok {

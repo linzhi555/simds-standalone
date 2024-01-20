@@ -190,8 +190,10 @@ func covertFuncToSystem(c ComponentName, f func(interface{}), isSetup bool) func
 			case *ResourceManager:
 				f(t)
 				return t
-
 			case *StateStorage:
+				f(t)
+				return t
+			case *RaftManager:
 				f(t)
 				return t
 			default:
