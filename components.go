@@ -237,11 +237,15 @@ const (
 type RaftManager struct {
 	Os    OsApi
 	Host  string
+	AllNodeNum int
 	Role  RaftRole
 	StartTime time.Time
 	LastHeartBeat time.Time // the last time of leader heartbeat
-	LeaderTimeout time.Time   // how long for judging  the leader is dead
+	LeaderTimeout time.Duration   // how long for judging  the leader is dead
 	LeaderAddr string
+	Term int
+	ReceiveYES int
+	ReceiveNO  int
 }
 
 // NewRaftManager 创建新的Raft节点组件
