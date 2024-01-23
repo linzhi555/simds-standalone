@@ -31,6 +31,7 @@ func BuildRaftCluster() Cluster {
 func RaftSetup(c interface{}) {
 	raft := c.(*RaftManager)
 	raft.Role = Follower
+	raft.IsBroken = false
 	raft.AllNodeNum = ALL_NODE_NUM
 	raft.Term = 0
 	raft.LastHeartBeat = raft.Os.GetTime()
@@ -41,6 +42,17 @@ func RaftSetup(c interface{}) {
 
 func RaftUpdate(c interface{}) {
 	raft := c.(*RaftManager)
+
+	//编程性故障模拟
+	if raft.Role == Leader{
+		if raft.Os.GetTime().Sub(raft.LeaderTime) > 2*time.Second {
+			raft.IsBroken = true
+		}
+	}
+
+	if raft.IsBroken{
+		return
+	}
 
 	switch raft.Role {
 	case Leader:
@@ -186,6 +198,7 @@ func raftCandidateHandle(raft *RaftManager) {
 
 	if raft.ReceiveYES > raft.AllNodeNum/2 {
 		LogInfo(raft.Os, "Now ,I am the new leader")
+		raft.LeaderTime = raft.Os.GetTime()
 		raft.Role = Leader
 	}
 }
