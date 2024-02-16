@@ -29,7 +29,7 @@ class Cluster():
 
 
 utilizations = [85,90,95,100,105]
-utilizationsStr = ["{per}%".format(per=x) for x in utilizations ]
+utilizationsStr = ["{per}".format(per=x) for x in utilizations ]
 TaskNumFactors = [(x/80*6.0) for x in utilizations]
 def test_utilization(cluster):
     for factor,util in zip(TaskNumFactors,utilizationsStr):
@@ -94,7 +94,7 @@ def test_net_latency(cluster):
     for latency in net_latencys:
         configCopy = config.copy()
         configCopy["NodeNum"] =  2000
-        configCopy["NetLantecy"] = latency
+        configCopy["NetLatency"] = latency
         configOut = os.path.join(testDir,"config.yaml")
         targetOut = os.path.join(testDir,"target/net_latency/{}_{}".format(cluster.name,latency))
         with open(configOut, "w") as output:
