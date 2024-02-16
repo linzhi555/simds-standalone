@@ -32,18 +32,3 @@ After the information is stuffed into the pipeline, the next time the MockNetwor
 The information is cached for how many ticks to simulate network delay, and then inserted into the corresponding receiver pipeline according to the receiver address. If the receiver and sender belong to the same entity,
 The person sends directly without waiting (local communication).
 
-After having the above model, change the cluster entity, the combination of components, and the corresponding Update and Setup to define multiple types of clusters. Centralized cluster as an example
-The update function of the shared task generator is to send task information to the task receiving nodes (initialized in Setup) at each tick check time and every few ticks.
-
-The centralized scheduler is updated. Every time it ticks, tasks are obtained from the network interface and inserted into the queue, and the scheduling algorithm is executed on the task queue several times.
-(Use settings SchduerlPerformance to modify), obtain the address of the worker running the task, and send the request information for running the task to the corresponding node
-ResourceManager component.
-
-
-The resource manager component exists in N workers. Each tick updates the received information, stuffs the received tasks into the storage structure, changes the task information to start, and
-Note the start time and change the task status to Ended after the task ends after this tick. And notify the centralized scheduler when it ends.
-
-For distributed clusters, each entity has Scheduler and ResourceManger components. Scheduler updates will communicate with other Schedulers of the same type locally.
-When resources are insufficient, task distribution actions are performed. It specifically uses an event-driven approach, that is, there is a corresponding action for each type of information. The specific implementation is in ./cluster_dcss.go
-In DcssSchedulerUpdate, the idea is to implement complex distribution protocols through unified event processing.
-
