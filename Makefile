@@ -3,12 +3,26 @@
 Config=./config.yaml
 timeNow:=$(shell date '+%m_%d_%H_%M_%S')
 TargetFolder=./target/$(timeNow)
-Cluster=Center
 
+Cluster=Center
 test: preDeal
 	@mkdir -p $(TargetFolder)
 	go run . -c $(Config) --OutputDir $(TargetFolder) --Cluster $(Cluster) >  $(TargetFolder)/components.log
 	@make analyse TargetFolder=$(TargetFolder)
+
+centerTest: 
+	make test Cluster=Center
+
+dcssTest:
+	make test Cluster=Dcss
+
+shareTest:
+	make test Cluster=ShareState
+
+preDeal:
+	if [ -d $(TargetFolder) ];then echo "target folder is not empty";exit 1;fi
+	@mkdir -p $(TargetFolder)
+
 
 preDeal:
 	if [ -d $(TargetFolder) ];then echo "target folder is not empty";exit 1;fi
