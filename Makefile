@@ -23,13 +23,6 @@ preDeal:
 	if [ -d $(TargetFolder) ];then echo "target folder is not empty";exit 1;fi
 	@mkdir -p $(TargetFolder)
 
-
-preDeal:
-	if [ -d $(TargetFolder) ];then echo "target folder is not empty";exit 1;fi
-	@mkdir -p $(TargetFolder)
-
-
-
 analyse:
 	go run ./analyse -taskLog $(TargetFolder)/tasks_event.log -netLog $(TargetFolder)/network_event.log -verbose -outputDir $(TargetFolder)
 	cp ./py/draw.py $(TargetFolder)
