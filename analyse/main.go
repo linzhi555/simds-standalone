@@ -1,46 +1,51 @@
 package main
 
 import (
-	"flag"
+	"fmt"
 	"log"
 	"path"
+	"simds-standalone/config"
+
+	"github.com/spf13/pflag"
 )
 
-var taskLogFile = flag.String("taskLog", "./tasks_event.log", "the task event log files")
-var netLogFile = flag.String("netLog", "./network_event.log", "the network log files")
-var outputDir = flag.String("outputDir", "./target", "where to ouput the result")
-var verbose = flag.Bool("verbose", false, "show the process information")
-var nodeCPU = flag.Float64("CPU", 10.0, "the cpu of node")
-var nodeMemory = flag.Float64("memory", 10.0, "the memory of node")
+//var taskLogFile = pflag.String("taskLog", "./tasks_event.log", "the task event log files")
+//var netLogFile = pflag.String("netLog", "./network_event.log", "the network log files")
+//var outputDir = pflag.String("outputDir", "./target", "where to ouput the result")
+//var verbose = pflag.Bool("verbose", false, "show the process information")
+
 
 func init() {
-	flag.Parse()
+	pflag.Parse()
 }
 
 func info(s string) {
-	if *verbose {
 		log.Println(s)
-	}
 }
 
 func main() {
+	outputDir := config.Val.OutputDir
+	taskLogFile := outputDir + "/" + "tasks_event.log"
+	netLogFile := outputDir + "/" + "network_event.log"
+
 	info("test start,reading csv and sort.....")
-	taskevents := ReadTaskEventCsv(*taskLogFile)
+	fmt.Println(taskLogFile)
+	taskevents := ReadTaskEventCsv(taskLogFile)
 	info("output sorted events line...")
-	taskevents.Output(*outputDir)
+	taskevents.Output(outputDir)
 	info("init cluster ...")
 	c := InitCluster(taskevents)
 	info("analysing latency...")
-	c.AnalyseSchedulerLatency(*outputDir)
+	c.AnalyseSchedulerLatency(outputDir)
 	info("analysing task lifet time...")
-	c.AnalyseTaskLifeTime(*outputDir)
+	c.AnalyseTaskLifeTime(outputDir)
 	info("analysing cluster resource status curves...")
-	curves := c.CalStatusCurves(*outputDir)
+	curves := c.CalStatusCurves(outputDir)
 
 	info("analysing net busy ...")
-	AnalyseNet(*netLogFile, *outputDir)
+	AnalyseNet(netLogFile, outputDir)
 
 	info("output pngs ...")
-	OutputAverageCpuRamCurve(path.Join(*outputDir, "clusterStatusAverage.png"), curves)
-	OutputVarianceCpuRamCurve(path.Join(*outputDir, "clusterStatusVariance.png"), curves)
+	OutputAverageCpuRamCurve(path.Join(outputDir, "clusterStatusAverage.png"), curves)
+	OutputVarianceCpuRamCurve(path.Join(outputDir, "clusterStatusVariance.png"), curves)
 }

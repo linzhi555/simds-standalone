@@ -2,7 +2,7 @@
 
 Config=./config.yaml
 timeNow:=$(shell date '+%m_%d_%H_%M_%S')
-TargetFolder=./target/$(timeNow)
+TargetFolder:=./target/$(timeNow)
 
 Cluster=Center
 test: preDeal
@@ -24,7 +24,7 @@ preDeal:
 	@mkdir -p $(TargetFolder)
 
 analyse:
-	go run ./analyse -taskLog $(TargetFolder)/tasks_event.log -netLog $(TargetFolder)/network_event.log -verbose -outputDir $(TargetFolder)
+	go run ./analyse  --OutputDir $(TargetFolder) -c $(Config)
 	cp ./py/draw.py $(TargetFolder)
 	cd $(TargetFolder) && grep  'TaskGen : send task to' ./components.log > ./task_speed.log \
 	&& grep  'Info network.*sended' ./components.log > ./net.log \

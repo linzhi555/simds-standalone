@@ -42,7 +42,8 @@ func AppendLineCsvFile(path string, line []string) error {
 func CsvToList(path string) (table [][]string, tabletop []string) {
 	fs, err := os.Open(path)
 	if err != nil {
-		log.Fatal("can not open ", path)
+		log.Println("can not open ", path)
+		panic(err)
 	}
 	defer fs.Close()
 	r := csv.NewReader(fs)

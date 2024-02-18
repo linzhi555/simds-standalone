@@ -5,10 +5,13 @@ import (
 	"log"
 	"os"
 	"path"
-	"simds-standalone/common"
 	"sort"
 	"strconv"
 	"time"
+
+	"simds-standalone/common"
+	"simds-standalone/config"
+
 )
 
 var (
@@ -256,7 +259,7 @@ func InitCluster(l TaskEventLine) *Cluster {
 			continue
 		}
 
-		cluster.Nodes[event.NodeIp] = NewNode(event.NodeIp, float32(*nodeCPU), float32(*nodeMemory))
+		cluster.Nodes[event.NodeIp] = NewNode(event.NodeIp, float32(config.Val.NodeCpu), float32(config.Val.NodeMemory))
 	}
 
 	return &cluster
