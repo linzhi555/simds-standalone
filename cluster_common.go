@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"simds-standalone/config"
 )
 
 // CommonTaskgenUpdate 通用的任务发生器，适
@@ -147,8 +148,8 @@ func _calculateNodeInfo(rm *ResourceManager) NodeInfo {
 
 	var nodeinfo NodeInfo = NodeInfo{
 		Addr:           rm.Os.Net().GetAddr(),
-		Cpu:            Config.NodeCpu,
-		Memory:         Config.NodeMemory,
+		Cpu:            config.Val.NodeCpu,
+		Memory:         config.Val.NodeMemory,
 		CpuAllocted:    cpu,
 		MemoryAllocted: memory,
 	}

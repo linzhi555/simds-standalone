@@ -1,7 +1,7 @@
 // config.go 统一管理配置
 // 命令行能配置核心的参数配置文件位置，运行集群类型，输出文件位置
 // config.yaml 配置剩余运行的参数
-package main
+package config
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ import (
 )
 
 // Config 全局的配置,在main开始前初始化
-var Config struct {
+var Val struct {
 	OutputDir            string
 	Cluster              string
 	NodeNum              int32
@@ -48,7 +48,7 @@ func init() {
 	if err := viper.ReadInConfig(); err != nil {
 		panic("config file not find")
 	}
-	err = viper.Unmarshal(&Config)
+	err = viper.Unmarshal(&Val)
 	if err != nil {
 		panic(err)
 	}
@@ -56,7 +56,7 @@ func init() {
 
 // 输出分析后的最终配置结果
 func LogConfig(outputPath string) {
-	fields := strings.FieldsFunc(fmt.Sprintf("%+v\n", Config), func(r rune) bool {
+	fields := strings.FieldsFunc(fmt.Sprintf("%+v\n", Val), func(r rune) bool {
 		return r == '{' || r == '}' || r == ' '
 	})
 	confInfo := strings.Join(fields, "\n")

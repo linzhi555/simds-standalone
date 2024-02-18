@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"simds-standalone/config"
 	"time"
 )
 
@@ -38,7 +39,7 @@ func BuildShareStateCluster() Cluster {
 		})
 	}
 
-	for i := 0; i < int(Config.NodeNum); i++ {
+	for i := 0; i < int(config.Val.NodeNum); i++ {
 		workerName := fmt.Sprintf("worker%d", i)
 		nodes = append(nodes, Node{
 			workerName,
@@ -61,9 +62,9 @@ func BuildShareStateCluster() Cluster {
 func shareStateStorageSetup(comp interface{}) {
 	storage := comp.(*StateStorage)
 	storage.LastSendTime = storage.Os.GetTime()
-	for i := 0; i < int(Config.NodeNum); i++ {
+	for i := 0; i < int(config.Val.NodeNum); i++ {
 		nodeAddr := "worker" + fmt.Sprint(i) + ":" + string(CResouceManger)
-		nodeinfo := &NodeInfo{nodeAddr, Config.NodeCpu, Config.NodeMemory, 0, 0}
+		nodeinfo := &NodeInfo{nodeAddr, config.Val.NodeCpu, config.Val.NodeMemory, 0, 0}
 		storage.Workers[nodeAddr] = nodeinfo
 	}
 }
@@ -129,7 +130,7 @@ func shareStateStorageUpdate(comp interface{}) {
 		}
 	}
 
-	if timeNow.Sub(storage.LastSendTime).Milliseconds() > int64(Config.StateUpdatePeriod) {
+	if timeNow.Sub(storage.LastSendTime).Milliseconds() > int64(config.Val.StateUpdatePeriod) {
 		storage.LastSendTime = timeNow
 
 		stateCopy := storage.StateCopy()
@@ -153,7 +154,7 @@ func shareStateStorageUpdate(comp interface{}) {
 func shareTaskgenSetup(c interface{}) {
 	taskgen := c.(*TaskGen)
 	//wait the schedulers until state updated, then launch the taskgen
-	taskgen.StartTime = taskgen.Os.GetTime().Add(time.Millisecond * time.Duration(Config.StateUpdatePeriod) * 2)
+	taskgen.StartTime = taskgen.Os.GetTime().Add(time.Millisecond * time.Duration(config.Val.StateUpdatePeriod) * 2)
 	for i := 0; i < shareSchdulerNum; i++ {
 		taskgen.Receivers = append(taskgen.Receivers,
 			fmt.Sprintf("master%d", i)+":"+string(CScheduler),
@@ -199,7 +200,7 @@ func shareSchedulerUpdate(comp interface{}) {
 		}
 	}
 
-	var maxScheduleTimes = schdulingAlgorithmTimes(Config.SchedulerPerformance)
+	var maxScheduleTimes = schdulingAlgorithmTimes(config.Val.SchedulerPerformance)
 	for i := 0; i < maxScheduleTimes; i++ {
 		task, err := scheduler.WaitSchedule.Dequeue()
 		if err != nil {

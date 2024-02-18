@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"simds-standalone/common"
+	"simds-standalone/config"
 	"time"
 )
 
@@ -13,7 +14,7 @@ const NETWORK_EVENT_LOG_NAME = "network_event.log"
 
 func initLogs() {
 	// init tasks_event.log
-	f, err := os.OpenFile(path.Join(Config.OutputDir, TASKS_EVENT_LOG_NAME), os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0666)
+	f, err := os.OpenFile(path.Join(config.Val.OutputDir, TASKS_EVENT_LOG_NAME), os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -24,7 +25,7 @@ func initLogs() {
 	f.Close()
 
 	// init networks.log
-	f, err = os.OpenFile(path.Join(Config.OutputDir, NETWORK_EVENT_LOG_NAME), os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0666)
+	f, err = os.OpenFile(path.Join(config.Val.OutputDir, NETWORK_EVENT_LOG_NAME), os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -39,7 +40,7 @@ func initLogs() {
 // 格式文件，由于任务延迟和集群状态分析
 func TaskEventLog(t time.Time, task *TaskInfo, host string) {
 	timestr := t.Format(time.RFC3339Nano)
-	err := common.AppendLineCsvFile(path.Join(Config.OutputDir, TASKS_EVENT_LOG_NAME), []string{timestr, task.Id, task.Status, string(host), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest)})
+	err := common.AppendLineCsvFile(path.Join(config.Val.OutputDir, TASKS_EVENT_LOG_NAME), []string{timestr, task.Id, task.Status, string(host), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest)})
 	if err != nil {
 		panic(err)
 	}
@@ -48,7 +49,7 @@ func TaskEventLog(t time.Time, task *TaskInfo, host string) {
 // 记录一次网络通信
 func NetEventLog(t int64, eventType string, message *Message) {
 	timestr := fmt.Sprint(t)
-	err := common.AppendLineCsvFile(path.Join(Config.OutputDir, NETWORK_EVENT_LOG_NAME), []string{timestr, eventType, message.From, message.To})
+	err := common.AppendLineCsvFile(path.Join(config.Val.OutputDir, NETWORK_EVENT_LOG_NAME), []string{timestr, eventType, message.From, message.To})
 	if err != nil {
 		panic(err)
 	}

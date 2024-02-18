@@ -44,13 +44,13 @@ func RaftUpdate(c interface{}) {
 	raft := c.(*RaftManager)
 
 	//编程性故障模拟
-	if raft.Role == Leader{
+	if raft.Role == Leader {
 		if raft.Os.GetTime().Sub(raft.LeaderTime) > 2*time.Second {
 			raft.IsBroken = true
 		}
 	}
 
-	if raft.IsBroken{
+	if raft.IsBroken {
 		return
 	}
 

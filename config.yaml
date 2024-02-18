@@ -1,11 +1,11 @@
-NodeNum:        500     # how many large the cluster
+NodeNum:        1000    # how many large the cluster
 NetLatency:     5          # the average network latency, unit: milisecond 
 NodeCpu:        1000         # the node cpu capacity
 NodeMemory:     1000         # the node memory capacity
-TaskNumFactor:  6.7        # task/persecond = TaskNumFactor * NodeNum 
-TaskCpu:        30          # the average task cpu request
-TaskMemory:     30          # the average task memory request
-TaskLifeTime:   3300        # the average task lifeTime  , unit : milisecond
+TaskNumFactor:  6        # task/persecond = TaskNumFactor * NodeNum 
+TaskCpu:        300          # the average task cpu request
+TaskMemory:     300          # the average task memory request
+TaskLifeTime:   330        # the average task lifeTime  , unit : milisecond
 
 
 #only in center and shareState 

@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 	"path"
-	"time"
-
 	"simds-standalone/common"
+	"simds-standalone/config"
+	"time"
 )
 
 func main() {
@@ -14,16 +14,17 @@ func main() {
 	defer common.StopPerf()
 
 	initLogs()
-	LogConfig(path.Join(Config.OutputDir, "config.log"))
+	config.LogConfig(path.Join(config.Val.OutputDir, "config.log"))
 
 	// 请将添加的集群在这里注册
 	clusterMarket := map[string]func() Cluster{
 		"Dcss":       BuildDCSSCluster,
 		"ShareState": BuildShareStateCluster,
 		"Center":     BuildCenterCluster,
-		"Raft":		  BuildRaftCluster,
+		"Raft":       BuildRaftCluster,
+		"Sparrow":    BuildSparrowCluster,
 	}
-	clusterBuilder, ok := clusterMarket[Config.Cluster]
+	clusterBuilder, ok := clusterMarket[config.Val.Cluster]
 	if !ok {
 		keys := make([]string, 0, len(clusterMarket))
 		for k := range clusterMarket {

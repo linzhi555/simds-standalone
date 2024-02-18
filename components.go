@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"simds-standalone/common"
+	"simds-standalone/config"
 	"time"
 )
 
@@ -13,7 +14,7 @@ const (
 	CScheduler     ComponentName = "Scheduler"
 	CResouceManger ComponentName = "ResourceManager"
 	CStateStorage  ComponentName = "StateStorage"
-	CRaftManager  ComponentName = "RaftManager"
+	CRaftManager   ComponentName = "RaftManager"
 )
 
 // OsApi 系统调用 抽象接口
@@ -61,15 +62,15 @@ func NewTaskGen(hostname string) *TaskGen {
 
 // 负载没有波动的连续任务流
 func noWaveTaskStream() []SrcNode {
-	taskNumPerSecond := Config.TaskNumFactor * float32(Config.NodeNum)
+	taskNumPerSecond := config.Val.TaskNumFactor * float32(config.Val.NodeNum)
 	allTasksNum := int(10 * taskNumPerSecond)
 	src := make([]SrcNode, 0, allTasksNum)
 	for i := 0; i < allTasksNum; i++ {
 		newTask := TaskInfo{
 			Id:            fmt.Sprintf("task%d", i),
-			CpuRequest:    common.RandIntWithRange(Config.TaskCpu, 0.5),
-			MemoryRequest: common.RandIntWithRange(Config.TaskMemory, 0.5),
-			LifeTime:      time.Duration(common.RandIntWithRange(Config.TaskLifeTime, 0.5)) * time.Millisecond,
+			CpuRequest:    common.RandIntWithRange(config.Val.TaskCpu, 0.5),
+			MemoryRequest: common.RandIntWithRange(config.Val.TaskMemory, 0.5),
+			LifeTime:      time.Duration(common.RandIntWithRange(config.Val.TaskLifeTime, 0.5)) * time.Millisecond,
 			Status:        "submit",
 		}
 
@@ -87,15 +88,15 @@ func pow2(x int64) int64 {
 
 // 有一个峰值的连续任务流
 func onePeakTaskStream() []SrcNode {
-	taskNumPerSecond := Config.TaskNumFactor * float32(Config.NodeNum)
+	taskNumPerSecond := config.Val.TaskNumFactor * float32(config.Val.NodeNum)
 	baseTimeDelta := int64(time.Second) / int64(taskNumPerSecond)
 	src := make([]SrcNode, 0)
 	for i := 0; ; i++ {
 		newTask := TaskInfo{
 			Id:            fmt.Sprintf("task%d", i),
-			CpuRequest:    common.RandIntWithRange(Config.TaskCpu, 0.5),
-			MemoryRequest: common.RandIntWithRange(Config.TaskMemory, 0.5),
-			LifeTime:      time.Duration(common.RandIntWithRange(Config.TaskLifeTime, 0.5)) * time.Millisecond,
+			CpuRequest:    common.RandIntWithRange(config.Val.TaskCpu, 0.5),
+			MemoryRequest: common.RandIntWithRange(config.Val.TaskMemory, 0.5),
+			LifeTime:      time.Duration(common.RandIntWithRange(config.Val.TaskLifeTime, 0.5)) * time.Millisecond,
 			Status:        "submit",
 		}
 
@@ -224,36 +225,35 @@ func (n ResourceManager) Component() ComponentName { return CResouceManger }
 // SetOsApi For NodeComponent interface
 func (n *ResourceManager) SetOsApi(osapi OsApi) { n.Os = osapi }
 
-
-
 type RaftRole string
+
 const (
-	Follower RaftRole = "Follower"
-	Leader RaftRole = "Leader"
+	Follower  RaftRole = "Follower"
+	Leader    RaftRole = "Leader"
 	Candidate RaftRole = "Candidate"
 )
 
 // RaftManager 组件
 type RaftManager struct {
-	Os    OsApi
-	Host  string
-	IsBroken bool
-	AllNodeNum int
-	Role  RaftRole
-	StartTime time.Time
-	LeaderTime time.Time
-	LastHeartBeat time.Time // the last time of leader heartbeat
-	LeaderTimeout time.Duration   // how long for judging  the leader is dead
-	LeaderAddr string
-	Term int
-	ReceiveYES int
-	ReceiveNO  int
+	Os            OsApi
+	Host          string
+	IsBroken      bool
+	AllNodeNum    int
+	Role          RaftRole
+	StartTime     time.Time
+	LeaderTime    time.Time
+	LastHeartBeat time.Time     // the last time of leader heartbeat
+	LeaderTimeout time.Duration // how long for judging  the leader is dead
+	LeaderAddr    string
+	Term          int
+	ReceiveYES    int
+	ReceiveNO     int
 }
 
 // NewRaftManager 创建新的Raft节点组件
 func NewRaftManager(host string) *RaftManager {
 	return &RaftManager{
-		Host:  host,
+		Host: host,
 	}
 }
 
@@ -262,4 +262,3 @@ func (r RaftManager) Component() ComponentName { return CRaftManager }
 
 // SetOsApi For NodeComponent interface
 func (r *RaftManager) SetOsApi(osapi OsApi) { r.Os = osapi }
-

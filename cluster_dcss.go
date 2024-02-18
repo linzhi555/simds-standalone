@@ -3,12 +3,13 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"simds-standalone/config"
 	"strconv"
 	"strings"
 )
 
 // BuildDCSSCluster 建立分布式调度的集群
-// 中心化集群有三类实体 user1 任务发生器, Config.NodeNum 个 node 实体
+// 中心化集群有三类实体 user1 任务发生器, config.Val.NodeNum 个 node 实体
 // user1 有 Taskgen组件， node实体有既有 Scheduler 也有 ResourceManager 组件（既是调度器也能worker）
 func BuildDCSSCluster() Cluster {
 	var cluster = createCluster()
@@ -20,7 +21,7 @@ func BuildDCSSCluster() Cluster {
 		},
 	})
 
-	for i := 0; i < int(Config.NodeNum); i++ {
+	for i := 0; i < int(config.Val.NodeNum); i++ {
 
 		nodeName := fmt.Sprintf("node%d", i)
 		nodes = append(nodes, Node{
@@ -45,7 +46,7 @@ func BuildDCSSCluster() Cluster {
 func DcssTaskgenSetup(c interface{}) {
 	taskgen := c.(*TaskGen)
 	taskgen.StartTime = taskgen.Os.GetTime()
-	for i := 0; i < int(Config.NodeNum); i++ {
+	for i := 0; i < int(config.Val.NodeNum); i++ {
 
 		taskgen.Receivers = append(taskgen.Receivers,
 			"node"+fmt.Sprint(i)+":"+string(CScheduler),
@@ -60,12 +61,12 @@ func DcssSchedulerSetup(comp interface{}) {
 	scheduler := comp.(*Scheduler)
 
 	// init local node info
-	scheduler.LocalNode = &NodeInfo{scheduler.Os.Net().GetAddr(), Config.NodeCpu, Config.NodeMemory, 0, 0}
+	scheduler.LocalNode = &NodeInfo{scheduler.Os.Net().GetAddr(), config.Val.NodeCpu, config.Val.NodeMemory, 0, 0}
 
 	// init neibors
-	neiborNum := int(Config.DcssNeibor)
-	allNodeNum := int(Config.NodeNum)
-	neiborRandom := int(Config.DcssNeiborRandomP * (float32(Config.DcssNeibor)))
+	neiborNum := int(config.Val.DcssNeibor)
+	allNodeNum := int(config.Val.NodeNum)
+	neiborRandom := int(config.Val.DcssNeiborRandomP * (float32(config.Val.DcssNeibor)))
 
 	var neibors []string = make([]string, 0, neiborNum)
 
@@ -80,7 +81,7 @@ func DcssSchedulerSetup(comp interface{}) {
 	}
 
 	for _, n := range neibors {
-		nodeInfo := &NodeInfo{n, Config.NodeCpu, Config.NodeMemory, 0, 0}
+		nodeInfo := &NodeInfo{n, config.Val.NodeCpu, config.Val.NodeMemory, 0, 0}
 		scheduler.Workers[n] = nodeInfo.Clone()
 	}
 
@@ -191,10 +192,10 @@ func scheduleTask(scheduler *Scheduler) {
 	if scheduler.LocalNode.CanAllocateTask(&task) {
 		_runLocally(scheduler, task)
 	} else {
-		switch Config.DcssDividePolicy {
+		switch config.Val.DcssDividePolicy {
 		case "always":
 			LogInfo(scheduler.Os, "lack of resource, divide process start", task)
-			_divideTask(scheduler, task)
+			_dcssDivideTask(scheduler, task)
 		case "random":
 			n := rand.Float32()
 			if n < 0.1 {
@@ -202,7 +203,7 @@ func scheduleTask(scheduler *Scheduler) {
 				_dispenseTask(scheduler, task)
 			} else if n < 0.2 {
 				LogInfo(scheduler.Os, "lack of resource, divide process start", task)
-				_divideTask(scheduler, task)
+				_dcssDivideTask(scheduler, task)
 			} else {
 				LogInfo(scheduler.Os, "lack of resource, run task later", task, scheduler.WaitSchedule.Len())
 				scheduler.WaitSchedule.InQueueFront(task)
@@ -227,7 +228,7 @@ func _runLocally(scheduler *Scheduler, task TaskInfo) {
 	_dcssChangeTaskStatusLocally(scheduler, &task, "TaskRun")
 }
 
-func _divideTask(scheduler *Scheduler, task TaskInfo) {
+func _dcssDivideTask(scheduler *Scheduler, task TaskInfo) {
 	LogInfo(scheduler.Os, "start divide ", task)
 	task.Status = "DivideStage1"
 	task.ScheduleFailCount = 0 // this is for count how many neibor reject this task
@@ -332,7 +333,7 @@ func dcssTaskDivideCancelHandle(scheduler *Scheduler, newMessage Message) {
 func dcssTaskDivideRejectHandle(scheduler *Scheduler, newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
 	scheduler.TasksStatus[task.Id].ScheduleFailCount++
-	neiborNum := Config.DcssNeibor
+	neiborNum := config.Val.DcssNeibor
 	// if all neibors reject this task, so we i have to dispense the task to a random neibors,
 	// the distination neibors  may have a valid neibor to execute this task
 	if scheduler.TasksStatus[task.Id].ScheduleFailCount == int32(neiborNum) {

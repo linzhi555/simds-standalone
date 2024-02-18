@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"simds-standalone/common"
+	"simds-standalone/config"
 	"time"
 )
 
@@ -116,7 +117,7 @@ func (n MockNetwork) String() string {
 // 运行集群
 func EcsRunCluster(cluster Cluster) {
 	simulator := NewEcs()
-	newNet := NewMockNetWork(Config.NetLatency)
+	newNet := NewMockNetWork(config.Val.NetLatency)
 	getTimeFunc := func() time.Time { return ZEROTIME.Add(time.Duration(simulator.UpdateCount) * time.Microsecond * 100) }
 	card := CreateMockNetCard("network1" + ":" + string(CMockNetWork))
 	card.JoinNetWork(newNet)
