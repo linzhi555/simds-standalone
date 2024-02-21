@@ -11,7 +11,6 @@ import (
 
 	"simds-standalone/common"
 	"simds-standalone/config"
-
 )
 
 var (

@@ -16,10 +16,9 @@ import (
 //	timebias            int     = 8 // use task after $timebias Second
 //)
 
-
-// read traceFile ,resourceRate: multipy a factor to the resource value 
+// read traceFile ,resourceRate: multipy a factor to the resource value
 // endTime: how long the trace used, unit milisecond, -1 meaning use all the trace
-func readTraceTaskStream(traceFile string, resourceRate float64,endTime int32) []SrcNode {
+func readTraceTaskStream(traceFile string, resourceRate float64, endTime int32) []SrcNode {
 
 	src := make([]SrcNode, 0)
 
@@ -35,13 +34,11 @@ func readTraceTaskStream(traceFile string, resourceRate float64,endTime int32) [
 		}
 		submitTime := time.Duration(common.Str_to_int64(table[i][0])) * time.Microsecond // table [i][1] is the taskid
 
-
-		if endTime >= 0{
+		if endTime >= 0 {
 			if submitTime > time.Duration(endTime)*time.Millisecond {
 				break
 			}
 		}
-		
 
 		src = append(src, SrcNode{submitTime, newTask})
 	}
@@ -53,10 +50,9 @@ func readTraceTaskStream(traceFile string, resourceRate float64,endTime int32) [
 
 const tasknumCompressRate = 4000
 
-
 func DealRawFile(loadrate, lifeRate, resourceRate float64, timebias, maxResourceLimit int32, infile, outfile string) {
 
-	taskTable := readTraceTaskStream(infile, resourceRate,-1)
+	taskTable := readTraceTaskStream(infile, resourceRate, -1)
 	startTime := taskTable[0].time
 
 	for i := range taskTable {
@@ -68,7 +64,7 @@ func DealRawFile(loadrate, lifeRate, resourceRate float64, timebias, maxResource
 
 	// make the stream speed = tasknumPerSec (average)
 
-	timeFactor := float64(len(taskTable)/tasknumCompressRate)  / float64(taskTable[len(taskTable)-1].time / time.Second)
+	timeFactor := float64(len(taskTable)/tasknumCompressRate) / float64(taskTable[len(taskTable)-1].time/time.Second)
 
 	log.Println(timeFactor)
 	for i := range taskTable {
@@ -93,8 +89,6 @@ func DealRawFile(loadrate, lifeRate, resourceRate float64, timebias, maxResource
 		taskTable[i].task.Id = fmt.Sprintf("task%d", i)
 	}
 
-
-
 	var temp []SrcNode
 	// don use the very large task
 	for i := range taskTable {
@@ -116,9 +110,7 @@ func DealRawFile(loadrate, lifeRate, resourceRate float64, timebias, maxResource
 		taskTable[i].task.Id = fmt.Sprintf("task%d", i)
 	}
 
-
-	newTable := applyLoadRate(taskTable,loadrate)
-	
+	newTable := applyLoadRate(taskTable, loadrate)
 
 	var strTable [][]string
 	for i := range newTable {
@@ -136,7 +128,7 @@ func DealRawFile(loadrate, lifeRate, resourceRate float64, timebias, maxResource
 
 }
 
-func applyLoadRate(taskTable []SrcNode,loadrate float64)[]SrcNode{
+func applyLoadRate(taskTable []SrcNode, loadrate float64) []SrcNode {
 	//loadrate
 	var newTable []SrcNode
 	//var loadrate = basicLoadRate * (float64(config.Val.NodeNum) / 1000.0)
@@ -157,4 +149,3 @@ func applyLoadRate(taskTable []SrcNode,loadrate float64)[]SrcNode{
 	}
 	return newTable
 }
-

@@ -14,13 +14,12 @@ import (
 //var outputDir = pflag.String("outputDir", "./target", "where to ouput the result")
 //var verbose = pflag.Bool("verbose", false, "show the process information")
 
-
 func init() {
 	pflag.Parse()
 }
 
 func info(s string) {
-		log.Println(s)
+	log.Println(s)
 }
 
 func main() {
