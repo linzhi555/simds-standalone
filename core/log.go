@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 const TASKS_EVENT_LOG_NAME = "tasks_event.log"
 const NETWORK_EVENT_LOG_NAME = "network_event.log"
 
-func initLogs() {
+func InitLogs() {
 	// init tasks_event.log
 	f, err := os.OpenFile(path.Join(config.Val.OutputDir, TASKS_EVENT_LOG_NAME), os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {

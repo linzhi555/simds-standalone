@@ -15,6 +15,7 @@ import (
 
 // Config 全局的配置,在main开始前初始化
 var Val struct {
+	ConfigPath 			 string
 	OutputDir            string
 	Cluster              string
 	NodeNum              int32
@@ -24,20 +25,26 @@ var Val struct {
 	DcssDividePolicy     string
 	NodeCpu              int32
 	NodeMemory           int32
+
+	SimulateDuration 	 int32   // how long the simulate is,Unit :ms
+	TaskMode             string
+	TraceFile            string
 	TaskNumFactor        float32
 	TaskCpu              int32
 	TaskMemory           int32
 	TaskLifeTime         int32
 	SchedulerPerformance float32
 	StateUpdatePeriod    int32
-}
+} 
+
 
 func init() {
-
 	configFile := pflag.StringP("configFile", "c", "./config.yaml", "the config file path")
 	pflag.String("Cluster", "", "which type cluster to run,for example Dcss,Center,ShareState...")
 	pflag.String("OutputDir", ".", "where to output the result files")
 	pflag.Parse()
+	
+	Val.ConfigPath = *configFile
 
 	err := viper.BindPFlags(pflag.CommandLine)
 	if err != nil {

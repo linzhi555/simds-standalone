@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"simds-standalone/config"
 )
 
-const SparrowSchedulerNum = 50
+const SparrowSchedulerNum = 40
 const SparrowProbeNum = 4
 
 // BuildSparrowCluster 建立分布式调度的集群

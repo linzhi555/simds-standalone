@@ -1,4 +1,4 @@
-package main
+package core
 
 //ecs_runner.go 使用 通用的ecs.go定义的通用ECS来模拟XXXCluster
 
@@ -162,9 +162,9 @@ func EcsRunCluster(cluster Cluster) {
 		simulator.AddSystem(SystemName(string(k)+"_update"), covertFuncToSystem(k, f, false))
 	}
 
-	// 运行 150000 帧 ，每帧间隔0.1ms 模拟 15 秒的集群行为
-	frameNum := 150000
-	for i := 0; i < frameNum; i++ {
+	// 每帧间隔0.1ms	
+	frameNum := config.Val.SimulateDuration * 10
+	for i := int32(0); i < frameNum; i++ {
 		log.Println("simluating", i, "/", frameNum)
 		simulator.Update()
 

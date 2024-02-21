@@ -1,4 +1,4 @@
-package main
+package core
 
 // 一个简单的ECS实现
 // ECS (entity componet system)是一种广泛用于游戏和模拟的架构

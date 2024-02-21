@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"fmt"
@@ -44,9 +44,6 @@ type SrcNode struct {
 	task TaskInfo
 }
 
-// var TaskSrcGenerate func() []SrcNode = noWaveTaskStream
-var TaskSrcGenerate func() []SrcNode = onePeakTaskStream
-
 // NewTaskGen 创造空的TaskGen
 func NewTaskGen(hostname string) *TaskGen {
 
@@ -55,7 +52,16 @@ func NewTaskGen(hostname string) *TaskGen {
 		CurTaskId: 0,
 	}
 
-	taskgen.Src = TaskSrcGenerate()
+	switch config.Val.TaskMode {
+	case "rand_normal":
+		taskgen.Src = onePeakTaskStream()
+	case "trace":
+		src := readTraceTaskStream(config.Val.TraceFile, 1.0, config.Val.SimulateDuration-10000)
+		src = applyLoadRate(src, float64(config.Val.NodeNum)/float64(1000)*float64(config.Val.TaskNumFactor)/4.0)
+		taskgen.Src = src
+	default:
+		panic("this mod is not implented")
+	}
 
 	return taskgen
 }
@@ -123,12 +129,12 @@ func onePeakTaskStream() []SrcNode {
 		//	t = src[allTasksNum*3/4].time
 		//	t += time.Duration(int64(i-(allTasksNum*3/4)) * 10 * int64(time.Second) / int64(allTasksNum) * 3 / 2)
 		//}
-
 		src = append(src, SrcNode{time.Duration(t), newTask})
-
 	}
 	return src
 }
+
+// trace file
 
 // Component For NodeComponent interface
 func (n TaskGen) Component() ComponentName { return CTaskGen }

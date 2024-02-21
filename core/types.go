@@ -1,4 +1,4 @@
-package main
+package core
 
 // types.go 定义一系列的基础类型
 

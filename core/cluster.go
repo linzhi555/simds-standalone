@@ -1,4 +1,4 @@
-package main
+package core
 
 // Node 有可以有一个或多个NodeComponents
 // 可以理解为一台机器上可有一个多个运行的进程
