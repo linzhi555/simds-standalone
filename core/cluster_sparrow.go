@@ -4,10 +4,15 @@ import (
 	"fmt"
 	"math/rand"
 	"simds-standalone/config"
+	"strings"
 )
 
-const SparrowSchedulerNum = 40
-const SparrowProbeNum = 4
+const SparrowProbeNum = 2
+
+func getSparrowSchedulerNum() int {
+	return int(config.Val.SparrowSchedulerNumFactor * float32(config.Val.NodeNum))
+
+}
 
 // BuildSparrowCluster 建立分布式调度的集群
 // 中心化集群有三类实体 user1 任务发生器, config.Val.NodeNum 个 node 实体
@@ -22,7 +27,7 @@ func BuildSparrowCluster() Cluster {
 		},
 	})
 
-	for i := 0; i < int(SparrowSchedulerNum); i++ {
+	for i := 0; i < getSparrowSchedulerNum(); i++ {
 
 		nodeName := fmt.Sprintf("scheduler%d", i)
 		nodes = append(nodes, Node{
@@ -44,7 +49,6 @@ func BuildSparrowCluster() Cluster {
 				NewResourceManager(nodeName),
 			},
 		})
-
 	}
 
 	cluster.Nodes = nodes
@@ -60,7 +64,7 @@ func BuildSparrowCluster() Cluster {
 func SparrowTaskgenSetup(c interface{}) {
 	taskgen := c.(*TaskGen)
 	taskgen.StartTime = taskgen.Os.GetTime()
-	for i := 0; i < int(SparrowSchedulerNum); i++ {
+	for i := 0; i < getSparrowSchedulerNum(); i++ {
 
 		taskgen.Receivers = append(taskgen.Receivers,
 			fmt.Sprintf("scheduler%d", i)+":"+string(CScheduler),
@@ -73,14 +77,20 @@ func SparrowTaskgenSetup(c interface{}) {
 func SparrowSchedulerSetup(comp interface{}) {
 	scheduler := comp.(*Scheduler)
 
-	// init local node info
-	scheduler.LocalNode = &NodeInfo{scheduler.Os.Net().GetAddr(), config.Val.NodeCpu, config.Val.NodeMemory, 0, 0}
-
-	for i := 0; i < int(config.Val.NodeNum); i++ {
-		nodeAddr := "worker" + fmt.Sprint(i) + ":" + string(CScheduler)
-		nodeinfo := &NodeInfo{nodeAddr, config.Val.NodeCpu, config.Val.NodeMemory, 0, 0}
-		scheduler.Workers["worker"+fmt.Sprint(i)+":"+string(CScheduler)] = nodeinfo.Clone()
+	if strings.HasPrefix(scheduler.Host, "worker") {
+		scheduler.LocalNode = &NodeInfo{scheduler.Os.Net().GetAddr(), config.Val.NodeCpu, config.Val.NodeMemory, 0, 0}
 	}
+
+	if strings.HasPrefix(scheduler.Host, "scheduler") {
+
+		LogInfo(scheduler.Os, fmt.Sprintf("sparrow scheduler Num is %d", getSparrowSchedulerNum()))
+		for i := 0; i < int(config.Val.NodeNum); i++ {
+			nodeAddr := "worker" + fmt.Sprint(i) + ":" + string(CScheduler)
+			nodeinfo := &NodeInfo{nodeAddr, config.Val.NodeCpu, config.Val.NodeMemory, 0, 0}
+			scheduler.Workers["worker"+fmt.Sprint(i)+":"+string(CScheduler)] = nodeinfo.Clone()
+		}
+	}
+
 }
 
 // SparrowSchedulerUpdate 模拟器每次tick时对分布式集群的调度器组件进行初始化
@@ -213,6 +223,7 @@ func sparrowTaskDivideConfirmHandle(scheduler *Scheduler, newMessage Message) {
 			panic(err)
 		}
 
+		delete(scheduler.TasksStatus, task.Id)
 	}
 }
 func sparrowTaskDivideAllocateHandle(scheduler *Scheduler, newMessage Message) {

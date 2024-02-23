@@ -60,6 +60,20 @@ def task_submit_rate_curves(filename: str) -> list:
     return [t, intervals]
 
 
+
+
+def task_submit_rate_hist(filename: str) -> list:
+    """输入日志输出任务提交请求柱状图"""
+    records = []
+    with open(filename, 'r') as logfile:
+        l = logfile.readline()
+        while l:
+            records.append(int(l.split(" ")[0]))
+            l = logfile.readline()
+
+    taskstream = [i/1000 for i in records]
+    return taskstream
+
 def task_latency_CDF_curves(filename: str) -> list:
     """任务延迟的累积分布函数 CDF"""
     records = []
@@ -166,7 +180,7 @@ def draw_in_current_test_folder():
 def draw_muilt_lantencyCurve(tests: list):
     """画多个实验的任务调度延迟曲线对比图"""
     marker = markerGenerator()
-    plt.cla()
+    plt.clf()
 
     for test in tests:
         status = cluster_status_curves(
@@ -201,7 +215,7 @@ def draw_muilt_lantencyCurve(tests: list):
 def draw_muilt_avg_resource(tests: list):
     """画多个实验的集群平均负载曲线对比图"""
     marker = markerGenerator()
-    plt.cla()
+    plt.clf()
     for t in tests:
         staus = cluster_status_curves(os.path.join(t[0], "cluster_status.log"))
         plt.plot(staus[0], staus[2], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=8,markersize=10)
@@ -219,7 +233,7 @@ def draw_muilt_avg_resource(tests: list):
 def draw_muilt_var_resource(tests: list):
     """画多个实验的集群负载方差对比图"""
     marker = markerGenerator()
-    plt.cla()
+    plt.clf()
     for t in tests:
         staus = cluster_status_curves(os.path.join(t[0], "cluster_status.log"))
         plt.plot(staus[0], staus[4], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=8,markersize=10)
@@ -237,7 +251,7 @@ def draw_muilt_var_resource(tests: list):
 
 def draw_muilt_net_busy(tests: list):
     """画多个实验的网络繁忙程度对比图"""
-    plt.cla()
+    plt.clf()
     for t in tests:
         staus = net_commuication_rate_curves(
             os.path.join(t[0], "network_event.log"))
@@ -256,7 +270,7 @@ def draw_muilt_net_busy(tests: list):
     plt.subplots_adjust(left=0.3, right=0.93,top=0.95)
     plt.savefig('./net_busy_compare_cluster.png')
 
-    plt.cla()
+    plt.clf()
     for t in tests:
         staus = net_commuication_rate_curves(
             os.path.join(t[0], "network_most_busy.log"))
@@ -277,26 +291,38 @@ def draw_muilt_net_busy(tests: list):
 
 def draw_task_submission_rate(tests: list):
     """画多个实验的任务提交速率图"""
-    plt.cla()
-    staus = task_submit_rate_curves(
-        os.path.join(tests[0][0], "./task_speed.log"))
-    plt.plot(staus[0], staus[1], lw=LINE_WIDTH)
-    plt.ylabel("Task Submission Rate \n (number/s)", fontsize=FONT_SIZE)
-    plt.subplots_adjust(left=0.2,top=0.95 )
-    plt.xlabel("Time (s)", fontsize=FONT_SIZE)
+    i=0
+    for t in tests:
+        plt.clf()
+        taskstream = task_submit_rate_hist(os.path.join(t[0], "./task_speed.log"))
+        staus = cluster_status_curves(os.path.join(t[0], "cluster_status.log"))
+ 
+        plt.hist(taskstream,bins=np.arange(37), label="tasks")
+        plt.ylabel(
+            "Tasks Rate(amount/s)",
+            fontsize=FONT_SIZE,
+        )
+        plt.legend(fontsize=LEGEND_SIZE)
 
+        ax2 = plt.twinx()
+        ax2.plot(staus[0], staus[2], lw=LINE_WIDTH,color="y", label="ResourceStatus")
+        ax2.set_ylabel("Resource Utilization (%)", fontsize=FONT_SIZE)
+        ax2.legend(fontsize=LEGEND_SIZE)
 
-    plt.yticks(fontsize=FONT_SIZE*0.8)
-    plt.xticks(fontsize=FONT_SIZE*0.8)
-    plt.grid(True)
-    plt.subplots_adjust(left=0.24, right=0.93,top=0.95)
-    plt.savefig('./task_submission_rate.png')
+        plt.yticks(fontsize=FONT_SIZE*0.8)
+        plt.xticks(fontsize=FONT_SIZE*0.8)
 
+        plt.xlabel("Time (s)", fontsize=FONT_SIZE)
+        plt.legend(fontsize=LEGEND_SIZE)
+        plt.grid(True)
+        plt.subplots_adjust(left=0.15, right=0.85,top=0.95)
+        plt.savefig('./task_submission_rate_{}.png'.format(t[1].replace(" ","_")))
+        i += 1
 
 def draw_task_latency_CDF(tests: list):
     """画多个实验的任务延迟的累积概率分布函数"""
     marker = markerGenerator()
-    plt.cla()
+    plt.clf()
     for t in tests:
         staus = task_latency_CDF_curves(os.path.join(t[0], "latencyCurve.log"))
         plt.plot(staus[0], staus[1], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=int(len(staus[0])/200),markersize=10)
@@ -305,8 +331,9 @@ def draw_task_latency_CDF(tests: list):
     plt.ylabel("Cumulative Probability", fontsize=FONT_SIZE)
     plt.xlabel("Task Latency(ms)", fontsize=FONT_SIZE)
 
+    plt.xscale("log", base=10)
     plt.grid(True)
-    plt.subplots_adjust(left=0.18, right=0.94, bottom=0.15,top=0.95)
+    plt.subplots_adjust(left=0.18, right=0.93, bottom=0.15,top=0.95)
 
     plt.yticks(fontsize=FONT_SIZE*0.8)
     plt.xticks(fontsize=FONT_SIZE*0.8)
@@ -321,6 +348,7 @@ def draw_task_latency_CDF(tests: list):
         plt.plot(staus[0], staus[1], lw=LINE_WIDTH, label=t[1])
         #if max(staus[0]) >= FAIL_TASK_LATENCY-1:
     plt.legend(fontsize=LEGEND_SIZE)
+
     plt.ylim(0.0, 1.1)
     plt.savefig('./latency_CDF_compare_full.png')
 

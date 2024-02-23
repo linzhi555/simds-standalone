@@ -43,8 +43,6 @@ func readTraceTaskStream(traceFile string, resourceRate float64, endTime int32) 
 		src = append(src, SrcNode{submitTime, newTask})
 	}
 
-	log.Println(len(src))
-	log.Println(src[0:10])
 	return src
 }
 

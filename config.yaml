@@ -1,4 +1,4 @@
-NodeNum:        1000    # how many large the cluster
+NodeNum:        7000    # how many large the cluster
 NetLatency:     1          # the average network latency, unit: milisecond 
 NodeCpu:        1000         # the node cpu capacity
 NodeMemory:     1000         # the node memory capacity
@@ -21,5 +21,8 @@ DcssNeibor:    16          #how many neibor of a node
 DcssNeiborRandomP:      0.5         #how many random neibor of a node
 DcssDividePolicy     : "always"  #
 
+# sparrow mode schedulerNum = SparrowSchedulerNumFactor * NodeNum
+SparrowSchedulerNumFactor:  0.0300
+
 # only in share state cluster
-StateUpdatePeriod:   300   # the period of scheduler get the newest cluster state, unit : milisecond
+StateUpdatePeriod:   100   # the period of scheduler get the newest cluster state, unit : milisecond

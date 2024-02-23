@@ -15,26 +15,36 @@ import (
 
 // Config 全局的配置,在main开始前初始化
 var Val struct {
-	ConfigPath        string
-	OutputDir         string
-	Cluster           string
-	NodeNum           int32
-	NetLatency        int32
+	ConfigPath string
+	OutputDir  string
+	Cluster    string
+	NodeNum    int32
+	NetLatency int32
+
+	NodeCpu    int32
+	NodeMemory int32
+
+	SimulateDuration int32 // how long the simulate is,Unit :ms
+	TaskMode         string
+	TraceFile        string
+	TaskNumFactor    float32
+	TaskCpu          int32
+	TaskMemory       int32
+	TaskLifeTime     int32
+
+	//only in center and shareState
+	SchedulerPerformance float32
+
+	//dcss mode
 	DcssNeiborRandomP float32
 	DcssNeibor        int32
 	DcssDividePolicy  string
-	NodeCpu           int32
-	NodeMemory        int32
 
-	SimulateDuration     int32 // how long the simulate is,Unit :ms
-	TaskMode             string
-	TraceFile            string
-	TaskNumFactor        float32
-	TaskCpu              int32
-	TaskMemory           int32
-	TaskLifeTime         int32
-	SchedulerPerformance float32
-	StateUpdatePeriod    int32
+	// sparrow 
+	SparrowSchedulerNumFactor float32
+
+	//ShareState
+	StateUpdatePeriod int32
 }
 
 func init() {

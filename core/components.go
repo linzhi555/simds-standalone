@@ -57,7 +57,7 @@ func NewTaskGen(hostname string) *TaskGen {
 		taskgen.Src = onePeakTaskStream()
 	case "trace":
 		src := readTraceTaskStream(config.Val.TraceFile, 1.0, config.Val.SimulateDuration-10000)
-		src = applyLoadRate(src, float64(config.Val.NodeNum)/float64(1000)*float64(config.Val.TaskNumFactor)/4.0)
+		src = applyLoadRate(src, float64(config.Val.NodeNum)/float64(1000)*float64(config.Val.TaskNumFactor)/7.0)
 		taskgen.Src = src
 	default:
 		panic("this mod is not implented")

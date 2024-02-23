@@ -162,12 +162,16 @@ func EcsRunCluster(cluster Cluster) {
 		simulator.AddSystem(SystemName(string(k)+"_update"), covertFuncToSystem(k, f, false))
 	}
 
-	// 每帧间隔0.1ms
+	// 每帧间隔0.1ms ,1ms 渲染 10 帧
 	frameNum := config.Val.SimulateDuration * 10
-	for i := int32(0); i < frameNum; i++ {
-		log.Println("simluating", i, "/", frameNum)
-		simulator.Update()
 
+	for i := int32(0); i < frameNum; i++ {
+
+		if i%10000 == 0 {
+			log.Println("Simulation Progress", i/10, "ms", "/", config.Val.SimulateDuration, "ms")
+		}
+
+		simulator.Update()
 	}
 
 }
