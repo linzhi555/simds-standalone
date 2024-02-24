@@ -14,7 +14,7 @@ INFINITY = 100000
 class markerGenerator():
     def __init__(self):
         self.count = 0
-        self.markers= [ 'o', '^', 'x', 'v', 's']
+        self.markers= [ 'o', '^', 'x', 'v', 's', 'D']
     def next(self):
         result = self.markers[self.count]
         self.count +=1
@@ -294,28 +294,31 @@ def draw_task_submission_rate(tests: list):
     i=0
     for t in tests:
         plt.clf()
+
+        marker = markerGenerator()
         taskstream = task_submit_rate_hist(os.path.join(t[0], "./task_speed.log"))
         staus = cluster_status_curves(os.path.join(t[0], "cluster_status.log"))
  
-        plt.hist(taskstream,bins=np.arange(37), label="tasks")
+        plt.hist(taskstream,bins=np.arange(37), histtype='bar',rwidth=0.7, color="y", label="tasks")
         plt.ylabel(
             "Tasks Rate(amount/s)",
             fontsize=FONT_SIZE,
         )
+        plt.xlabel("Time (s)", fontsize=FONT_SIZE)
         plt.legend(fontsize=LEGEND_SIZE)
 
         ax2 = plt.twinx()
-        ax2.plot(staus[0], staus[2], lw=LINE_WIDTH,color="y", label="ResourceStatus")
-        ax2.set_ylabel("Resource Utilization (%)", fontsize=FONT_SIZE)
+        ax2.plot(staus[0], staus[2], lw=LINE_WIDTH, color="b", label="CPU", marker=marker.next(), markevery=8, markersize=10)
+        ax2.plot(staus[0], staus[3], lw=LINE_WIDTH, color="r", label="Memory", marker=marker.next(), markevery=8, markersize=10)
+
+        ax2.set_ylabel("Resources Utilization (%)", fontsize=FONT_SIZE)
         ax2.legend(fontsize=LEGEND_SIZE)
 
         plt.yticks(fontsize=FONT_SIZE*0.8)
         plt.xticks(fontsize=FONT_SIZE*0.8)
 
-        plt.xlabel("Time (s)", fontsize=FONT_SIZE)
-        plt.legend(fontsize=LEGEND_SIZE)
         plt.grid(True)
-        plt.subplots_adjust(left=0.15, right=0.85,top=0.95)
+        plt.subplots_adjust(left=0.15, right=0.85,top=0.95,bottom=0.15)
         plt.savefig('./task_submission_rate_{}.png'.format(t[1].replace(" ","_")))
         i += 1
 
@@ -325,9 +328,10 @@ def draw_task_latency_CDF(tests: list):
     plt.clf()
     for t in tests:
         staus = task_latency_CDF_curves(os.path.join(t[0], "latencyCurve.log"))
-        plt.plot(staus[0], staus[1], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=int(len(staus[0])/200),markersize=10)
+        plt.plot(staus[0], staus[1], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=0.2,markersize=7)
         #if max(staus[0]) >= FAIL_TASK_LATENCY-1:
-    plt.legend(fontsize=LEGEND_SIZE)
+    plt.legend(fontsize=LEGEND_SIZE,loc="lower left")
+
     plt.ylabel("Cumulative Probability", fontsize=FONT_SIZE)
     plt.xlabel("Task Latency(ms)", fontsize=FONT_SIZE)
 
@@ -340,15 +344,6 @@ def draw_task_latency_CDF(tests: list):
     plt.ylim(0.95, 1.002)
     plt.savefig('./latency_CDF_compare.png')
     
-    marker = markerGenerator()
-    for art in list(plt.gca().lines):
-        art.remove()
-    for t in tests:
-        staus = task_latency_CDF_curves(os.path.join(t[0], "latencyCurve.log"))
-        plt.plot(staus[0], staus[1], lw=LINE_WIDTH, label=t[1])
-        #if max(staus[0]) >= FAIL_TASK_LATENCY-1:
-    plt.legend(fontsize=LEGEND_SIZE)
-
     plt.ylim(0.0, 1.1)
     plt.savefig('./latency_CDF_compare_full.png')
 

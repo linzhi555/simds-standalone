@@ -78,6 +78,7 @@ def test_neibor_random_P():
         configCopy = config.copy()
         configCopy["NodeNum"] =  4 * 1000
         configCopy["DcssNeiborRandomP"] = p
+        configCopy["TaskNumFactor"] = 7.0
         configOut = "net_shape_test/config.yaml"
         targetOut = "net_shape_test/target/neibor_random_p/randomP_{}".format(p)
         with open(configOut, "w") as output:
@@ -111,6 +112,7 @@ def test_neibor_num():
         configCopy["NodeNum"] =  4 * 1000
         configCopy["DcssNeiborRandomP"] = 0.5
         configCopy["DcssNeibor"] = num
+        configCopy["TaskNumFactor"] = 7.0
         configOut = "net_shape_test/config.yaml"
         targetOut = "net_shape_test/target/neibor_num/neibor_{}".format(num)
         with open(configOut, "w") as output:
@@ -205,9 +207,9 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
 
-    if not args.drawOnly:
-        test_neibor_num()
-    draw_neibor_num()
+#    if not args.drawOnly:
+#        test_neibor_num()
+#    draw_neibor_num()
 
 
     if not args.drawOnly:
