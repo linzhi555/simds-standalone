@@ -299,7 +299,7 @@ def draw_task_submission_rate(tests: list):
         taskstream = task_submit_rate_hist(os.path.join(t[0], "./task_speed.log"))
         staus = cluster_status_curves(os.path.join(t[0], "cluster_status.log"))
  
-        plt.hist(taskstream,bins=np.arange(37), histtype='bar',rwidth=0.7, color="y", label="tasks")
+        plt.hist(taskstream,bins=np.arange(37), histtype='bar',rwidth=0.7, color="c", label="tasks")
         plt.ylabel(
             "Tasks Rate(amount/s)",
             fontsize=FONT_SIZE,
