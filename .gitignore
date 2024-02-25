@@ -1,4 +1,4 @@
-*.log
+./*.log
 *.prof
 target/*
 test_compose/*/target
