@@ -1,20 +1,20 @@
-NodeNum:        7000    # how many large the cluster
+NodeNum:        4000    # how many large the cluster
 NetLatency:     1          # the average network latency, unit: milisecond 
 NodeCpu:        1000         # the node cpu capacity
 NodeMemory:     1000         # the node memory capacity
 
 
 SimulateDuration:   40000          # how long the simulation last / unit : milisecond
-TaskMode: "trace"  # the mode of the tasks "rand_normal" "trace"
+TaskMode: "noWave"  # the mode of the tasks "onePeak" "noWave" "trace"
 TraceFile: "./trace/tasks_stream.log"  # the mode of the tasks "rand_normal" "trace"
-TaskNumFactor:  6        # task/persecond = TaskNumFactor * NodeNum 
+TaskNumFactor:  4.6        # task/persecond = TaskNumFactor * NodeNum 
 TaskCpu:        300          # the average task cpu request
 TaskMemory:     300          # the average task memory request
 TaskLifeTime:   330        # the average task lifeTime  , unit : milisecond
 
 
 #only in center and shareState 
-SchedulerPerformance: 30000  # how many time Scheduler execute scheduling algorithm in 1s
+SchedulerPerformance: 17000  # how many time Scheduler execute scheduling algorithm in 1s
 
 # only in dcss mode
 DcssNeibor:    16          #how many neibor of a node

@@ -53,8 +53,10 @@ func NewTaskGen(hostname string) *TaskGen {
 	}
 
 	switch config.Val.TaskMode {
-	case "rand_normal":
+	case "onePeak":
 		taskgen.Src = onePeakTaskStream()
+	case "noWave":
+		taskgen.Src = noWaveTaskStream()
 	case "trace":
 		src := readTraceTaskStream(config.Val.TraceFile, 1.0, config.Val.SimulateDuration-10000)
 		src = applyLoadRate(src, float64(config.Val.NodeNum)/float64(1000)*float64(config.Val.TaskNumFactor)/7.0)
@@ -69,8 +71,10 @@ func NewTaskGen(hostname string) *TaskGen {
 // 负载没有波动的连续任务流
 func noWaveTaskStream() []SrcNode {
 	taskNumPerSecond := config.Val.TaskNumFactor * float32(config.Val.NodeNum)
-	allTasksNum := int(10 * taskNumPerSecond)
+	var sendDuration = time.Duration(config.Val.SimulateDuration-10000)* time.Millisecond
+	allTasksNum := int(float32(sendDuration / time.Second) * taskNumPerSecond)
 	src := make([]SrcNode, 0, allTasksNum)
+
 	for i := 0; i < allTasksNum; i++ {
 		newTask := TaskInfo{
 			Id:            fmt.Sprintf("task%d", i),
@@ -80,7 +84,7 @@ func noWaveTaskStream() []SrcNode {
 			Status:        "submit",
 		}
 
-		t := time.Duration(int64(i) * 10 * int64(time.Second) / int64(allTasksNum))
+		t := time.Duration(int64(i) * int64(sendDuration) / int64(allTasksNum))
 
 		src = append(src, SrcNode{t, newTask})
 
@@ -108,13 +112,15 @@ func onePeakTaskStream() []SrcNode {
 
 		var t time.Duration
 
+		var sendDuration = time.Duration(config.Val.SimulateDuration-10000)* time.Millisecond
+
 		if i == 0 {
 			t = time.Duration(0)
-		} else if src[i-1].time < 2*time.Second {
+		} else if src[i-1].time < sendDuration*2/10 {
 			t = src[i-1].time + time.Duration(baseTimeDelta*3/2)
-		} else if src[i-1].time < 8*time.Second {
+		} else if src[i-1].time < sendDuration*8/10 {
 			t = src[i-1].time + time.Duration(baseTimeDelta*3/4)
-		} else if src[i-1].time < 10*time.Second {
+		} else if src[i-1].time < sendDuration {
 			t = src[i-1].time + time.Duration(baseTimeDelta*3/2)
 		} else {
 			break
