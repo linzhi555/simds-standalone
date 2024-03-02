@@ -1,4 +1,5 @@
 import os
+from typing import List
 import yaml
 import sys
 import argparse
@@ -6,14 +7,15 @@ sys.path.append("py")
 import draw
 
 
-testDir =  os.path.dirname(os.path.realpath(__file__))
-config = {}
-
-with open("{testDir}/config_template.yaml".format(testDir=testDir), "r") as stream:
-    try:
-        config = yaml.safe_load(stream)
-    except yaml.YAMLError as exc:
-        print(exc)
+def load_config() -> dict:
+    testDir =  os.path.dirname(os.path.realpath(__file__))
+    config = {}
+    with open("{testDir}/config_template.yaml".format(testDir=testDir), "r") as stream:
+        try:
+            config = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+    return config
 
 
 class Cluster():
@@ -23,97 +25,58 @@ class Cluster():
         self.command = command
         self.specialConfig = specialConfig
 
-
-# 保持集群规模不变
-# 测试集群的表现与负载压力的关系
-
-
-utilizations = [85,90,95,100,105]
-utilizationsStr = ["{per}".format(per=x) for x in utilizations ]
-TaskNumFactors = [(x/80*6.0) for x in utilizations]
-def test_utilization(cluster):
-    for factor,util in zip(TaskNumFactors,utilizationsStr):
-        configCopy = config.copy()
-        configCopy["NodeNum"] =  1000
-        configCopy["TaskNumFactor"] = factor
-        configOut = os.path.join(testDir,"config.yaml")
-        targetOut = os.path.join(testDir,"target/utilization/{}_{}".format(cluster.name,util))
-        if cluster.specialConfig != None:
-            for k,v in cluster.specialConfig.items():
-                configCopy[k]=v
-        with open(configOut, "w") as output:
-            yaml.dump(configCopy,output)
-        os.system("{} Config={} TargetFolder=\"{}\"".format(cluster.command,configOut,targetOut))
-
-def draw_uliliztion_test(cluster):
-    tests = []
-    for factor,util in zip(TaskNumFactors,utilizationsStr):
-        folder = os.path.join(testDir,"target/utilization/{}_{}".format(cluster.name,util))
-        tests.append([folder, "{c} {util}% ".format(c=cluster.describ,util=util)])
-    draw.draw_task_submission_rate(tests)
-    draw.draw_muilt_lantencyCurve(tests)
-    draw.draw_muilt_avg_resource (tests)
-    draw.draw_muilt_var_resource (tests)
-    draw.draw_muilt_net_busy (tests)
-    draw.draw_task_latency_CDF(tests)
-    os.system("mkdir -p {testDir}/target/all/utilization/{cluster} && mv *.png {testDir}/target/all/utilization/{cluster}".format(testDir=testDir,cluster=cluster.name))
-
-# 保持相对负载压力水平不平
-# 测试集群的表现与集群规模的关系
-nodenums = [1700,1800,1900,2000,2100]
-def test_scales(cluster):
-    for nodenum in nodenums:
-        configCopy = config.copy()
-        configCopy["NodeNum"] =  nodenum
-        configCopy["TaskNumFactor"] = 6.0
-        configOut = os.path.join(testDir,"config.yaml")
-        targetOut = os.path.join(testDir,"target/nodenum/{}_{}".format(cluster.name,nodenum))
-        with open(configOut, "w") as output:
-            yaml.dump(configCopy,output)
-        os.system("{} Config={} TargetFolder=\"{}\"".format(cluster.command,configOut,targetOut))
+def test_compose(config,clusters:List[Cluster],testname:str,paramsName:str,params:List,parmsLables:List[str],drawOnly:bool=False):
+    if not drawOnly:
+        run_compose(config,clusters,testname,paramsName,params,parmsLables)
+    draw_compose(clusters,testname,paramsName,params,parmsLables)
 
 
-def draw_scales_test(cluster):
-    tests = []
-    for nodenum in nodenums:
-        folder = os.path.join(testDir,"target/nodenum/{}_{}".format(cluster.name,nodenum))
-        tests.append([folder, "{node}".format(node=nodenum)])
-    draw.draw_task_submission_rate(tests)
-    draw.draw_muilt_lantencyCurve(tests)
-    draw.draw_muilt_avg_resource (tests)
-    draw.draw_muilt_var_resource (tests)
-    draw.draw_muilt_net_busy (tests)
-    draw.draw_task_latency_CDF(tests)
-    os.system("mkdir -p {testDir}/target/all/nodenum/{cluster} && mv *.png {testDir}/target/all/nodenum/{cluster}".format(testDir=testDir,cluster=cluster.name))
-    return
 
-# 测试网络延迟对集群的表现的影响
 
-net_latencys=[1,5,9,13,17]
-def test_net_latency(cluster):
-    for latency in net_latencys:
-        configCopy = config.copy()
-        configCopy["NodeNum"] =  2000
-        configCopy["NetLatency"] = latency
-        configOut = os.path.join(testDir,"config.yaml")
-        targetOut = os.path.join(testDir,"target/net_latency/{}_{}".format(cluster.name,latency))
-        with open(configOut, "w") as output:
-            yaml.dump(configCopy,output)
-        os.system("{} Config={} TargetFolder=\"{}\"".format(cluster.command,configOut,targetOut))
+def run_compose(config,clusters:List[Cluster],testname:str,paramsName:str,params:List,parmsLables:List[str]):
+    for param,label in zip(params,parmsLables):
+        for cluster in clusters:
+            configCopy = config.copy()
+            configCopy[paramsName] = param
+            configOut = "graduate_paper_test/config.yaml"
+            targetOut = "graduate_paper_test/target/{}/{}_{}".format(testname,cluster.name,label)
+            if cluster.specialConfig != None:
+                for k,v in cluster.specialConfig.items():
+                    configCopy[k]=v
+            with open(configOut, "w") as output:
+                yaml.dump(configCopy,output)
+            os.system("{} Config={} TargetFolder=\"{}\"".format(cluster.command,configOut,targetOut))
 
-def draw_net_latency_test(cluster):
-    tests = []
-    for latency in net_latencys:
-        folder = os.path.join(testDir,"target/net_latency/{}_{}".format(cluster.name,latency))
-        tests.append([folder, "{latency}".format(latency=latency)])
-    draw.draw_task_submission_rate(tests)
-    draw.draw_muilt_lantencyCurve(tests)
-    draw.draw_muilt_avg_resource (tests)
-    draw.draw_muilt_var_resource (tests)
-    draw.draw_muilt_net_busy (tests)
-    draw.draw_task_latency_CDF(tests)
-    os.system("mkdir -p {testDir}/target/all/net_latency/{cluster} && mv *.png {testDir}/target/all/net_latency/{cluster}".format(testDir=testDir,cluster=cluster.name))
-    return
+
+def draw_compose(clusters:List[Cluster],testname:str,paramsName:str,params:List,parmsLables:List[str]):
+    for _,label in zip(params,parmsLables):
+        tests = []
+        for cluster in clusters:
+            targetOut = "graduate_paper_test/target/{}/{}_{}".format(testname,cluster.name,label)
+            tests.append([targetOut, "{} {} ".format(cluster.describ,label)])
+        draw.draw_task_submission_rate(tests)
+        draw.draw_muilt_lantencyCurve(tests)
+        draw.draw_muilt_avg_resource (tests)
+        draw.draw_muilt_var_resource (tests)
+        draw.draw_muilt_net_busy (tests)
+        draw.draw_task_latency_CDF(tests)
+        outfolder = "graduate_paper_test/target/all/{testname}/{label}".format(testname=testname,label=label)
+        os.system("mkdir -p {outfolder}  && mv *.png {outfolder}".format(outfolder=outfolder))
+
+    for cluster in clusters:
+        tests = []
+        for _,label in zip(params,parmsLables):
+            targetOut = "graduate_paper_test/target/{}/{}_{}".format(testname,cluster.name,label)
+            tests.append([targetOut, "{} {} ".format(cluster.describ,label)])
+        draw.draw_task_submission_rate(tests)
+        draw.draw_muilt_lantencyCurve(tests)
+        draw.draw_muilt_avg_resource (tests)
+        draw.draw_muilt_var_resource (tests)
+        draw.draw_muilt_net_busy (tests)
+        draw.draw_task_latency_CDF(tests)
+        outfolder = "graduate_paper_test/target/all/{testname}/{cluster}".format(testname=testname,cluster=cluster.name)
+        os.system("mkdir -p {outfolder}  && mv *.png {outfolder}".format(outfolder=outfolder))
+
 
 parser = argparse.ArgumentParser(description='run net shape test')
 parser.add_argument('--draw_only', dest='drawOnly', help='only draw the result')
@@ -123,16 +86,31 @@ args = parser.parse_args()
 if __name__ == "__main__":
 
     centerCluster = Cluster("center","Centralized","make test Cluster=Center")
-    if not args.drawOnly:
-        test_utilization(centerCluster)
-    draw_uliliztion_test(centerCluster)
- 
-    if not args.drawOnly:
-        test_scales(centerCluster)
-    draw_scales_test(centerCluster)
- 
     sharedCluster = Cluster("share","Shared State","make test Cluster=ShareState")
-    if not args.drawOnly:
-        test_net_latency(sharedCluster)
-    draw_net_latency_test(sharedCluster)
+    sparrowCluster = Cluster("sparrow","Sparrow","make test Cluster=Sparrow")
+    dcssCluster = Cluster("sparrow","Sparrow","make test Cluster=Dcss")
+
+    allclusters = [centerCluster,sharedCluster,sparrowCluster]
+        
+    config = load_config()
+
+    config_copy = config.copy()
+    test_compose(config_copy,[centerCluster],"nodenum","NodeNum",[1000,2000,3000,4000,5000],["1k","2k","3k","4k","5k"],drawOnly=args.drawOnly)
+ 
+    config_copy = config.copy()
+    test_compose(config_copy,[centerCluster],"scheduler_performance","SchedulerPerformance",[15000,20000,25000,30000],["15000","20000","25000","30000"],drawOnly=args.drawOnly)
+
+    config_copy = config.copy()
+    config_copy["TaskMode"] = "onePeak"
+    test_compose(config.copy(),[centerCluster],"load","TaskNumFactor",[6,6.2,6.4,6.6,6.8],["80%","82%","85%","87%","90%"],drawOnly=args.drawOnly)
+
+    config_copy = config.copy()
+    test_compose(config_copy,allclusters,"nodenum","NodeNum",[3000,5000],["3k","5k"],drawOnly=args.drawOnly)
+ 
+    config_copy = config.copy()
+    test_compose(config_copy,[sharedCluster],"StateUpdatePeriod","StateUpdatePeriod",[100,200,400],["100","200","400"],drawOnly=args.drawOnly)
+
+    config_copy = config.copy()
+    test_compose(config_copy,allclusters,"net_lantency","NetLatency",[1,8],["1ms","8ms"],drawOnly=args.drawOnly)
+ 
 

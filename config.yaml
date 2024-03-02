@@ -1,4 +1,4 @@
-NodeNum:        4000    # how many large the cluster
+NodeNum:        1000    # how many large the cluster
 NetLatency:     1          # the average network latency, unit: milisecond 
 NodeCpu:        1000         # the node cpu capacity
 NodeMemory:     1000         # the node memory capacity
