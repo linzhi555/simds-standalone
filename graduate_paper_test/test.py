@@ -107,8 +107,7 @@ if __name__ == "__main__":
     test_compose(config_copy,allclusters,"nodenum","NodeNum",[1000,3000,5000],["1k","3k","5k"],drawOnly=args.drawOnly)
  
     config_copy = config.copy()
-    config_copy["TaskMode"] = "onePeak"
-    test_compose(config_copy,[sharedCluster],"StateUpdatePeriod","StateUpdatePeriod",[100,200,400],["100","200","400"],drawOnly=args.drawOnly)
+    test_compose(config_copy,[sharedCluster],"StateUpdatePeriod","StateUpdatePeriod",[100,400,1000],["100ms","400ms","1000ms"],drawOnly=args.drawOnly)
 
     config_copy = config.copy()
     test_compose(config_copy,allclusters,"net_lantency","NetLatency",[1,4,12],["1ms","4ms","12ms"],drawOnly=args.drawOnly)
