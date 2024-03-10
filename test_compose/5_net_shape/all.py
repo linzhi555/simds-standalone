@@ -14,14 +14,21 @@ def longName(s):
 
 
 
+neiborsP=[0,0.3,0.6,1.0]
 
 
-load=["","80%","83%","85%","88%","90%"]
-for cluster in ["center","share","dcss"]:
+for cluster in ["dcss"]:
     tests = []
-    for i in range(1,6):
+    for i in range(1,len(neiborsP)+1):
         folder = "./target/test{id}_{c}/".format(c=cluster,id=i)
-        tests.append([folder, "max utilization {num}".format(num=load[i])])
+        p = neiborsP[i-1]
+        label = ""
+        if p < 0.001:
+            label = "Lattice Network"
+        else:
+            label = "WS Network p={}".format(p)
+        tests.append([folder, label])
+    draw.draw_task_submission_rate(tests)
     draw.draw_muilt_lantencyCurve(tests)
     draw.draw_muilt_avg_resource (tests)
     draw.draw_muilt_var_resource (tests)

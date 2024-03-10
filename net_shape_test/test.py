@@ -23,8 +23,14 @@ clusters = []
 clusters.append(Cluster("center","Centralized","make centerTest"))
 clusters.append(Cluster("share","Shared State","make shareTest"))
 clusters.append(Cluster("sparrow","Sparrow","make test Cluster='Sparrow'"))
-clusters.append(Cluster("dcss_regular","LN BeeHive ","make dcssTest", specialConfig={'DcssNeiborRandomP':0.0}))
-clusters.append(Cluster("dcss_random","WSN Beehive","make dcssTest",specialConfig={'DcssNeiborRandomP':0.5}))
+
+# two beehive
+#clusters.append(Cluster("dcss_regular","LN BeeHive ","make dcssTest", specialConfig={'DcssNeiborRandomP':0.0}))
+#clusters.append(Cluster("dcss_random","WSN Beehive","make dcssTest",specialConfig={'DcssNeiborRandomP':0.5}))
+
+# exclude LN Beehive 
+clusters.append(Cluster("dcss_random","Beehive","make dcssTest",specialConfig={'DcssNeiborRandomP':0.5}))
+
 print(clusters)
 
 nodeNumTests = [1,2,4,7,10]

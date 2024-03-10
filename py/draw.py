@@ -188,7 +188,7 @@ def draw_muilt_lantencyCurve(tests: list):
 
         t = status[0]
         latency = status[1]
-        plt.plot(t, latency, lw=LINE_WIDTH,marker=marker.next(),markevery=8, markersize=10,label=test[1])
+        plt.plot(t, latency, lw=LINE_WIDTH,marker=marker.next(),markevery=8, markersize=7,label=test[1])
 
         if max(latency) > FAIL_TASK_LATENCY - 1:
             plt.yscale("log", base=10)
@@ -218,7 +218,7 @@ def draw_muilt_avg_resource(tests: list):
     plt.clf()
     for t in tests:
         staus = cluster_status_curves(os.path.join(t[0], "cluster_status.log"))
-        plt.plot(staus[0], staus[2], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=8,markersize=10)
+        plt.plot(staus[0], staus[2], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=8,markersize=7)
     plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("Resource Utilization (%)", fontsize=FONT_SIZE)
     plt.xlabel("Time (s)", fontsize=FONT_SIZE)
@@ -236,9 +236,9 @@ def draw_muilt_var_resource(tests: list):
     plt.clf()
     for t in tests:
         staus = cluster_status_curves(os.path.join(t[0], "cluster_status.log"))
-        plt.plot(staus[0], staus[4], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=8,markersize=10)
+        plt.plot(staus[0], staus[4], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=8,markersize=7)
     plt.legend(fontsize=LEGEND_SIZE)
-    plt.ylabel("Cluster Utilization Variance", fontsize=FONT_SIZE)
+    plt.ylabel("Cluster CPU Utilization Variance", fontsize=FONT_SIZE)
     plt.xlabel("Time (s)", fontsize=FONT_SIZE)
 
 
@@ -246,7 +246,25 @@ def draw_muilt_var_resource(tests: list):
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
     plt.subplots_adjust(left=0.20, right=0.93,top=0.95)
-    plt.savefig('./variance_compare.png')
+    
+    plt.savefig('./cpu_variance_compare.png')
+    
+    marker = markerGenerator()
+    plt.clf()
+    for t in tests:
+        staus = cluster_status_curves(os.path.join(t[0], "cluster_status.log"))
+        plt.plot(staus[0], staus[5], lw=LINE_WIDTH, label=t[1],marker=marker.next(),markevery=8,markersize=7)
+    plt.legend(fontsize=LEGEND_SIZE)
+    plt.ylabel("Cluster Memory Utilization Variance", fontsize=FONT_SIZE)
+    plt.xlabel("Time (s)", fontsize=FONT_SIZE)
+
+
+    plt.yticks(fontsize=FONT_SIZE*0.8)
+    plt.xticks(fontsize=FONT_SIZE*0.8)
+    plt.grid(True)
+    plt.subplots_adjust(left=0.20, right=0.93,top=0.95) 
+    
+    plt.savefig('./memory_variance_compare.png')
 
 
 def draw_muilt_net_busy(tests: list):
@@ -258,7 +276,8 @@ def draw_muilt_net_busy(tests: list):
         plt.plot(staus[0], staus[1], lw=1.0, label=t[1])
     plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("Net Request Rate \n (number/s)", fontsize=FONT_SIZE)
-    plt.ticklabel_format(style='plain')
+    plt.yscale("log", base=10)
+    #plt.ticklabel_format(style='plain')
     #plt.yscale("log",base=10)
     plt.xlabel("Time (s)", fontsize=FONT_SIZE)
 
@@ -276,7 +295,8 @@ def draw_muilt_net_busy(tests: list):
             os.path.join(t[0], "network_most_busy.log"))
         plt.plot(staus[0], staus[1], lw=1.0, label=t[1])
     plt.ylabel("Net Request Rate \n (number/s)", fontsize=FONT_SIZE)
-    plt.ticklabel_format(style='plain')
+    plt.yscale("log", base=10)
+    #plt.ticklabel_format(style='plain')
     #plt.yscale("log",base=10)
     plt.xlabel("Time (s)", fontsize=FONT_SIZE)
 
@@ -308,8 +328,8 @@ def draw_task_submission_rate(tests: list):
         plt.legend(fontsize=LEGEND_SIZE)
 
         ax2 = plt.twinx()
-        ax2.plot(staus[0], staus[2], lw=LINE_WIDTH, color="b", label="CPU", marker=marker.next(), markevery=8, markersize=10)
-        ax2.plot(staus[0], staus[3], lw=LINE_WIDTH, color="r", label="Memory", marker=marker.next(), markevery=8, markersize=10)
+        ax2.plot(staus[0], staus[2], lw=LINE_WIDTH, color="b", label="CPU", marker=marker.next(), markevery=8, markersize=7)
+        ax2.plot(staus[0], staus[3], lw=LINE_WIDTH, color="r", label="Memory", marker=marker.next(), markevery=8, markersize=7)
 
         ax2.set_ylabel("Resources Utilization (%)", fontsize=FONT_SIZE)
         ax2.legend(fontsize=LEGEND_SIZE)

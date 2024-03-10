@@ -2,6 +2,10 @@ NodeNum:        2000      # how many large the cluster
 NetLatency:     16          # the average network latency, unit: milisecond 
 NodeCpu:        10         # the node cpu capacity
 NodeMemory:     10         # the node memory capacity
+
+
+SimulateDuration:   40000          # how long the simulation last / unit : milisecond
+TaskMode: "onePeak"  # the mode of the tasks "onePeak" "noWave" "trace"
 TaskNumFactor:  6        # task/persecond = TaskNumFactor * NodeNum 
 TaskCpu:        3          # the average task cpu request
 TaskMemory:     3          # the average task memory request

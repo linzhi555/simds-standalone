@@ -20,7 +20,7 @@ for cluster in ["dcss"]:
 
     for i in range(1,6):
         folder = "./target/test{id}_{c}/".format(c=cluster,id=i)
-        tests.append([folder, "neibors {num}".format(c=longName(cluster),num=neibors[i])])
+        tests.append([folder, "neighbors={num}".format(c=longName(cluster),num=neibors[i])])
     draw.draw_task_submission_rate(tests)
     draw.draw_muilt_lantencyCurve(tests)
     draw.draw_muilt_avg_resource (tests)

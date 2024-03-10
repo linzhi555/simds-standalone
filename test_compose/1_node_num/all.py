@@ -15,9 +15,10 @@ def longName(s):
 
 for i in range(1,6):
     tests = []
-    for cluster in ["center","share","dcss"]:
+    #for cluster in ["center","share","dcss"]:
+    for cluster in ["dcss"]:
         folder = "./target/test{id}_{c}/".format(c=cluster,id=i)
-        tests.append([folder, "{c} {num}k nodes".format(c=longName(cluster),num=nodes_num[i])])
+        tests.append([folder, "{num}k".format(c=longName(cluster),num=nodes_num[i])])
     draw.draw_task_submission_rate(tests)
     draw.draw_muilt_lantencyCurve(tests)
     draw.draw_muilt_avg_resource (tests)
@@ -26,12 +27,12 @@ for i in range(1,6):
     draw.draw_task_latency_CDF(tests)
     os.system("mkdir -p ./target/all/nodes_{num}k && mv *.png ./target/all/nodes_{num}k".format(num=nodes_num[i]))
 
-for cluster in ["center","share","dcss"]:   
-
+#for cluster in ["center","share","dcss"]:   
+for cluster in ["dcss"]:   
     tests = []
     for i in range(1,6):
             folder = "./target/test{id}_{c}/".format(c=cluster,id=i)
-            tests.append([folder, "{c} {num}k nodes".format(c=longName(cluster),num=nodes_num[i])])
+            tests.append([folder, "{num}k".format(c=longName(cluster),num=nodes_num[i])])
     draw.draw_task_submission_rate(tests)
     draw.draw_muilt_lantencyCurve(tests)
     draw.draw_muilt_avg_resource (tests)
