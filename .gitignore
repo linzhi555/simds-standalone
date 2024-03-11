@@ -5,3 +5,4 @@ test_compose/*/target
 py/__pycache__
 */__pycache__
 *.png
+simds-standalone

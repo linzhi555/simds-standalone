@@ -70,7 +70,7 @@ func taskgen(rec chan core.TaskInfo, logchan chan string, tasknum int32) {
 func main() {
 	tasknumPerSec = int32(float32(config.Val.NodeNum) * config.Val.TaskNumFactor)
 	tasknum := tasknumPerSec * config.Val.SimulateDuration / 1000
-	log.Println("tasknumPerSec",tasknumPerSec)
+	log.Println("tasknumPerSec", tasknumPerSec)
 	s := NewScheduler(tasknum)
 
 	log := make(chan string, tasknum*2)

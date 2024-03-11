@@ -71,8 +71,8 @@ func NewTaskGen(hostname string) *TaskGen {
 // 负载没有波动的连续任务流
 func noWaveTaskStream() []SrcNode {
 	taskNumPerSecond := config.Val.TaskNumFactor * float32(config.Val.NodeNum)
-	var sendDuration = time.Duration(config.Val.SimulateDuration-10000)* time.Millisecond
-	allTasksNum := int(float32(sendDuration / time.Second) * taskNumPerSecond)
+	var sendDuration = time.Duration(config.Val.SimulateDuration-10000) * time.Millisecond
+	allTasksNum := int(float32(sendDuration/time.Second) * taskNumPerSecond)
 	src := make([]SrcNode, 0, allTasksNum)
 
 	for i := 0; i < allTasksNum; i++ {
@@ -112,7 +112,7 @@ func onePeakTaskStream() []SrcNode {
 
 		var t time.Duration
 
-		var sendDuration = time.Duration(config.Val.SimulateDuration-10000)* time.Millisecond
+		var sendDuration = time.Duration(config.Val.SimulateDuration-10000) * time.Millisecond
 
 		if i == 0 {
 			t = time.Duration(0)

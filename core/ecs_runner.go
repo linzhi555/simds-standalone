@@ -4,10 +4,15 @@ package core
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"simds-standalone/common"
 	"simds-standalone/config"
+	"strings"
 	"time"
+
+	"github.com/chzyer/readline"
+	lua "github.com/yuin/gopher-lua"
 )
 
 // ZEROTIME 模拟开始的现实时间，以此作为模拟器的零点时间
@@ -112,10 +117,7 @@ func (n MockNetwork) String() string {
 	return res
 }
 
-// EcsRunCluster 创建ECS ，为ECS添加模拟的网络组件 ， 为集群所有组件提供模拟的系统调用
-// 将cluster的的Setups Updates 转换为ECS 统一更新的system.
-// 运行集群
-func EcsRunCluster(cluster Cluster) {
+func newSimulator(cluster Cluster) *ECS {
 	simulator := NewEcs()
 	newNet := NewMockNetWork(config.Val.NetLatency)
 	getTimeFunc := func() time.Time { return ZEROTIME.Add(time.Duration(simulator.UpdateCount) * time.Microsecond * 100) }
@@ -161,18 +163,7 @@ func EcsRunCluster(cluster Cluster) {
 	for k, f := range cluster.Updates {
 		simulator.AddSystem(SystemName(string(k)+"_update"), covertFuncToSystem(k, f, false))
 	}
-
-	// 每帧间隔0.1ms ,1ms 渲染 10 帧
-	frameNum := config.Val.SimulateDuration * 10
-
-	for i := int32(0); i < frameNum; i++ {
-
-		if i%10000 == 0 {
-			log.Println("Simulation Progress", i/10, "ms", "/", config.Val.SimulateDuration, "ms")
-		}
-
-		simulator.Update()
-	}
+	return simulator
 
 }
 
@@ -268,4 +259,75 @@ func LogInfo(osapi OsApi, ins ...interface{}) {
 		s += fmt.Sprint(item, " ")
 	}
 	fmt.Println(s)
+}
+
+// EcsRunCluster 创建ECS ，为ECS添加模拟的网络组件 ， 为集群所有组件提供模拟的系统调用
+// 将cluster的的Setups Updates 转换为ECS 统一更新的system.
+// 运行集群
+func EcsRunCluster(cluster Cluster) {
+	simulator := newSimulator(cluster)
+
+	var step uint64 = 10000
+	// 每帧间隔0.1ms ,1ms 渲染 10 帧
+	frameNum := uint64(config.Val.SimulateDuration * 10)
+
+	for simulator.UpdateCount < uint64(frameNum) {
+		log.Println("Simulation Progress", simulator.UpdateCount/10, "ms", "/", config.Val.SimulateDuration, "ms")
+		simulator.UpdateNtimes(step)
+	}
+}
+
+func simdsLua(simulator *ECS) *lua.LState {
+	l := lua.NewState()
+	step := func(L *lua.LState) int {
+		lv := L.ToInt(1) /* get argument */
+		simulator.UpdateNtimes(uint64(lv))
+		return 1 /* number of results */
+	}
+
+	l.SetGlobal("step", l.NewFunction(step))
+	return l
+}
+
+// Debug模式下进行运行集群
+func EcsRunClusterDebug(cluster Cluster) {
+	simulator := newSimulator(cluster)
+
+	luaState := simdsLua(simulator)
+	defer luaState.Close()
+
+	l, err := readline.NewEx(&readline.Config{
+		Prompt:          fmt.Sprintf("Simulator is Running...>> "),
+		HistoryFile:     "/tmp/readline.tmp",
+		InterruptPrompt: "^C",
+		EOFPrompt:       "exit",
+
+		HistorySearchFold: true,
+	})
+	if err != nil {
+		panic(err)
+	}
+	defer l.Close()
+	l.CaptureExitSignal()
+
+	log.SetOutput(l.Stderr())
+	for {
+		log.Println("Simulator Time is ", simulator.UpdateCount/10, "ms")
+		line, err := l.Readline()
+		if err == readline.ErrInterrupt {
+			if len(line) == 0 {
+				break
+			} else {
+				continue
+			}
+		} else if err == io.EOF {
+			break
+		}
+
+		line = strings.TrimSpace(line)
+		if err := luaState.DoString(line); err != nil {
+			panic(err)
+		}
+
+	}
 }

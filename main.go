@@ -39,6 +39,11 @@ func main() {
 	var cluster core.Cluster = clusterBuilder()
 	time.Sleep(3 * time.Second)
 
-	// 用ECS 运行该集群
-	core.EcsRunCluster(cluster)
+	if config.Val.Debug {
+		core.EcsRunClusterDebug(cluster)
+	} else {
+		// 用ECS 运行该集群
+		core.EcsRunCluster(cluster)
+	}
+
 }

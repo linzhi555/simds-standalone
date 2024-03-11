@@ -100,3 +100,10 @@ func (ecs *ECS) Update() {
 	}
 	ecs.UpdateCount++
 }
+
+// Update 调用ECS 所有system 完成n次更新
+func (ecs *ECS) UpdateNtimes(n uint64) {
+	for i := uint64(0); i < n; i++ {
+		ecs.Update()
+	}
+}

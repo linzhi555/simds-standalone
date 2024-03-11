@@ -16,6 +16,7 @@ import (
 // Config 全局的配置,在main开始前初始化
 var Val struct {
 	ConfigPath string
+	Debug      bool
 	OutputDir  string
 	Cluster    string
 	NodeNum    int32
@@ -40,7 +41,7 @@ var Val struct {
 	DcssNeibor        int32
 	DcssDividePolicy  string
 
-	// sparrow 
+	// sparrow
 	SparrowSchedulerNumFactor float32
 
 	//ShareState
@@ -50,6 +51,7 @@ var Val struct {
 func init() {
 	configFile := pflag.StringP("configFile", "c", "./config.yaml", "the config file path")
 	pflag.String("Cluster", "", "which type cluster to run,for example Dcss,Center,ShareState...")
+	pflag.Bool("Debug", false, "run the cluster in debug mode")
 	pflag.String("OutputDir", ".", "where to output the result files")
 	pflag.Parse()
 
