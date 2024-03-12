@@ -285,7 +285,20 @@ func simdsLua(simulator *ECS) *lua.LState {
 		return 1 /* number of results */
 	}
 
+	show := func(L *lua.LState) int {
+		arg1 := L.ToString(1) /* get argument */
+		switch arg1 {
+		case "cluster" :
+			log.Println("cluster is type:",config.Val.Cluster)
+		case "all":
+			log.Printf(config.LogString())
+		}
+
+		return 1 /* number of results */
+	}
+
 	l.SetGlobal("step", l.NewFunction(step))
+	l.SetGlobal("show", l.NewFunction(show))
 	return l
 }
 
@@ -326,8 +339,7 @@ func EcsRunClusterDebug(cluster Cluster) {
 
 		line = strings.TrimSpace(line)
 		if err := luaState.DoString(line); err != nil {
-			panic(err)
+			log.Println(err)
 		}
-
 	}
 }

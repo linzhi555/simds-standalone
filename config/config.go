@@ -72,14 +72,18 @@ func init() {
 	}
 }
 
-// 输出分析后的最终配置结果
-func LogConfig(outputPath string) {
+func LogString() string{
 	fields := strings.FieldsFunc(fmt.Sprintf("%+v\n", Val), func(r rune) bool {
 		return r == '{' || r == '}' || r == ' '
 	})
 	confInfo := strings.Join(fields, "\n")
-	log.Println("config of this simulation is\n" + confInfo)
+	return fmt.Sprintln("config of this simulation is\n" + confInfo)
+}
 
+// 输出分析后的最终配置结果
+func LogConfig(outputPath string) {
+	confInfo := LogString()
+	log.Printf(confInfo)
 	f, err := os.OpenFile(outputPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)

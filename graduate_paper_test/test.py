@@ -87,29 +87,27 @@ if __name__ == "__main__":
 
     centerCluster = Cluster("center","Centralized","make test Cluster=Center")
     sharedCluster = Cluster("share","Shared State","make test Cluster=ShareState")
-    sparrowCluster = Cluster("sparrow","Sparrow","make test Cluster=Sparrow")
-    dcssCluster = Cluster("sparrow","Sparrow","make test Cluster=Dcss")
+    sparrowCluster = Cluster("sparrow","Decentralized","make test Cluster=Sparrow")
+    dcssCluster = Cluster("dcss","Decentralized Net","make test Cluster=Dcss")
 
     allclusters = [centerCluster,sharedCluster,sparrowCluster]
         
     config = load_config()
 
+
     config_copy = config.copy()
-    test_compose(config_copy,[centerCluster],"center_nodenum","NodeNum",[1000,2000,3000,4000,5000],["1k","2k","3k","4k","5k"],drawOnly=args.drawOnly)
+    test_compose(config_copy,[centerCluster],"task_mode","TaskMode",["noWave","onePeak","trace"],["Constantly Load","Pulse Load","Trace Load"],drawOnly=args.drawOnly)
  
     config_copy = config.copy()
     test_compose(config_copy,[centerCluster],"scheduler_performance","SchedulerPerformance",[15000,20000,25000,30000],["15000","20000","25000","30000"],drawOnly=args.drawOnly)
 
     config_copy = config.copy()
-    test_compose(config_copy,[centerCluster],"load","TaskNumFactor",[6, 6.6, 7.2, 7.8],["1.0","1.1","1.2","1.3"],drawOnly=args.drawOnly)
-
-    config_copy = config.copy()
-    test_compose(config_copy,allclusters,"nodenum","NodeNum",[1000,3000,5000],["1k","3k","5k"],drawOnly=args.drawOnly)
+    test_compose(config_copy,[centerCluster,sharedCluster,sparrowCluster],"nodenum","NodeNum",[1000,3000,5000],["1k","3k","5k"],drawOnly=args.drawOnly)
  
     config_copy = config.copy()
     test_compose(config_copy,[sharedCluster],"StateUpdatePeriod","StateUpdatePeriod",[100,400,1000],["100ms","400ms","1000ms"],drawOnly=args.drawOnly)
 
     config_copy = config.copy()
-    test_compose(config_copy,allclusters,"net_lantency","NetLatency",[1,4,12],["1ms","4ms","12ms"],drawOnly=args.drawOnly)
+    test_compose(config_copy,[centerCluster,sharedCluster,sparrowCluster],"net_lantency","NetLatency",[1,4,12],["1ms","4ms","12ms"],drawOnly=args.drawOnly)
  
 
