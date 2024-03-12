@@ -11,6 +11,7 @@ import (
 
 const TASKS_EVENT_LOG_NAME = "tasks_event.log"
 const NETWORK_EVENT_LOG_NAME = "network_event.log"
+const TASK_SPEED_LOG_NAME = "task_speed.log"
 
 func InitLogs() {
 	// init tasks_event.log
@@ -50,6 +51,15 @@ func TaskEventLog(t time.Time, task *TaskInfo, host string) {
 func NetEventLog(t int64, eventType string, message *Message) {
 	timestr := fmt.Sprint(t)
 	err := common.AppendLineCsvFile(path.Join(config.Val.OutputDir, NETWORK_EVENT_LOG_NAME), []string{timestr, eventType, message.From, message.To})
+	if err != nil {
+		panic(err)
+	}
+}
+
+// 记录任务提交速率
+func TaskSpeedLog(t int64,task *TaskInfo) {
+	timestr := fmt.Sprint(t)
+	err := common.AppendLineCsvFile(path.Join(config.Val.OutputDir, TASK_SPEED_LOG_NAME), []string{timestr, task.Id})
 	if err != nil {
 		panic(err)
 	}

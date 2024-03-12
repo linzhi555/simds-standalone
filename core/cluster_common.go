@@ -38,6 +38,7 @@ func CommonTaskgenUpdate(c interface{}) {
 
 		LogInfo(taskgen.Os, fmt.Sprintf(": send task to %s %v", receiverAddr, newMessage.Body))
 		TaskEventLog(taskgen.Os.GetTime(), &newtask, receiverAddr)
+		TaskSpeedLog(_getTime_ms(taskgen.Os),&newtask)
 		taskgen.CurTaskId++
 	}
 }

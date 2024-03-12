@@ -7,7 +7,7 @@ TargetFolder:=./target/$(timeNow)
 Cluster=Center
 test: preDeal
 	@mkdir -p $(TargetFolder)
-	go run . -c $(Config) --OutputDir $(TargetFolder) --Cluster $(Cluster) >  $(TargetFolder)/components.log
+	go run . -c $(Config) --OutputDir $(TargetFolder) --Cluster $(Cluster) > /dev/null
 	@make analyse TargetFolder=$(TargetFolder)
 
 centerTest: 
@@ -26,9 +26,7 @@ preDeal:
 analyse:
 	go run ./analyse  --OutputDir $(TargetFolder) -c $(Config)
 	cp ./py/draw.py $(TargetFolder)
-	cd $(TargetFolder) && grep  'TaskGen : send task to' ./components.log > ./task_speed.log \
-	&& grep  'Info network.*sended' ./components.log > ./net.log \
-	&& python3 draw.py 
+	cd $(TargetFolder) && python3 draw.py 
 	#rm $(TargetFolder)/components.log
 
 ComposeFolder = ./test_compose

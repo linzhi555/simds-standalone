@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import os
-
+import re
 FONT_SIZE = 20
 LEGEND_SIZE = 15
 LINE_WIDTH = 2.0
@@ -50,7 +50,7 @@ def task_submit_rate_curves(filename: str) -> list:
     with open(filename, 'r') as logfile:
         l = logfile.readline()
         while l:
-            records.append(int(l.split(" ")[0]))
+            records.append(int(re.split(",|\s",l)[0]))
             l = logfile.readline()
     intervals = [0] * (records[-1] // 10 + 1)
     t = [i / 100 for i in range(0, len(intervals))]
@@ -68,7 +68,7 @@ def task_submit_rate_hist(filename: str) -> list:
     with open(filename, 'r') as logfile:
         l = logfile.readline()
         while l:
-            records.append(int(l.split(" ")[0]))
+            records.append(int(re.split(",|\s",l)[0]))
             l = logfile.readline()
 
     taskstream = [i/1000 for i in records]
