@@ -13,21 +13,21 @@ type Node struct {
 // Update  定义了如何在运行时如何更新集群所有组件类型的状态性息
 type Cluster struct {
 	Nodes   []Node
-	Setups  map[ComponentName]func(interface{})
-	Updates map[ComponentName]func(interface{})
+	Setups  map[ComponentName]func(Component)
+	Updates map[ComponentName]func(Component)
 }
 
 func createCluster() Cluster {
 	return Cluster{
 		Nodes:   make([]Node, 0),
-		Setups:  make(map[ComponentName]func(interface{})),
-		Updates: make(map[ComponentName]func(interface{})),
+		Setups:  make(map[ComponentName]func(Component)),
+		Updates: make(map[ComponentName]func(Component)),
 	}
 
 }
 
 // RegisterFunc 注册某个组件类型的初始化和更新方法
-func (cluster *Cluster) RegisterFunc(c ComponentName, setup, update func(interface{})) {
+func (cluster *Cluster) RegisterFunc(c ComponentName, setup, update func(Component)) {
 
 	cluster.Setups[c] = setup
 	cluster.Updates[c] = update

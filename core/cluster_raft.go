@@ -28,7 +28,7 @@ func BuildRaftCluster() Cluster {
 	return cluster
 }
 
-func RaftSetup(c interface{}) {
+func RaftSetup(c Component) {
 	raft := c.(*RaftManager)
 	raft.Role = Follower
 	raft.IsBroken = false
@@ -40,7 +40,7 @@ func RaftSetup(c interface{}) {
 
 }
 
-func RaftUpdate(c interface{}) {
+func RaftUpdate(c Component) {
 	raft := c.(*RaftManager)
 
 	//编程性故障模拟

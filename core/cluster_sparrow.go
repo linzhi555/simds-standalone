@@ -61,7 +61,7 @@ func BuildSparrowCluster() Cluster {
 
 // SparrowTaskgenSetup 对中心化集群的任务发生器进行初始化
 // 发送对象是集群的所有sparrow所有的Scheduler组件
-func SparrowTaskgenSetup(c interface{}) {
+func SparrowTaskgenSetup(c Component) {
 	taskgen := c.(*TaskGen)
 	taskgen.StartTime = taskgen.Os.GetTime()
 	for i := 0; i < getSparrowSchedulerNum(); i++ {
@@ -74,7 +74,7 @@ func SparrowTaskgenSetup(c interface{}) {
 
 // SparrowSchedulerSetup 模拟开始时对分布式集群调度器组件进行初始化
 // 和中心化调度器的不同 workers 存储的时邻域信息
-func SparrowSchedulerSetup(comp interface{}) {
+func SparrowSchedulerSetup(comp Component) {
 	scheduler := comp.(*Scheduler)
 
 	if strings.HasPrefix(scheduler.Host, "worker") {
@@ -96,7 +96,7 @@ func SparrowSchedulerSetup(comp interface{}) {
 // SparrowSchedulerUpdate 模拟器每次tick时对分布式集群的调度器组件进行初始化
 // 调度器组件可以自己收到任务直接运行，也可以将任务进行转发，之后处理转发失败以及成功信
 // 息，同时也要处理同类Scheduler的转发请求
-func SparrowSchedulerUpdate(comp interface{}) {
+func SparrowSchedulerUpdate(comp Component) {
 	scheduler := comp.(*Scheduler)
 
 	for !scheduler.Os.Net().Empty() {
@@ -273,7 +273,7 @@ func sparrowFinishHandle(scheduler *Scheduler, newMessage Message) {
 }
 
 // SparrowResourceManagerSetup 资源管理初始化，所有节点会发送任务结束通知给相同host的Scheduler组件
-func SparrowResourceManagerSetup(comp interface{}) {
+func SparrowResourceManagerSetup(comp Component) {
 	rm := comp.(*ResourceManager)
 	rm.TaskFinishReceiver = rm.Host + ":" + string(CScheduler)
 }

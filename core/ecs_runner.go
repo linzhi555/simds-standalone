@@ -102,6 +102,9 @@ func (n MockNetwork) Component() ComponentName { return CMockNetWork }
 // SetOsApi 实现 NodeComponent
 func (n *MockNetwork) SetOsApi(osapi OsApi) { n.Os = osapi }
 
+// SetOsApi 实现 NodeComponent
+func (n *MockNetwork) Debug() { log.Println(n.Waittings) }
+
 // String 用于Debug
 func (n MockNetwork) String() string {
 	var res string
@@ -167,7 +170,7 @@ func newSimulator(cluster Cluster) *ECS {
 
 }
 
-func covertFuncToSystem(c ComponentName, f func(interface{}), isSetup bool) func(e *ECS) {
+func covertFuncToSystem(c ComponentName, f func(Component), isSetup bool) func(e *ECS) {
 	return func(e *ECS) {
 		if isSetup {
 			if e.UpdateCount != 0 {
@@ -176,25 +179,8 @@ func covertFuncToSystem(c ComponentName, f func(interface{}), isSetup bool) func
 		}
 
 		componetTick := func(ecs *ECS, e EntityName, comp Component) Component {
-			switch t := comp.(type) {
-			case *TaskGen:
-				f(t)
-				return t
-			case *Scheduler:
-				f(t)
-				return t
-			case *ResourceManager:
-				f(t)
-				return t
-			case *StateStorage:
-				f(t)
-				return t
-			case *RaftManager:
-				f(t)
-				return t
-			default:
-				panic("wrong type componet,if there is new componet type, please add it there")
-			}
+			f(comp)
+			return comp
 		}
 		e.ApplyToAllComponent(c, componetTick)
 	}
@@ -287,18 +273,33 @@ func simdsLua(simulator *ECS) *lua.LState {
 
 	show := func(L *lua.LState) int {
 		arg1 := L.ToString(1) /* get argument */
-		switch arg1 {
-		case "cluster" :
-			log.Println("cluster is type:",config.Val.Cluster)
-		case "all":
+		switch {
+		case arg1 == "cluster":
+			log.Println("cluster is type:", config.Val.Cluster)
+		case arg1 == "all":
 			log.Printf(config.LogString())
+		case arg1 == "hosts":
+			keys := make([]EntityName, 0, len(simulator.Entities))
+			for en := range simulator.Entities {
+				keys = append(keys, en)
+			}
+			log.Println(keys)
+		default:
+			simulator.ShowEntities(EntityName(arg1))
 		}
 
 		return 1 /* number of results */
 	}
 
+	time := func(L *lua.LState) int {
+		log.Println("Simulator Time: ", simulator.UpdateCount/10, "ms")
+		return 1
+	}
+
+
 	l.SetGlobal("step", l.NewFunction(step))
 	l.SetGlobal("show", l.NewFunction(show))
+	l.SetGlobal("time", l.NewFunction(time))
 	return l
 }
 
@@ -310,7 +311,7 @@ func EcsRunClusterDebug(cluster Cluster) {
 	defer luaState.Close()
 
 	l, err := readline.NewEx(&readline.Config{
-		Prompt:          fmt.Sprintf("Simulator is Running...>> "),
+		Prompt:          fmt.Sprintf(">>> "),
 		HistoryFile:     "/tmp/readline.tmp",
 		InterruptPrompt: "^C",
 		EOFPrompt:       "exit",
@@ -325,7 +326,6 @@ func EcsRunClusterDebug(cluster Cluster) {
 
 	log.SetOutput(l.Stderr())
 	for {
-		log.Println("Simulator Time is ", simulator.UpdateCount/10, "ms")
 		line, err := l.Readline()
 		if err == readline.ErrInterrupt {
 			if len(line) == 0 {

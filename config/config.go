@@ -72,7 +72,7 @@ func init() {
 	}
 }
 
-func LogString() string{
+func LogString() string {
 	fields := strings.FieldsFunc(fmt.Sprintf("%+v\n", Val), func(r rune) bool {
 		return r == '{' || r == '}' || r == ' '
 	})

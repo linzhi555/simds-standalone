@@ -12,6 +12,7 @@ type ComponentName string
 // Component 泛型组件
 type Component interface {
 	Component() ComponentName
+	Debug()
 }
 
 // ComponentListNode 是 ComponentList 的一个节点，每个节点有具体componet,以及该componet 归属的实体
@@ -40,6 +41,12 @@ type ECS struct {
 	Entities    map[EntityName]componetIndex
 	Components  map[ComponentName]ComponentList
 	Systems     []System
+}
+
+func (ecs *ECS) ShowEntities(e EntityName) {
+	for c, index := range ecs.Entities[e] {
+		ecs.Components[c][index].componet.Debug()
+	}
 }
 
 // NewEcs 创建一个空的ECS

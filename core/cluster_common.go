@@ -7,7 +7,7 @@ import (
 
 // CommonTaskgenUpdate 通用的任务发生器，适
 // 用多种形式集群，通过Receivers字段来确定发送对象
-func CommonTaskgenUpdate(c interface{}) {
+func CommonTaskgenUpdate(c Component) {
 	taskgen := c.(*TaskGen)
 	timeNow := taskgen.Os.GetTime().Sub(taskgen.StartTime)
 	if timeNow <= 0 {
@@ -38,7 +38,7 @@ func CommonTaskgenUpdate(c interface{}) {
 
 		LogInfo(taskgen.Os, fmt.Sprintf(": send task to %s %v", receiverAddr, newMessage.Body))
 		TaskEventLog(taskgen.Os.GetTime(), &newtask, receiverAddr)
-		TaskSpeedLog(_getTime_ms(taskgen.Os),&newtask)
+		TaskSpeedLog(_getTime_ms(taskgen.Os), &newtask)
 		taskgen.CurTaskId++
 	}
 }
@@ -51,7 +51,7 @@ func CommonTaskgenUpdate(c interface{}) {
 // 4. 取消之前预分配，
 // 同时监控任务状态，在任务结束后发送任务结束信息给TaskFinishReceiver
 // 该TaskFinishReceiver 可在组件初始化函数中指定
-func CommonResourceManagerUpdate(comp interface{}) {
+func CommonResourceManagerUpdate(comp Component) {
 
 	rm := comp.(*ResourceManager)
 	hostTime := rm.Os.GetTime()

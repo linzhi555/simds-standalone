@@ -48,7 +48,7 @@ func BuildCenterCluster() Cluster {
 
 // CenterTaskgenSetup 对中心化集群的任务发生器进行初始化
 // 发送对象只有一个，发送时间未测试开始时
-func CenterTaskgenSetup(c interface{}) {
+func CenterTaskgenSetup(c Component) {
 	taskgen := c.(*TaskGen)
 	taskgen.StartTime = taskgen.Os.GetTime()
 	taskgen.Receivers = append(taskgen.Receivers, "master1"+":"+string(CScheduler))
@@ -56,7 +56,7 @@ func CenterTaskgenSetup(c interface{}) {
 
 // CenterSchedulerSetup 模拟开始时对中心化集群的调度器组件进行初始化
 // 调度器注册所有的worker信息，包括任务发送地址和节点资源信息
-func CenterSchedulerSetup(comp interface{}) {
+func CenterSchedulerSetup(comp Component) {
 	scheduler := comp.(*Scheduler)
 	for i := 0; i < int(config.Val.NodeNum); i++ {
 
@@ -69,7 +69,7 @@ func CenterSchedulerSetup(comp interface{}) {
 
 // CenterSchedulerUpdate 模拟器每次tick时对中心化集群的调度器组件进行初始化
 // 从网络中取出消息进行处理，然后进行有次数限制的调度动作
-func CenterSchedulerUpdate(comp interface{}) {
+func CenterSchedulerUpdate(comp Component) {
 
 	scheduler := comp.(*Scheduler)
 
@@ -166,7 +166,7 @@ func schdulingAlgorithm(scheduler *Scheduler, task *TaskInfo) (dstAddr string, o
 }
 
 // CenterResourceManagerSetup 资源管理初始化，所有节点会发送任务结束通知给master1
-func CenterResourceManagerSetup(comp interface{}) {
+func CenterResourceManagerSetup(comp Component) {
 	rm := comp.(*ResourceManager)
 	rm.TaskFinishReceiver = "master1" + ":" + string(CScheduler)
 

@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"log"
 	"simds-standalone/common"
 	"simds-standalone/config"
 	"time"
@@ -148,6 +149,8 @@ func (n TaskGen) Component() ComponentName { return CTaskGen }
 // SetOsApi for NodeComponent interface
 func (n *TaskGen) SetOsApi(osapi OsApi) { n.Os = osapi }
 
+func (n *TaskGen) Debug() {}
+
 // Scheduler 组件
 type Scheduler struct {
 	Os           OsApi
@@ -173,6 +176,11 @@ func (s Scheduler) Component() ComponentName { return CScheduler }
 
 // SetOsApi For NodeComponent interface
 func (s *Scheduler) SetOsApi(osapi OsApi) { s.Os = osapi }
+
+func (s *Scheduler) Debug() {
+	log.Println(s.WaitSchedule)
+	log.Println(s.TasksStatus)
+}
 
 // GetAllWokersName 返回worker 名称列表
 func (s *Scheduler) GetAllWokersName() []string {
@@ -214,6 +222,8 @@ func (s StateStorage) Component() ComponentName { return CStateStorage }
 // SetOsApi For NodeComponent interface
 func (s *StateStorage) SetOsApi(osapi OsApi) { s.Os = osapi }
 
+func (s *StateStorage) Debug() { log.Println(s.Workers) }
+
 // ResourceManager 组件
 type ResourceManager struct {
 	Os    OsApi
@@ -236,6 +246,8 @@ func (n ResourceManager) Component() ComponentName { return CResouceManger }
 
 // SetOsApi For NodeComponent interface
 func (n *ResourceManager) SetOsApi(osapi OsApi) { n.Os = osapi }
+
+func (n *ResourceManager) Debug() { log.Println(n.Tasks) }
 
 type RaftRole string
 
@@ -274,3 +286,5 @@ func (r RaftManager) Component() ComponentName { return CRaftManager }
 
 // SetOsApi For NodeComponent interface
 func (r *RaftManager) SetOsApi(osapi OsApi) { r.Os = osapi }
+
+func (r *RaftManager) Debug() {}

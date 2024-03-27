@@ -57,7 +57,7 @@ func NetEventLog(t int64, eventType string, message *Message) {
 }
 
 // 记录任务提交速率
-func TaskSpeedLog(t int64,task *TaskInfo) {
+func TaskSpeedLog(t int64, task *TaskInfo) {
 	timestr := fmt.Sprint(t)
 	err := common.AppendLineCsvFile(path.Join(config.Val.OutputDir, TASK_SPEED_LOG_NAME), []string{timestr, task.Id})
 	if err != nil {

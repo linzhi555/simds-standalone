@@ -59,7 +59,7 @@ func BuildShareStateCluster() Cluster {
 	return cluster
 }
 
-func shareStateStorageSetup(comp interface{}) {
+func shareStateStorageSetup(comp Component) {
 	storage := comp.(*StateStorage)
 	storage.LastSendTime = storage.Os.GetTime()
 	for i := 0; i < int(config.Val.NodeNum); i++ {
@@ -76,7 +76,7 @@ type CommitReply struct {
 
 func (CommitReply) MessageBody() {}
 
-func shareStateStorageUpdate(comp interface{}) {
+func shareStateStorageUpdate(comp Component) {
 	storage := comp.(*StateStorage)
 	timeNow := storage.Os.GetTime()
 
@@ -151,7 +151,7 @@ func shareStateStorageUpdate(comp interface{}) {
 	}
 }
 
-func shareTaskgenSetup(c interface{}) {
+func shareTaskgenSetup(c Component) {
 	taskgen := c.(*TaskGen)
 	//wait the schedulers until state updated, then launch the taskgen
 	taskgen.StartTime = taskgen.Os.GetTime().Add(time.Millisecond * time.Duration(config.Val.StateUpdatePeriod) * 2)
@@ -162,10 +162,10 @@ func shareTaskgenSetup(c interface{}) {
 	}
 }
 
-func shareSchedulerSetup(_ interface{}) {
+func shareSchedulerSetup(_ Component) {
 
 }
-func shareSchedulerUpdate(comp interface{}) {
+func shareSchedulerUpdate(comp Component) {
 	scheduler := comp.(*Scheduler)
 
 	for !scheduler.Os.Net().Empty() {
@@ -228,7 +228,7 @@ func shareSchedulerUpdate(comp interface{}) {
 		}
 	}
 }
-func shareResourceManagerSetup(comp interface{}) {
+func shareResourceManagerSetup(comp Component) {
 	rm := comp.(*ResourceManager)
 	rm.TaskFinishReceiver = "globalStateStorage" + ":" + string(CStateStorage)
 }
