@@ -211,6 +211,8 @@ def draw_muilt_lantencyCurve(tests: list):
     plt.subplots_adjust(left=0.19, right=0.93,bottom=0.15,top=0.95)
     plt.savefig('./lantency_compare.png')
 
+    plt.yscale("log", base=10)
+    plt.savefig('./lantency_compare_log.png')
 
 def draw_muilt_avg_resource(tests: list):
     """画多个实验的集群平均负载曲线对比图"""
@@ -316,25 +318,30 @@ def draw_task_submission_rate(tests: list):
         plt.clf()
 
         marker = markerGenerator()
-        taskstream = task_submit_rate_hist(os.path.join(t[0], "./task_speed.log"))
+        taskhist = task_submit_rate_hist(os.path.join(t[0], "./task_speed.log"))
+        curve = [0 for _ in range(0,len(taskhist)+1)]
+        for i in taskhist:
+            curve[int(i)] += 1
+
         staus = cluster_status_curves(os.path.join(t[0], "cluster_status.log"))
  
-        plt.hist(taskstream,bins=np.arange(37), histtype='bar',rwidth=0.7, color="c", label="tasks")
-        plt.ylabel(
+        ax1 = plt.axes()
+        ax1.hist(taskhist,bins=np.arange(37), histtype='bar',rwidth=0.7, color="c", label="tasks")
+        ax1.set_ylabel(
             "Tasks Rate(amount/s)",
             fontsize=FONT_SIZE,
         )
-        plt.xlabel("Time (s)", fontsize=FONT_SIZE)
-        plt.legend(fontsize=LEGEND_SIZE)
-
+        #ax1.set_ylim(0,max(curve) * 1.2)
+        ax1.set_ylim(0,11000)
+        ax1.set_xlabel("Time (s)", fontsize=FONT_SIZE)
         ax2 = plt.twinx()
         ax2.plot(staus[0], staus[2], lw=LINE_WIDTH, color="b", label="CPU", marker=marker.next(), markevery=8, markersize=7)
         ax2.plot(staus[0], staus[3], lw=LINE_WIDTH, color="r", label="Memory", marker=marker.next(), markevery=8, markersize=7)
 
         ax2.set_ylabel("Resources Utilization (%)", fontsize=FONT_SIZE)
-        ax2.legend(fontsize=LEGEND_SIZE)
-
-        plt.yticks(fontsize=FONT_SIZE*0.8)
+        ax2.set_ylim(0,100)
+        ax2.legend(fontsize=LEGEND_SIZE,loc='upper right')
+        ax1.legend(fontsize=LEGEND_SIZE,loc='upper left')
         plt.xticks(fontsize=FONT_SIZE*0.8)
 
         plt.grid(True)

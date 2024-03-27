@@ -96,7 +96,8 @@ if __name__ == "__main__":
 
 
     config_copy = config.copy()
-    test_compose(config_copy,[centerCluster],"task_mode","TaskMode",["noWave","onePeak","trace"],["Constantly Load","Pulse Load","Trace Load"],drawOnly=args.drawOnly)
+    config_copy["NodeNum"] = 1000
+    test_compose(config_copy,[centerCluster],"task_mode","TaskMode",["noWave","onePeak","trace"],["constantly","pulse","trace"],drawOnly=args.drawOnly)
  
     config_copy = config.copy()
     test_compose(config_copy,[centerCluster],"scheduler_performance","SchedulerPerformance",[15000,20000,25000,30000],["15000","20000","25000","30000"],drawOnly=args.drawOnly)
