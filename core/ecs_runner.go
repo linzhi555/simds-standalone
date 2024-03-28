@@ -103,7 +103,12 @@ func (n MockNetwork) Component() ComponentName { return CMockNetWork }
 func (n *MockNetwork) SetOsApi(osapi OsApi) { n.Os = osapi }
 
 // SetOsApi 实现 NodeComponent
-func (n *MockNetwork) Debug() { log.Println(n.Waittings) }
+func (n *MockNetwork) Debug() {  
+	fmt.Println("messages in networks:")
+	for _,m := range n.Waittings{
+		fmt.Printf("%+v\n",m)
+	}
+}
 
 // String 用于Debug
 func (n MockNetwork) String() string {
@@ -206,7 +211,6 @@ func networkTick(_ *ECS, _ EntityName, comp Component) Component {
 
 			n.Waittings.InQueue(newM)
 		}
-
 	}
 	for i := 0; i < len(n.Waittings); {
 		m := n.Waittings[i]
@@ -228,7 +232,6 @@ func networkTick(_ *ECS, _ EntityName, comp Component) Component {
 		} else {
 			i++
 		}
-
 	}
 
 	return n
@@ -270,6 +273,13 @@ func simdsLua(simulator *ECS) *lua.LState {
 		return 1 /* number of results */
 	}
 
+	to := func(L *lua.LState) int {
+		lv := L.ToInt(1) /* get argument */
+		simulator.UpdateNtimes(uint64(lv)-simulator.UpdateCount)
+		return 1 /* number of results */
+	}
+
+
 	show := func(L *lua.LState) int {
 		arg1 := L.ToString(1) /* get argument */
 		switch {
@@ -291,12 +301,13 @@ func simdsLua(simulator *ECS) *lua.LState {
 	}
 
 	time := func(L *lua.LState) int {
-		log.Println("Simulator Time: ", simulator.UpdateCount*1000*uint64(config.Val.FPS), "ms")
+		fmt.Printf("Simulator Time: %f s, UpdateFrames: %d, FPS: %d \n", float32(simulator.UpdateCount)/float32(config.Val.FPS),simulator.UpdateCount,config.Val.FPS)
 		return 1
 	}
 
 	l.SetGlobal("step", l.NewFunction(step))
 	l.SetGlobal("show", l.NewFunction(show))
+	l.SetGlobal("to", l.NewFunction(to))
 	l.SetGlobal("time", l.NewFunction(time))
 	return l
 }
@@ -309,7 +320,7 @@ func EcsRunClusterDebug(cluster Cluster) {
 	defer luaState.Close()
 
 	l, err := readline.NewEx(&readline.Config{
-		Prompt:          fmt.Sprintf(">>> "),
+		Prompt:          fmt.Sprintf("\033[32m>>> \033[0m"),
 		HistoryFile:     "/tmp/readline.tmp",
 		InterruptPrompt: "^C",
 		EOFPrompt:       "exit",
