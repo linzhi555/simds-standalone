@@ -230,5 +230,6 @@ func shareSchedulerUpdate(comp Component) {
 }
 func shareResourceManagerSetup(comp Component) {
 	rm := comp.(*ResourceManager)
+	rm.Node = NodeInfo{rm.Host, config.Val.NodeCpu, config.Val.NodeMemory, 0, 0}
 	rm.TaskFinishReceiver = "globalStateStorage" + ":" + string(CStateStorage)
 }

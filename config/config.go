@@ -15,6 +15,7 @@ import (
 
 // Config 全局的配置,在main开始前初始化
 var Val struct {
+	FPS        int32
 	ConfigPath string
 	Debug      bool
 	OutputDir  string
@@ -61,6 +62,8 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	
+	viper.SetDefault("FPS",10000)
 
 	viper.SetConfigFile(*configFile)
 	if err := viper.ReadInConfig(); err != nil {

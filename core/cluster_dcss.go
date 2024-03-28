@@ -367,5 +367,6 @@ func dcssFinishHandle(scheduler *Scheduler, newMessage Message) {
 // DcssResourceManagerSetup 资源管理初始化，所有节点会发送任务结束通知给相同host的Scheduler组件
 func DcssResourceManagerSetup(comp Component) {
 	rm := comp.(*ResourceManager)
+	rm.Node = NodeInfo{rm.Host, config.Val.NodeCpu, config.Val.NodeMemory, 0, 0}
 	rm.TaskFinishReceiver = rm.Host + ":" + string(CScheduler)
 }

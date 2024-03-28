@@ -19,6 +19,7 @@ type TaskInfo struct {
 	MemoryRequest     int32
 	StartTime         time.Time
 	LifeTime          time.Duration
+	LeftTime          time.Duration
 	Status            string
 	Worker            string
 	ScheduleFailCount int32
@@ -134,7 +135,7 @@ type Message struct {
 	From     string
 	To       string
 	Content  string
-	LeftTime int32
+	LeftTime time.Duration
 	Body     MessageBody
 }
 

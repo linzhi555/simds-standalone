@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"simds-standalone/config"
+	"time"
 )
 
 // CommonTaskgenUpdate 通用的任务发生器，适
@@ -69,6 +70,7 @@ func CommonResourceManagerUpdate(comp Component) {
 				if t.Status == "needStart" {
 					t.Status = "start"
 					t.StartTime = hostTime
+					t.LeftTime = t.LifeTime
 					LogInfo(rm.Os, "start task:", t)
 					TaskEventLog(hostTime, t, rm.Os.Net().GetAddr())
 				}
@@ -85,6 +87,7 @@ func CommonResourceManagerUpdate(comp Component) {
 		if newMessage.Content == "TaskRun" {
 			newTask := newMessage.Body.(TaskInfo)
 			newTask.StartTime = hostTime
+			newTask.LeftTime = newTask.LifeTime
 			rm.Tasks[newTask.Id] = &newTask
 			newTask.Status = "start"
 			LogInfo(rm.Os, "Start task:", newTask)
@@ -108,20 +111,24 @@ func CommonResourceManagerUpdate(comp Component) {
 		}
 
 	}
-
 	for id, t := range rm.Tasks {
-		if t.Status == "start" && hostTime.After(t.StartTime.Add(t.LifeTime)) {
-			t.Status = "finish"
-			TaskEventLog(hostTime, t, rm.Os.Net().GetAddr())
-			if rm.TaskFinishReceiver != "" {
-				informReceiverTaskStatus(rm, t, "TaskFinish")
+		if t.Status == "start" {
+			if t.LeftTime > 0 {
+				t.LeftTime -= time.Second / time.Duration(config.Val.FPS)
+
+			} else {
+				t.Status = "finish"
+				TaskEventLog(hostTime, t, rm.Os.Net().GetAddr())
+				if rm.TaskFinishReceiver != "" {
+					informReceiverTaskStatus(rm, t, "TaskFinish")
+				}
+				delete(rm.Tasks, id)
+				nodeinfo := _calculateNodeInfo(rm)
+				LogInfo(rm.Os, "Task Finished", t, "now, nodeinfo is", nodeinfo)
 			}
-			delete(rm.Tasks, id)
-			nodeinfo := _calculateNodeInfo(rm)
-			LogInfo(rm.Os, "Task Finished", t, "now, nodeinfo is", nodeinfo)
 		}
 	}
-
+	rm.Node = _calculateNodeInfo(rm)
 }
 
 func informReceiverTaskStatus(rm *ResourceManager, t *TaskInfo, content string) {

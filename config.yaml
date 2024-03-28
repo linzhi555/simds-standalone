@@ -1,3 +1,4 @@
+FPS:  10000            #hom many frame per second
 NodeNum:        1000    # how many large the cluster
 NetLatency:     1          # the average network latency, unit: milisecond 
 NodeCpu:        1000         # the node cpu capacity

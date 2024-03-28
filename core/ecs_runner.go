@@ -123,7 +123,7 @@ func (n MockNetwork) String() string {
 func newSimulator(cluster Cluster) *ECS {
 	simulator := NewEcs()
 	newNet := NewMockNetWork(config.Val.NetLatency)
-	getTimeFunc := func() time.Time { return ZEROTIME.Add(time.Duration(simulator.UpdateCount) * time.Microsecond * 100) }
+	getTimeFunc := func() time.Time { return ZEROTIME.Add(time.Duration(simulator.UpdateCount*1000000/uint64(config.Val.FPS))*time.Microsecond)}
 	card := CreateMockNetCard("network1" + ":" + string(CMockNetWork))
 	card.JoinNetWork(newNet)
 	newNet.SetOsApi(
@@ -197,7 +197,7 @@ func networkTick(_ *ECS, _ EntityName, comp Component) Component {
 			if common.IsSameHost(newM.To, newM.From) {
 				newM.LeftTime = 0
 			} else {
-				newM.LeftTime = common.RandIntWithRange(n.NetLatency*10, 0.3)
+				newM.LeftTime = time.Duration(common.RandIntWithRange(n.NetLatency*1000, 0.3)) * time.Microsecond
 			}
 
 			if err != nil {
@@ -211,7 +211,7 @@ func networkTick(_ *ECS, _ EntityName, comp Component) Component {
 	for i := 0; i < len(n.Waittings); {
 		m := n.Waittings[i]
 		needDelete := false
-		if m.LeftTime == 0 {
+		if m.LeftTime < 0 {
 			LogInfo(n.Os, ": new message sended", m.From, m.To, m.Content)
 			NetEventLog(_getTime_ms(n.Os), "sended", &m)
 			out, ok := n.Outs[m.To]
@@ -221,7 +221,7 @@ func networkTick(_ *ECS, _ EntityName, comp Component) Component {
 			needDelete = true
 			out.InQueue(m)
 		} else {
-			n.Waittings[i].LeftTime--
+			n.Waittings[i].LeftTime -= (time.Second / time.Duration(config.Val.FPS))
 		}
 		if needDelete {
 			n.Waittings.Delete(i)
@@ -253,12 +253,11 @@ func LogInfo(osapi OsApi, ins ...interface{}) {
 func EcsRunCluster(cluster Cluster) {
 	simulator := newSimulator(cluster)
 
-	var step uint64 = 10000
-	// 每帧间隔0.1ms ,1ms 渲染 10 帧
-	frameNum := uint64(config.Val.SimulateDuration * 10)
+	frameNum := uint64(config.Val.FPS * config.Val.SimulateDuration / 1000)
 
+	step := uint64(config.Val.FPS)
 	for simulator.UpdateCount < uint64(frameNum) {
-		log.Println("Simulation Progress", simulator.UpdateCount/10, "ms", "/", config.Val.SimulateDuration, "ms")
+		log.Println("Simulation Progress", simulator.UpdateCount*1000/uint64(config.Val.FPS), "ms", "/", config.Val.SimulateDuration, "ms")
 		simulator.UpdateNtimes(step)
 	}
 }
@@ -276,14 +275,14 @@ func simdsLua(simulator *ECS) *lua.LState {
 		switch {
 		case arg1 == "cluster":
 			log.Println("cluster is type:", config.Val.Cluster)
-		case arg1 == "all":
-			log.Printf(config.LogString())
+		case arg1 == "config":
+			fmt.Println(config.LogString())
 		case arg1 == "hosts":
 			keys := make([]EntityName, 0, len(simulator.Entities))
 			for en := range simulator.Entities {
 				keys = append(keys, en)
 			}
-			log.Println(keys)
+			fmt.Println(keys)
 		default:
 			simulator.ShowEntities(EntityName(arg1))
 		}
@@ -292,10 +291,9 @@ func simdsLua(simulator *ECS) *lua.LState {
 	}
 
 	time := func(L *lua.LState) int {
-		log.Println("Simulator Time: ", simulator.UpdateCount/10, "ms")
+		log.Println("Simulator Time: ", simulator.UpdateCount*1000*uint64(config.Val.FPS), "ms")
 		return 1
 	}
-
 
 	l.SetGlobal("step", l.NewFunction(step))
 	l.SetGlobal("show", l.NewFunction(show))

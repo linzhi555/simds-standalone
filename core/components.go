@@ -229,7 +229,7 @@ type ResourceManager struct {
 	Os    OsApi
 	Host  string
 	Tasks map[string]*TaskInfo
-	//Node               NodeInfo // do not store the information , calculate when needed from tasks
+	Node               NodeInfo // do not store the information , calculate when needed from tasks
 	TaskFinishReceiver string // if it is not zero , the receiver wiil get the notifiction
 }
 
@@ -247,7 +247,14 @@ func (n ResourceManager) Component() ComponentName { return CResouceManger }
 // SetOsApi For NodeComponent interface
 func (n *ResourceManager) SetOsApi(osapi OsApi) { n.Os = osapi }
 
-func (n *ResourceManager) Debug() { log.Println(n.Tasks) }
+func (n *ResourceManager) Debug() { 
+	res := fmt.Sprintln(n.Node)
+	res += fmt.Sprintln("tasks:")
+	for _,task := range n.Tasks{
+		res += fmt.Sprintln(*task)
+	}
+	fmt.Println(res)
+}
 
 type RaftRole string
 

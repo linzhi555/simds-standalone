@@ -1,5 +1,7 @@
 package core
 
+import "runtime"
+
 // 一个简单的ECS实现
 // ECS (entity componet system)是一种广泛用于游戏和模拟的架构
 
@@ -80,7 +82,7 @@ func (ecs *ECS) AddEntities(name EntityName, cs ...Component) {
 
 // ApplyToAllComponent 传入函数指针对ecs 所有 某种类型的组件进行并行更新
 func (ecs *ECS) ApplyToAllComponent(name ComponentName, f func(ecs *ECS, e EntityName, componet Component) Component) {
-	const RenderThreadNum = 100
+	RenderThreadNum := runtime.NumCPU() * 2
 	finishChan := make(chan bool, RenderThreadNum)
 	for i := 0; i < RenderThreadNum; i++ {
 		go func(id int) {
@@ -114,3 +116,11 @@ func (ecs *ECS) UpdateNtimes(n uint64) {
 		ecs.Update()
 	}
 }
+
+//func ClusterUtilization(ecs *ECS)string {
+//	for _ := range ecs.Components[CResouceManger]
+//
+//}
+
+
+

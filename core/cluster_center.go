@@ -130,7 +130,7 @@ func CenterSchedulerUpdate(comp Component) {
 // 在一个调度器中，每次更新执行调度算法的次数，该函数的影响参数是
 // performance : 该机器的性能参数 unit tasks / second
 func schdulingAlgorithmTimes(performance float32) int {
-	times_float := performance / 10000 // 每次更新相当于时间过去0.1毫秒，是 一秒的万分之一
+	times_float := performance / float32(config.Val.FPS) // 每次更新相当于时间 1 / config.Val/FPS秒
 
 	base := int(times_float)
 	var times_int int
@@ -168,6 +168,7 @@ func schdulingAlgorithm(scheduler *Scheduler, task *TaskInfo) (dstAddr string, o
 // CenterResourceManagerSetup 资源管理初始化，所有节点会发送任务结束通知给master1
 func CenterResourceManagerSetup(comp Component) {
 	rm := comp.(*ResourceManager)
+	rm.Node = NodeInfo{rm.Host, config.Val.NodeCpu, config.Val.NodeMemory, 0, 0}
 	rm.TaskFinishReceiver = "master1" + ":" + string(CScheduler)
 
 }
