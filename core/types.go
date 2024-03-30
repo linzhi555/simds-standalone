@@ -124,10 +124,25 @@ func (vec *Vec[T]) Dequeue() (T, error) {
 	return res, nil
 }
 
+// Dequeue 在Vector尾部出队
+func (vec *Vec[T]) Pop() (T, error) {
+	var res T
+	if vec.Empty() == true {
+		return res, errors.New("the queue is Empty")
+	}
+	res = (*vec)[vec.Len()-1]
+	*vec = (*vec)[0 : vec.Len()-1]
+	return res, nil
+}
+
 // Delete 删除Vector的某个元素
 func (vec *Vec[T]) Delete(index int) {
 	*vec = append((*vec)[0:index], (*vec)[index+1:vec.Len()]...)
+}
 
+// 清空Vector
+func (vec *Vec[T]) Clean() {
+	*vec = (*vec)[0:0]
 }
 
 // Message 用于组件信息传递

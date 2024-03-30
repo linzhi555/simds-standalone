@@ -103,32 +103,19 @@ func (n MockNetwork) Component() ComponentName { return CMockNetWork }
 func (n *MockNetwork) SetOsApi(osapi OsApi) { n.Os = osapi }
 
 // SetOsApi 实现 NodeComponent
-func (n *MockNetwork) Debug() {  
+func (n *MockNetwork) Debug() {
 	fmt.Println("messages in networks:")
-	for _,m := range n.Waittings{
-		fmt.Printf("%+v\n",m)
+	for _, m := range n.Waittings {
+		fmt.Printf("%+v\n", m)
 	}
-}
-
-// String 用于Debug
-func (n MockNetwork) String() string {
-	var res string
-	res += "Waittings: \n"
-	for _, v := range n.Waittings {
-		res += fmt.Sprintln(v)
-	}
-	res += "Routes: \n"
-	for k := range n.Outs {
-		res += fmt.Sprintln(k)
-	}
-
-	return res
 }
 
 func newSimulator(cluster Cluster) *ECS {
 	simulator := NewEcs()
 	newNet := NewMockNetWork(config.Val.NetLatency)
-	getTimeFunc := func() time.Time { return ZEROTIME.Add(time.Duration(simulator.UpdateCount*1000000/uint64(config.Val.FPS))*time.Microsecond)}
+	getTimeFunc := func() time.Time {
+		return ZEROTIME.Add(time.Duration(simulator.UpdateCount*1000000/uint64(config.Val.FPS)) * time.Microsecond)
+	}
 	card := CreateMockNetCard("network1" + ":" + string(CMockNetWork))
 	card.JoinNetWork(newNet)
 	newNet.SetOsApi(
@@ -162,41 +149,43 @@ func newSimulator(cluster Cluster) *ECS {
 		simulator.AddEntities(EntityName(node.Name), inited...)
 	}
 
-	// 组件 方法装换为 ECS 的system
-
-	for k, f := range cluster.Setups {
-		simulator.AddSystem(SystemName(string(k)+"_setup"), covertFuncToSystem(k, f, true))
-	}
-
-	for k, f := range cluster.Updates {
-		simulator.AddSystem(SystemName(string(k)+"_update"), covertFuncToSystem(k, f, false))
-	}
-	return simulator
-
-}
-
-func covertFuncToSystem(c ComponentName, f func(Component), isSetup bool) func(e *ECS) {
-	return func(e *ECS) {
-		if isSetup {
-			if e.UpdateCount != 0 {
-				return
-			}
-		}
-
+	// 初始化所有的节点
+	for c, f := range cluster.Setups {
 		componetTick := func(ecs *ECS, e EntityName, comp Component) Component {
 			f(comp)
 			return comp
 		}
-		e.ApplyToAllComponent(c, componetTick)
+		simulator.ApplyToAllComponent(c, componetTick)
 	}
+
+	NodesUpdatesFunc := func(e *ECS) {
+		finishChan := make(chan bool, len(cluster.Updates))
+		for componetname, updatefunc := range cluster.Updates {
+			go func(c ComponentName, f func(Component)) {
+				componetTick := func(ecs *ECS, e EntityName, comp Component) Component {
+					f(comp)
+					return comp
+				}
+				e.ApplyToAllComponent(c, componetTick)
+				finishChan <- true
+			}(componetname, updatefunc)
+		}
+		for i := 0; i < len(cluster.Updates); i++ {
+			<-finishChan
+		}
+	}
+	simulator.AddSystem(SystemName("nodes_update"), NodesUpdatesFunc)
+	return simulator
+
 }
 
 func networkTick(_ *ECS, _ EntityName, comp Component) Component {
 	n := comp.(*MockNetwork)
-
+	var t1, t2, t3 time.Time
+	t1 = time.Now()
 	for _, in := range n.Ins {
 		for !in.Empty() {
-			newM, err := in.Dequeue()
+			newM, err := in.Pop()
 			// message body can not be pointer
 			common.AssertTypeIsNotPointer(newM.Body)
 			if common.IsSameHost(newM.To, newM.From) {
@@ -212,6 +201,7 @@ func networkTick(_ *ECS, _ EntityName, comp Component) Component {
 			n.Waittings.InQueue(newM)
 		}
 	}
+	t2 = time.Now()
 	for i := 0; i < len(n.Waittings); {
 		m := n.Waittings[i]
 		needDelete := false
@@ -233,7 +223,12 @@ func networkTick(_ *ECS, _ EntityName, comp Component) Component {
 			i++
 		}
 	}
+	t3 = time.Now()
+	debug := false
+	if debug {
 
+		log.Println(t3.Sub(t2), t2.Sub(t1))
+	}
 	return n
 
 }
@@ -261,7 +256,9 @@ func EcsRunCluster(cluster Cluster) {
 	step := uint64(config.Val.FPS)
 	for simulator.UpdateCount < uint64(frameNum) {
 		log.Println("Simulation Progress", simulator.UpdateCount*1000/uint64(config.Val.FPS), "ms", "/", config.Val.SimulateDuration, "ms")
+		start := time.Now()
 		simulator.UpdateNtimes(step)
+		log.Println("render", step, "frames", "spend:", time.Since(start))
 	}
 }
 
@@ -275,10 +272,9 @@ func simdsLua(simulator *ECS) *lua.LState {
 
 	to := func(L *lua.LState) int {
 		lv := L.ToInt(1) /* get argument */
-		simulator.UpdateNtimes(uint64(lv)-simulator.UpdateCount)
+		simulator.UpdateNtimes(uint64(lv) - simulator.UpdateCount)
 		return 1 /* number of results */
 	}
-
 
 	show := func(L *lua.LState) int {
 		arg1 := L.ToString(1) /* get argument */
@@ -301,7 +297,7 @@ func simdsLua(simulator *ECS) *lua.LState {
 	}
 
 	time := func(L *lua.LState) int {
-		fmt.Printf("Simulator Time: %f s, UpdateFrames: %d, FPS: %d \n", float32(simulator.UpdateCount)/float32(config.Val.FPS),simulator.UpdateCount,config.Val.FPS)
+		fmt.Printf("Simulator Time: %f s, UpdateFrames: %d, FPS: %d \n", float32(simulator.UpdateCount)/float32(config.Val.FPS), simulator.UpdateCount, config.Val.FPS)
 		return 1
 	}
 

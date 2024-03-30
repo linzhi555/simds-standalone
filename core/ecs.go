@@ -1,6 +1,10 @@
 package core
 
-import "runtime"
+import (
+	"log"
+	"simds-standalone/config"
+	"time"
+)
 
 // 一个简单的ECS实现
 // ECS (entity componet system)是一种广泛用于游戏和模拟的架构
@@ -82,18 +86,32 @@ func (ecs *ECS) AddEntities(name EntityName, cs ...Component) {
 
 // ApplyToAllComponent 传入函数指针对ecs 所有 某种类型的组件进行并行更新
 func (ecs *ECS) ApplyToAllComponent(name ComponentName, f func(ecs *ECS, e EntityName, componet Component) Component) {
-	RenderThreadNum := runtime.NumCPU() * 2
+	allNum := len(ecs.Components[name])
+
+	RenderThreadNum := int(config.Val.GoProcs)
+	if allNum < int(config.Val.GoProcs) {
+		RenderThreadNum = allNum
+	}
+
 	finishChan := make(chan bool, RenderThreadNum)
+
+	partNum := allNum / RenderThreadNum
+	start := 0
+	end := start + partNum
 	for i := 0; i < RenderThreadNum; i++ {
-		go func(id int) {
-			for j := range ecs.Components[name] {
-				if j%RenderThreadNum == id {
-					entity := ecs.Components[name][j].belong
-					ecs.Components[name][j].componet = f(ecs, entity, ecs.Components[name][j].componet)
-				}
+		go func(s, e int) {
+			for j := s; j < e; j++ {
+				entity := ecs.Components[name][j].belong
+				ecs.Components[name][j].componet = f(ecs, entity, ecs.Components[name][j].componet)
 			}
 			finishChan <- true
-		}(i)
+		}(start, end)
+		start = end
+		if i == RenderThreadNum-2 {
+			end = allNum
+		} else {
+			end = start + partNum
+		}
 	}
 
 	for i := 0; i < RenderThreadNum; i++ {
@@ -105,7 +123,12 @@ func (ecs *ECS) ApplyToAllComponent(name ComponentName, f func(ecs *ECS, e Entit
 // Update 调用ECS 所有system 完成一次更新
 func (ecs *ECS) Update() {
 	for _, system := range ecs.Systems {
+		start := time.Now()
 		system.Function(ecs)
+		debug := false
+		if debug {
+			log.Println(system.Name, time.Since(start))
+		}
 	}
 	ecs.UpdateCount++
 }
@@ -121,6 +144,3 @@ func (ecs *ECS) UpdateNtimes(n uint64) {
 //	for _ := range ecs.Components[CResouceManger]
 //
 //}
-
-
-

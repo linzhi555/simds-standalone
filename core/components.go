@@ -179,16 +179,15 @@ func (s *Scheduler) SetOsApi(osapi OsApi) { s.Os = osapi }
 
 func (s *Scheduler) Debug() {
 	fmt.Println("task queues:")
-	for _,task := range s.WaitSchedule{
-		fmt.Printf("%+v\n",task)
+	for _, task := range s.WaitSchedule {
+		fmt.Printf("%+v\n", task)
 	}
 
 	fmt.Println()
 	fmt.Println("task status:")
-	for task,state := range s.TasksStatus{
-		fmt.Printf("task:%+v status:%+v \n",task,state)
+	for task, state := range s.TasksStatus {
+		fmt.Printf("task:%+v status:%+v \n", task, state)
 	}
-
 
 }
 
@@ -236,11 +235,11 @@ func (s *StateStorage) Debug() { log.Println(s.Workers) }
 
 // ResourceManager 组件
 type ResourceManager struct {
-	Os    OsApi
-	Host  string
-	Tasks map[string]*TaskInfo
+	Os                 OsApi
+	Host               string
+	Tasks              map[string]*TaskInfo
 	Node               NodeInfo // do not store the information , calculate when needed from tasks
-	TaskFinishReceiver string // if it is not zero , the receiver wiil get the notifiction
+	TaskFinishReceiver string   // if it is not zero , the receiver wiil get the notifiction
 }
 
 // NewResourceManager 创建新的ResourceManager
@@ -257,11 +256,11 @@ func (n ResourceManager) Component() ComponentName { return CResouceManger }
 // SetOsApi For NodeComponent interface
 func (n *ResourceManager) SetOsApi(osapi OsApi) { n.Os = osapi }
 
-func (n *ResourceManager) Debug() { 
-	res := fmt.Sprintf("%+v\n",n.Node)
+func (n *ResourceManager) Debug() {
+	res := fmt.Sprintf("%+v\n", n.Node)
 	res += fmt.Sprintln("tasks:")
-	for _,task := range n.Tasks{
-		res += fmt.Sprintf("%+v\n",*task)
+	for _, task := range n.Tasks {
+		res += fmt.Sprintf("%+v\n", *task)
 	}
 	fmt.Println(res)
 }

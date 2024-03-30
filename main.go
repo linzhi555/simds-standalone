@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"path"
+	"runtime"
 	"time"
 
 	"simds-standalone/common"
@@ -11,6 +12,9 @@ import (
 )
 
 func main() {
+
+	runtime.GOMAXPROCS(int(config.Val.GoProcs))
+
 	// 模拟性能分析,调试用
 	common.StartPerf()
 	defer common.StopPerf()
@@ -40,10 +44,13 @@ func main() {
 	time.Sleep(3 * time.Second)
 
 	if config.Val.Debug {
+		// 使用调度控制台模式运行集群
 		core.EcsRunClusterDebug(cluster)
 	} else {
 		// 用ECS 运行该集群
+		start := time.Now()
 		core.EcsRunCluster(cluster)
+		log.Println("simulation finished, time used: ", time.Since(start))
 	}
 
 }
