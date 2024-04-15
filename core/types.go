@@ -7,6 +7,27 @@ import (
 	"time"
 )
 
+type Cluster struct {
+	Nodes []Node
+}
+
+type NodeType string
+
+type Node interface {
+	Debug()
+	SetOsApi(OsApi)
+	Setup()
+	Update()
+}
+
+// OsApi 系统调用 抽象接口
+type OsApi interface {
+	GetTime() time.Time
+	Net() NetInterface
+	Run()
+	LogInfo(ins ...interface{})
+}
+
 // MessageBody Message的Body字段
 type MessageBody interface {
 	MessageBody()
@@ -78,7 +99,7 @@ func (n *NodeInfo) CanAllocateTask(task *TaskInfo) bool {
 }
 
 // Vec 为三种类型定义Vector
-type Vec[T TaskInfo | NodeInfo | Message] []T
+type Vec[T any] []T
 
 // MessageBody Vec[T] 是 MessageBody
 func (vec Vec[T]) MessageBody() {}
@@ -92,9 +113,7 @@ func (vec *Vec[T]) InQueueFront(data T) {
 // Clone 拷贝一份新的Vec[T]
 func (vec *Vec[T]) Clone() *Vec[T] {
 	newVec := make(Vec[T], len(*vec))
-	for i, data := range *vec {
-		newVec[i] = data
-	}
+	copy(newVec, *vec)
 	return &newVec
 }
 
@@ -116,7 +135,7 @@ func (vec *Vec[T]) Empty() bool {
 // Dequeue 在Vector头部出队
 func (vec *Vec[T]) Dequeue() (T, error) {
 	var res T
-	if vec.Empty() == true {
+	if vec.Empty() {
 		return res, errors.New("the queue is Empty")
 	}
 	res = (*vec)[0]
@@ -127,7 +146,7 @@ func (vec *Vec[T]) Dequeue() (T, error) {
 // Dequeue 在Vector尾部出队
 func (vec *Vec[T]) Pop() (T, error) {
 	var res T
-	if vec.Empty() == true {
+	if vec.Empty() {
 		return res, errors.New("the queue is Empty")
 	}
 	res = (*vec)[vec.Len()-1]

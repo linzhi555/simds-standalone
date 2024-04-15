@@ -49,6 +49,12 @@ var Val struct {
 
 	//ShareState
 	StateUpdatePeriod int32
+
+	// in deploy mode
+	K8SConfig       string
+	K8STemplatePath string
+	DockerImageRepo string
+	NodeName        string
 }
 
 func init() {
@@ -56,6 +62,7 @@ func init() {
 	pflag.String("Cluster", "", "which type cluster to run,for example Dcss,Center,ShareState...")
 	pflag.Bool("Debug", false, "run the cluster in debug mode")
 	pflag.String("OutputDir", ".", "where to output the result files")
+	pflag.String("NodeName", "", "the node name")
 	pflag.Int("GoProcs", -1, "how many CPU used for the simulation")
 	pflag.Parse()
 

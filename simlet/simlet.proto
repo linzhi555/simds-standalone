@@ -1,0 +1,19 @@
+syntax = "proto3";
+option go_package = "./svc;svc";
+package svc;
+
+service simletServer{
+    rpc SendMessage(Message) returns (Response) {}
+}
+
+message Message{
+    string From = 10;
+    string To = 20;
+    string ClusterType = 30;
+    string Body = 40;
+}
+
+message Response{
+    bool OK = 10;
+    string ErrMsg = 20;
+}

@@ -27,3 +27,7 @@ SparrowSchedulerNumFactor:  0.0300
 
 # only in share state cluster
 StateUpdatePeriod:   100   # the period of scheduler get the newest cluster state, unit : milisecond
+
+K8SConfig: "/home/lin/dev/admin.conf"
+K8STemplatePath: "./simctl/template"
+DockerImageRepo: "registry.cn-hangzhou.aliyuncs.com/lin2631/simlet:latest"
