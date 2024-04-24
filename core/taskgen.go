@@ -7,9 +7,11 @@ import (
 	"time"
 )
 
+const TASKS_EVENT_LOG_NAME = "tasks_event.log"
+
 type TaskGen struct {
-	Os        OsApi
-	Host      string
+	BasicNode
+	Started   bool
 	StartTime time.Time
 	CurTaskId int
 	Receivers []string
@@ -25,7 +27,7 @@ type SrcNode struct {
 func NewTaskGen(hostname string) *TaskGen {
 
 	taskgen := &TaskGen{
-		Host:      hostname,
+		BasicNode: BasicNode{Host: hostname},
 		CurTaskId: 0,
 	}
 
@@ -104,20 +106,21 @@ func onePeakTaskStream() []SrcNode {
 	return src
 }
 
-// SetOsApi for NodeComponent interface
-func (n *TaskGen) SetOsApi(osapi OsApi) { n.Os = osapi }
-
 func (n *TaskGen) Debug() {}
 
-// CommonTaskgenUpdate 通用的任务发生器，适
-// 用多种形式集群，通过Receivers字段来确定发送对象
 func (taskgen *TaskGen) Update() {
+	if !taskgen.Started {
+		taskgen.StartTime = taskgen.Os.GetTime()
+		taskgen.Started = true
+		return
+	}
+
 	timeNow := taskgen.Os.GetTime().Sub(taskgen.StartTime)
 	if timeNow <= 0 {
 		return
 	}
 
-	taskgenAddr := taskgen.Os.Net().GetAddr()
+	taskgenAddr := taskgen.GetHostName()
 
 	receiverNum := len(taskgen.Receivers)
 
@@ -134,14 +137,14 @@ func (taskgen *TaskGen) Update() {
 			Content: "TaskDispense",
 			Body:    newtask,
 		}
-		err := taskgen.Os.Net().Send(newMessage)
+		err := taskgen.Os.Send(newMessage)
 		if err != nil {
 			panic(err)
 		}
-
-		taskgen.Os.LogInfo(taskgen.Os, fmt.Sprintf(": send task to %s %v", receiverAddr, newMessage.Body))
-		//TaskEventLog(taskgen.Os.GetTime(), &newtask, receiverAddr)
-		//TaskSpeedLog(_getTime_ms(taskgen.Os), &newtask)
+		taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", taskgen.GetHostName(), fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
 		taskgen.CurTaskId++
 	}
+}
+
+func (taskgen *TaskGen) SimulateTasksUpdate() {
 }

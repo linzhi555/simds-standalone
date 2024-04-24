@@ -13,19 +13,33 @@ type Cluster struct {
 
 type NodeType string
 
+type BasicNode struct {
+	Os   OsApi
+	Host string
+}
+
+func (b *BasicNode) GetHostName() string {
+	return b.Host
+}
+
+func (b *BasicNode) SetOsApi(os OsApi) {
+	b.Os = os
+}
+
 type Node interface {
+	GetHostName() string
 	Debug()
+	SimulateTasksUpdate() //Only  In Simulation Mode
 	SetOsApi(OsApi)
-	Setup()
 	Update()
 }
 
 // OsApi 系统调用 抽象接口
 type OsApi interface {
+	NetInterface
 	GetTime() time.Time
-	Net() NetInterface
-	Run()
-	LogInfo(ins ...interface{})
+	Run(f func())
+	LogInfo(out string, ins ...string)
 }
 
 // MessageBody Message的Body字段
@@ -44,6 +58,7 @@ type TaskInfo struct {
 	Status            string
 	Worker            string
 	ScheduleFailCount int32
+	Cmd               string
 }
 
 // MessageBody TaskInfo 是MessageBody
@@ -175,8 +190,7 @@ type Message struct {
 
 // NetInterface 用于处理 Message
 type NetInterface interface {
-	Empty() bool
+	HasMessage() bool
 	Recv() (Message, error)
 	Send(Message) error
-	GetAddr() string
 }

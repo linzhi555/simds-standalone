@@ -7,7 +7,7 @@ TargetFolder:=./target/$(timeNow)
 Cluster=Center
 test: preDeal
 	@mkdir -p $(TargetFolder)
-	go run . -c $(Config) --OutputDir $(TargetFolder) --Cluster $(Cluster) > /dev/null
+	go run ./standalone -c $(Config) --OutputDir $(TargetFolder) --Cluster $(Cluster) > $(TargetFolder)/stdout.log
 	@make analyse TargetFolder=$(TargetFolder)
 
 centerTest: 
