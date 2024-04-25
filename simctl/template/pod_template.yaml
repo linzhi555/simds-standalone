@@ -13,12 +13,12 @@ spec:
     command: 
     - /bin/bash
     imagePullPolicy: Always
-    resources:
-      requests:
-        cpu: "1"
-        memory: "500Mi"
-      limits:
-        cpu: "1"
-        memory: "500Mi"
+    # resources:
+    #   requests:
+    #     cpu: "1"
+    #     memory: "500Mi"
+    #   limits:
+    #     cpu: "1"
+    #     memory: "500Mi"
   imagePullSecrets:
     - name: regcred

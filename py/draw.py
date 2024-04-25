@@ -22,26 +22,15 @@ class markerGenerator():
 
 def net_commuication_rate_curves(filename: str) -> list:
     """输入日志输出网络请求速率曲线"""
-    records = []
+    t = []
+    amount = []
     with open(filename, 'r') as csvfile:
         plots = csv.reader(csvfile, delimiter=',')
         next(plots)
         for row in plots:
-            records.append(int(row[0]))
-    intervals = [0] * (records[-1] // 10 + 1)
-    t = [i / 100 for i in range(0, len(intervals))]
-    for i in records:
-        intervals[i // 10] += 1
-    intervals = [100 * i for i in intervals]
-
-    y = np.array(intervals)
-    # 滤波使曲线光滑
-    #oldy = np.array(intervals)
-    #halfSampleNum = 4
-    #for i in range(halfSampleNum, len(intervals) - halfSampleNum):
-    #    y[i] = oldy[i - halfSampleNum:i +
-    #                halfSampleNum].sum() / (2 * halfSampleNum)
-    return [t, y]
+            t.append(int(row[0])/1000)
+            amount.append(int(row[1]))
+    return [t,amount]
 
 
 def task_submit_rate_curves(filename: str) -> list:
@@ -148,7 +137,7 @@ def draw_in_current_test_folder():
     ax3.set_xlabel("Time unit: s", fontsize=FONT_SIZE)
     ax3.legend(fontsize=LEGEND_SIZE)
 
-    res = net_commuication_rate_curves("./network_event.log")
+    res = net_commuication_rate_curves("./all_net_curve.log")
     ax4 = fig.add_subplot(313)
     ax4.plot(res[0],
              res[1],

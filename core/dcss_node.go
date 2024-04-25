@@ -65,15 +65,15 @@ func (node *DcssNode) dcssTaskDispenseHandle(newMessage Message) {
 			node._dcssDivideTask(task)
 		case "random":
 			n := rand.Float32()
-			if n < 0.1 {
-				node.Os.LogInfo("stdout", node.GetHostName(), "dispense task directly", fmt.Sprint(task))
-				node._dispenseTask(task)
-			} else if n < 0.2 {
+			if n < 0.3 {
+				node.Os.LogInfo("stdout", node.GetHostName(), "schedule task later", fmt.Sprint(task))
+				node._delaySchedule(task)
+			} else if n < 0.6 {
 				node.Os.LogInfo("stdout", node.GetHostName(), "divide process start", fmt.Sprint(task))
 				node._dcssDivideTask(task)
 			} else {
-				node.Os.LogInfo("stdout", node.GetHostName(), "schedule task later", fmt.Sprint(task))
-				node._delaySchedule(task)
+				node.Os.LogInfo("stdout", node.GetHostName(), "dispense task directly", fmt.Sprint(task))
+				node._dispenseTask(task)
 			}
 		default:
 			panic("wrong divide policy")
@@ -84,17 +84,7 @@ func (node *DcssNode) dcssTaskDispenseHandle(newMessage Message) {
 func (node *DcssNode) _delaySchedule(task TaskInfo) {
 	task.Status = "delaySchedule"
 	task.LeftTime = time.Millisecond * 10
-	node.TaskMap[task.Id] = &task
-	newMessage := Message{
-		From:    node.GetHostName(),
-		To:      node.GetHostName(),
-		Content: "TaskDispense",
-		Body:    task,
-	}
-	err := node.Os.Send(newMessage)
-	if err != nil {
-		panic(err)
-	}
+	node.RunningTask[task.Id] = &task
 }
 
 func (node *DcssNode) _dcssDivideTask(task TaskInfo) {
@@ -246,11 +236,17 @@ func (node *DcssNode) SimulateTasksUpdate() {
 	for _, t := range node.RunningTask {
 		if t.LeftTime > 0 {
 			t.LeftTime -= (time.Second / time.Duration(config.Val.FPS))
+			messageType := ""
+			if t.Status == "start" {
+				messageType = "TaskFinish"
+			} else if t.Status == "delaySchedule" {
+				messageType = "TaskDispense"
+			}
 			if t.LeftTime <= 0 {
 				newMessage := Message{
 					From:    node.GetHostName(),
 					To:      node.GetHostName(),
-					Content: "TaskFinish",
+					Content: messageType,
 					Body:    *t,
 				}
 				err := node.Os.Send(newMessage)

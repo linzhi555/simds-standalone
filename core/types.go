@@ -3,7 +3,10 @@ package core
 // types.go 定义一系列的基础类型
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -40,6 +43,28 @@ type OsApi interface {
 	GetTime() time.Time
 	Run(f func())
 	LogInfo(out string, ins ...string)
+}
+
+func ToJson[T MessageBody](t T) string {
+	bytes, err := json.Marshal(t)
+	if err != nil {
+		panic(err)
+	}
+	return string(bytes)
+}
+
+func FromJson(contentType string, s string) MessageBody {
+	if strings.HasPrefix(contentType, "Task") {
+		var res TaskInfo
+		err := json.Unmarshal([]byte(s), &res)
+		if err != nil {
+			panic(err)
+		}
+		return res
+	} else {
+		panic("wrong message type " + fmt.Sprint(contentType))
+	}
+
 }
 
 // MessageBody Message的Body字段

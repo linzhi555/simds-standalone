@@ -32,6 +32,8 @@ func main() {
 	taskevents := ReadTaskEventCsv(taskLogFile)
 	info("output sorted events line...")
 	taskevents.Output(outputDir)
+	info("output task submit events")
+	taskevents.OutputTaskSubmitRate(outputDir)
 	info("init cluster ...")
 	c := InitCluster(taskevents)
 	info("analysing latency...")

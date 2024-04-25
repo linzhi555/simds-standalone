@@ -6,10 +6,11 @@ service simletServer{
     rpc SendMessage(Message) returns (Response) {}
 }
 
+
 message Message{
     string From = 10;
     string To = 20;
-    string ClusterType = 30;
+    string Content = 30;
     string Body = 40;
 }
 

@@ -65,6 +65,21 @@ func (l TaskEventLine) Output(outputDir string) {
 	}
 }
 
+func (l TaskEventLine) OutputTaskSubmitRate(outputDir string) {
+	outputfile := path.Join(outputDir, "task_speed.log")
+	startTime := l[0].Time
+	for _, event := range l {
+
+		if event.Type == SUBMIT {
+			err := common.AppendLineCsvFile(outputfile, []string{fmt.Sprint(event.Time.Sub(startTime).Milliseconds()), event.Type})
+			if err != nil {
+				panic(err)
+			}
+		}
+
+	}
+}
+
 const (
 	_time   = 0
 	_taskid = 1

@@ -23,19 +23,10 @@ func main() {
 	// core.InitLogs()
 	config.LogConfig(path.Join(config.Val.OutputDir, "config.log"))
 
-	// 请将添加的集群在这里注册
-	clusterMarket := map[string]func() core.Cluster{
-		"Center": core.BuildCenterCluster,
-
-		"Dcss": core.BuildDcssCluster,
-		// "ShareState": core.BuildShareStateCluster,
-		// "Raft":       core.BuildRaftCluster,
-		// "Sparrow":    core.BuildSparrowCluster,
-	}
-	clusterBuilder, ok := clusterMarket[config.Val.Cluster]
+	clusterBuilder, ok := core.ClusterMarket[config.Val.Cluster]
 	if !ok {
-		keys := make([]string, 0, len(clusterMarket))
-		for k := range clusterMarket {
+		keys := make([]string, 0, len(core.ClusterMarket))
+		for k := range core.ClusterMarket {
 			keys = append(keys, k)
 		}
 		log.Panicln("wrong type of cluster,registed cluster is", keys)
@@ -47,14 +38,5 @@ func main() {
 
 	simulator := engine.InitEngine(cluster)
 	simulator.Run()
-	// if config.Val.Debug {
-	// 	// 使用调度控制台模式运行集群
-	// 	engine.InitEngine(cluster)
-	// } else {
-	// 	// 用ECS 运行该集群
-	// 	start := time.Now()
-	// 	engine.EcsRunCluster(cluster)
-	// 	log.Println("simulation finished, time used: ", time.Since(start))
-	// }
 
 }
