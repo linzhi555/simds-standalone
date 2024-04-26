@@ -77,12 +77,14 @@ func onePeakTaskStream() []SrcNode {
 	baseTimeDelta := int64(time.Second) / int64(taskNumPerSecond)
 	src := make([]SrcNode, 0)
 	for i := 0; ; i++ {
+		lifeTime := time.Duration(common.RandIntWithRange(config.Val.TaskLifeTime, 0.5)) * time.Millisecond
 		newTask := TaskInfo{
 			Id:            fmt.Sprintf("task%d", i),
 			CpuRequest:    common.RandIntWithRange(config.Val.TaskCpu, 0.5),
 			MemoryRequest: common.RandIntWithRange(config.Val.TaskMemory, 0.5),
-			LifeTime:      time.Duration(common.RandIntWithRange(config.Val.TaskLifeTime, 0.5)) * time.Millisecond,
+			LifeTime:      lifeTime,
 			Status:        "submit",
+			Cmd:           fmt.Sprintf("sleep %f", lifeTime.Seconds()),
 		}
 
 		var t time.Duration

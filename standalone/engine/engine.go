@@ -167,6 +167,7 @@ func (engine *Engine) updateNetwork() {
 
 }
 
+// 对集群更新一次状态，推进一个单位时间
 func (engine *Engine) Update() {
 	engine.updateNodes()
 	engine.updateNetwork()

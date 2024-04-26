@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"math/rand"
+	"os/exec"
 	"simds-standalone/config"
 	"time"
 )
@@ -52,10 +53,7 @@ func (node *DcssNode) dcssTaskDispenseHandle(newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
 	if node.LocalNode.CanAllocateTask(&task) {
 		node.LocalNode.AddAllocated(task.CpuRequest, task.MemoryRequest)
-		task.StartTime = node.Os.GetTime()
-		task.LeftTime = task.LifeTime
-		task.Status = "start"
-		node.RunningTask[task.Id] = &task
+		node._runTask(&task)
 		node.Os.LogInfo("stdout", node.GetHostName(), "TaskRun", fmt.Sprint(task))
 		node.Os.LogInfo(TASKS_EVENT_LOG_NAME, task.Id, "start", node.GetHostName(), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest))
 	} else {
@@ -187,15 +185,34 @@ func (node *DcssNode) dcssTaskDivideAllocateHandle(newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
 	if t, ok := node.TaskMap[task.Id]; ok {
 		if t.Status == "needStart" {
-			t.StartTime = node.Os.GetTime()
-			t.LeftTime = task.LifeTime
-			t.Status = "start"
-			node.RunningTask[t.Id] = t
+			node._runTask(t)
 			delete(node.TaskMap, t.Id)
 			node.Os.LogInfo("stdout", node.GetHostName(), "TaskRun", fmt.Sprint(*t))
 			node.Os.LogInfo(TASKS_EVENT_LOG_NAME, task.Id, "start", node.GetHostName(), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest))
 		}
 	}
+}
+
+func (node *DcssNode) _runTask(t *TaskInfo) {
+	t.StartTime = node.Os.GetTime()
+	t.LeftTime = t.LifeTime
+	t.Status = "start"
+	node.RunningTask[t.Id] = t
+	node.Os.Run(func() {
+		cmd := exec.Command("bash", "-c", t.Cmd)
+		cmd.Run()
+		newMessage := Message{
+			From:    node.GetHostName(),
+			To:      node.GetHostName(),
+			Content: "TaskFinish",
+			Body:    *t,
+		}
+		err := node.Os.Send(newMessage)
+		if err != nil {
+			panic(err)
+		}
+
+	})
 }
 
 func (node *DcssNode) dcssTaskDivideCancelHandle(newMessage Message) {
