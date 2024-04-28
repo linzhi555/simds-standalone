@@ -46,14 +46,16 @@ func (input *Input) HasMessage() bool {
 type server struct {
 }
 
+const NETWORK_EVENT_LOG_NAME = "network_event.log"
+
 func (s *server) SendMessage(ctx context.Context, msg *svc.Message) (*svc.Response, error) {
-	log.Println(msg.From)
 	NodeInput.InQueue(core.Message{
 		From:    msg.From,
 		To:      msg.To,
 		Content: msg.Content,
 		Body:    core.FromJson(msg.Content, msg.Body),
 	})
+	_logInfo(NETWORK_EVENT_LOG_NAME, msg.Content, msg.From, msg.To)
 	return &svc.Response{OK: true, ErrMsg: "null"}, nil
 }
 
@@ -151,7 +153,11 @@ func (o *NodeOs) Send(m core.Message) error {
 }
 
 func (o *NodeOs) LogInfo(out string, items ...string) {
-	timestr := o.GetTime().Format(time.RFC3339Nano)
+	_logInfo(out, items...)
+}
+
+func _logInfo(out string, items ...string) {
+	timestr := time.Now().Format(time.RFC3339Nano)
 	s := ""
 	if out == "stdout" {
 		s += fmt.Sprint(timestr)
@@ -189,6 +195,10 @@ func testGrpc() {
 
 func main() {
 	log.Println("simlet started as", config.Val.NodeName)
+
+	// Init log file
+	common.AppendLineCsvFile(NETWORK_EVENT_LOG_NAME, []string{"time", "type", "from", "to"})
+	common.AppendLineCsvFile(core.TASKS_EVENT_LOG_NAME, []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
 	go InputServing()
 
 	// core.InitLogs()
@@ -215,12 +225,13 @@ func main() {
 
 	// Init input channel
 	time.Sleep(time.Second * 3)
-	testGrpc()
 	// run node
 	for {
-		timer1 := time.NewTimer(3 * time.Millisecond)
+		start := time.Now()
+		timer1 := time.NewTimer(time.Millisecond)
 		NodeState.Update()
 		<-timer1.C
+		fmt.Println(time.Since(start))
 	}
 
 }

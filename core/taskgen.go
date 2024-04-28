@@ -117,21 +117,35 @@ func (taskgen *TaskGen) Update() {
 		return
 	}
 
-	timeNow := taskgen.Os.GetTime().Sub(taskgen.StartTime)
-	if timeNow <= 0 {
-		return
+	for taskgen.Os.HasMessage() {
+		msg, err := taskgen.Os.Recv()
+		if err != nil {
+			panic(err)
+		}
+
+		switch msg.Content {
+		case "TaskStart":
+			newtask := msg.Body.(TaskInfo)
+			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "start", taskgen.GetHostName(), fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+		case "TaskFinish":
+			newtask := msg.Body.(TaskInfo)
+			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "finish", taskgen.GetHostName(), fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+		}
+
 	}
 
 	taskgenAddr := taskgen.GetHostName()
 
 	receiverNum := len(taskgen.Receivers)
 
+	timeNow := taskgen.Os.GetTime().Sub(taskgen.StartTime)
 	for taskgen.CurTaskId < len(taskgen.Src) {
 		if taskgen.Src[taskgen.CurTaskId].time > timeNow {
 			break
 		}
 
 		newtask := taskgen.Src[taskgen.CurTaskId].task
+		newtask.User = taskgen.Host
 		receiverAddr := taskgen.Receivers[taskgen.CurTaskId%receiverNum]
 		newMessage := Message{
 			From:    taskgenAddr,

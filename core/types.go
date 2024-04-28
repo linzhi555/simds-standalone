@@ -81,6 +81,7 @@ type TaskInfo struct {
 	LifeTime          time.Duration
 	LeftTime          time.Duration
 	Status            string
+	User              string
 	Worker            string
 	ScheduleFailCount int32
 	Cmd               string

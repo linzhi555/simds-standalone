@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os/exec"
 	"path"
+	"simds-standalone/common"
 	"simds-standalone/config"
 	"simds-standalone/core"
 	"simds-standalone/simctl/k8s"
@@ -63,18 +65,72 @@ func test(cli *k8s.K8sClient) {
 			fmt.Sprintf("/simlet --Cluster %s --NodeName %s  >simlet.log 2>simlet_err.log; sleep 20000", config.Val.Cluster, node.GetHostName())})
 		cli.CreateService(fmt.Sprintf("%s-svc", name), name, 8888, 32055+i)
 	}
-
 }
 
+func collectResult(cli *k8s.K8sClient) {
+	mergeCsvOfMultiplePods(cli, cli.GetPodsWithPrefix("simds"), "tasks_event.log", path.Join(config.Val.OutputDir, "tasks_event.log"))
+	mergeCsvOfMultiplePods(cli, cli.GetPodsWithPrefix("simds"), "network_event.log", path.Join(config.Val.OutputDir, "network_event.log"))
+}
+
+func mergeCsvOfMultiplePods(cli *k8s.K8sClient, pods []string, logfile string, outfile string) {
+	var num = len(pods)
+	var bufferCh = make(chan *bytes.Buffer, num)
+
+	// use 4 thread to download file
+	threadNum := 4
+	for i := 0; i < threadNum; i++ {
+		go func(threadId int) {
+			for j := 0; j < num; j++ {
+				if j%threadNum == threadId {
+					var b bytes.Buffer
+					err := cli.Download(pods[j], "c1", logfile, &b)
+					if err != nil {
+						log.Println(err)
+						bufferCh <- nil
+					} else {
+						bufferCh <- &b
+					}
+				}
+			}
+		}(i)
+	}
+
+	// merge csv
+
+	var AllTable [][]string
+	var TableTop []string
+
+	for i := 0; i < num; i++ {
+		log.Println("parallel down load file to ", outfile, " ", i, "/", num)
+		b := <-bufferCh
+		if b != nil {
+			table, top := common.BytesCsvToList(b)
+			AllTable = append(AllTable, table...)
+			if TableTop == nil {
+				TableTop = top
+			}
+		}
+	}
+	common.ListToCsv(AllTable, TableTop, outfile)
+}
 func main() {
+
 	templatePath := config.Val.K8STemplatePath
 	cli, err := k8s.ConnectToK8s(config.Val.K8SConfig, path.Join(templatePath, "pod_template.yaml"), path.Join(templatePath, "service_template.yaml"))
 	if err != nil {
 		panic(err)
 	}
+
+	if config.Val.CleanMode {
+		clean(cli)
+		return
+	}
+
 	fmt.Println(cli.GetPodsWithPrefix("simds"))
-	PushImage()
 	clean(cli)
+	PushImage()
 	test(cli)
+	time.Sleep(50 * time.Second)
+	collectResult(cli)
 
 }

@@ -46,7 +46,11 @@ func CsvToList(path string) (table [][]string, tabletop []string) {
 		panic(err)
 	}
 	defer fs.Close()
-	r := csv.NewReader(fs)
+	return BytesCsvToList(fs)
+}
+
+func BytesCsvToList(input io.Reader) (table [][]string, tabletop []string) {
+	r := csv.NewReader(input)
 	table = make([][]string, 0)
 	for i := 0; ; i++ {
 		row, err := r.Read()
@@ -62,9 +66,9 @@ func CsvToList(path string) (table [][]string, tabletop []string) {
 			table = append(table, row)
 		}
 	}
-
 	return table, tabletop
 }
+
 func ListToCsv(table [][]string, tabletop []string, outpath string) {
 	//将表头加入到slice前
 

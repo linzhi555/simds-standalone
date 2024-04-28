@@ -53,9 +53,14 @@ func (node *DcssNode) dcssTaskDispenseHandle(newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
 	if node.LocalNode.CanAllocateTask(&task) {
 		node.LocalNode.AddAllocated(task.CpuRequest, task.MemoryRequest)
-		node._runTask(&task)
+		node._runTask(task)
 		node.Os.LogInfo("stdout", node.GetHostName(), "TaskRun", fmt.Sprint(task))
-		node.Os.LogInfo(TASKS_EVENT_LOG_NAME, task.Id, "start", node.GetHostName(), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest))
+		node.Os.Send(Message{
+			From:    node.Host,
+			To:      task.User,
+			Content: "TaskStart",
+			Body:    task,
+		})
 	} else {
 		switch config.Val.DcssDividePolicy {
 		case "always":
@@ -185,29 +190,39 @@ func (node *DcssNode) dcssTaskDivideAllocateHandle(newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
 	if t, ok := node.TaskMap[task.Id]; ok {
 		if t.Status == "needStart" {
-			node._runTask(t)
+			node._runTask(*t)
 			delete(node.TaskMap, t.Id)
 			node.Os.LogInfo("stdout", node.GetHostName(), "TaskRun", fmt.Sprint(*t))
-			node.Os.LogInfo(TASKS_EVENT_LOG_NAME, task.Id, "start", node.GetHostName(), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest))
+
+			node.Os.Send(Message{
+				From:    node.Host,
+				To:      task.User,
+				Content: "TaskStart",
+				Body:    task,
+			})
+
 		}
 	}
 }
 
-func (node *DcssNode) _runTask(t *TaskInfo) {
+func (node *DcssNode) _runTask(t TaskInfo) {
 	t.StartTime = node.Os.GetTime()
 	t.LeftTime = t.LifeTime
 	t.Status = "start"
-	node.RunningTask[t.Id] = t
+	node.RunningTask[t.Id] = &t
 	node.Os.Run(func() {
 		cmd := exec.Command("bash", "-c", t.Cmd)
-		cmd.Run()
+		err := cmd.Run()
+		if err != nil {
+			panic(err)
+		}
 		newMessage := Message{
 			From:    node.GetHostName(),
 			To:      node.GetHostName(),
 			Content: "TaskFinish",
-			Body:    *t,
+			Body:    t,
 		}
-		err := node.Os.Send(newMessage)
+		err = node.Os.Send(newMessage)
 		if err != nil {
 			panic(err)
 		}
@@ -243,8 +258,16 @@ func (node *DcssNode) dcssTaskDivideRejectHandle(newMessage Message) {
 
 func (node *DcssNode) dcssFinishHandle(newMessage Message) {
 	task := newMessage.Body.(TaskInfo)
+	task.Status = "finish"
 	node.LocalNode.SubAllocated(task.CpuRequest, task.MemoryRequest)
-	node.Os.LogInfo(TASKS_EVENT_LOG_NAME, task.Id, "finish", node.GetHostName(), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest))
+
+	node.Os.Send(Message{
+		From:    node.Host,
+		To:      task.User,
+		Content: "TaskFinish",
+		Body:    task,
+	})
+
 	node.Os.LogInfo("stdout", task.Id, "finish", node.GetHostName(), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest))
 	delete(node.RunningTask, task.Id)
 

@@ -51,6 +51,7 @@ var Val struct {
 	StateUpdatePeriod int32
 
 	// in deploy mode
+	CleanMode       bool
 	K8SConfig       string
 	K8STemplatePath string
 	DockerImageRepo string
@@ -64,6 +65,7 @@ func init() {
 	pflag.String("OutputDir", ".", "where to output the result files")
 	pflag.String("NodeName", "", "the node name")
 	pflag.Int("GoProcs", -1, "how many CPU used for the simulation")
+	pflag.Bool("CleanMode", false, "clean the containers")
 	pflag.Parse()
 
 	Val.ConfigPath = *configFile

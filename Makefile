@@ -36,3 +36,10 @@ testCompose:
 fmt:
 	gofmt -l -w .
 	golangci-lint run
+
+k8sTest:preDeal
+	@mkdir -p $(TargetFolder)
+	go run ./simctl -c $(Config) --OutputDir $(TargetFolder) --Cluster $(Cluster) 
+	@make analyse TargetFolder=$(TargetFolder)
+k8sClean:
+	go run ./simctl --CleanMode

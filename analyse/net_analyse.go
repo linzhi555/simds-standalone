@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"simds-standalone/common"
+	"sort"
 	"time"
 )
 
@@ -20,6 +21,14 @@ type NetEvent struct {
 type NetSpeedDot struct {
 	TimeMs int
 	Amount int
+}
+
+type NetEventLine []*NetEvent
+
+func (l NetEventLine) Len() int      { return len(l) }
+func (l NetEventLine) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
+func (l NetEventLine) Less(i, j int) bool {
+	return l[i].Time < l[j].Time
 }
 
 func OutputNetSpeedCurve(outputFile string, curve []NetSpeedDot) {
@@ -79,6 +88,8 @@ func parseNetEventCSV(csvPath string) []*NetEvent {
 
 		}
 	}
+
+	sort.Sort(NetEventLine(res))
 	return res
 }
 
