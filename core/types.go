@@ -5,7 +5,6 @@ package core
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 )
@@ -61,8 +60,15 @@ func FromJson(contentType string, s string) MessageBody {
 			panic(err)
 		}
 		return res
+	} else if strings.HasPrefix(contentType, "NodeInfos") {
+		var res Vec[NodeInfo]
+		err := json.Unmarshal([]byte(s), &res)
+		if err != nil {
+			panic(err)
+		}
+		return res
 	} else {
-		panic("wrong message type " + fmt.Sprint(contentType))
+		return nil
 	}
 
 }

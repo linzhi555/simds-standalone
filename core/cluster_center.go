@@ -14,7 +14,7 @@ func BuildCenterCluster() Cluster {
 	for i := 0; i < int(config.Val.NodeNum); i++ {
 		workerName := fmt.Sprintf("worker%d", i)
 		newworker := NewWorker(workerName, NodeInfo{workerName, config.Val.NodeCpu, config.Val.NodeMemory, 0, 0}, "master0")
-		master0.Workers[workerName] = &newworker.Node
+		master0.Workers[workerName] = newworker.Node.Clone()
 		nodes = append(nodes, newworker)
 	}
 	nodes = append(nodes, master0)

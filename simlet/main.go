@@ -147,7 +147,7 @@ func (o *NodeOs) Send(m core.Message) error {
 
 	_, err := c.SendMessage(ctx, &svc.Message{From: m.From, To: m.To, Content: m.Content, Body: core.ToJson(m.Body)})
 	if err != nil {
-		log.Fatalln("could not get result: ", err, m)
+		log.Println("could not get result: ", err, m)
 	}
 	return nil
 }
@@ -227,11 +227,9 @@ func main() {
 	time.Sleep(time.Second * 3)
 	// run node
 	for {
-		start := time.Now()
 		timer1 := time.NewTimer(time.Millisecond)
 		NodeState.Update()
 		<-timer1.C
-		fmt.Println(time.Since(start))
 	}
 
 }

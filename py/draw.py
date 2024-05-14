@@ -263,7 +263,7 @@ def draw_muilt_net_busy(tests: list):
     plt.clf()
     for t in tests:
         staus = net_commuication_rate_curves(
-            os.path.join(t[0], "network_event.log"))
+            os.path.join(t[0], "all_net_curve.log"))
         plt.plot(staus[0], staus[1], lw=1.0, label=t[1])
     plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("Net Request Rate \n (number/s)", fontsize=FONT_SIZE)
@@ -283,7 +283,7 @@ def draw_muilt_net_busy(tests: list):
     plt.clf()
     for t in tests:
         staus = net_commuication_rate_curves(
-            os.path.join(t[0], "network_most_busy.log"))
+            os.path.join(t[0], "most_busy_curve.log"))
         plt.plot(staus[0], staus[1], lw=1.0, label=t[1])
     plt.ylabel("Net Request Rate \n (number/s)", fontsize=FONT_SIZE)
     plt.yscale("log", base=10)

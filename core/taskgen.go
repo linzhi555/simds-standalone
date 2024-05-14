@@ -126,10 +126,23 @@ func (taskgen *TaskGen) Update() {
 		switch msg.Content {
 		case "TaskStart":
 			newtask := msg.Body.(TaskInfo)
-			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "start", taskgen.GetHostName(), fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "start", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
 		case "TaskFinish":
 			newtask := msg.Body.(TaskInfo)
-			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "finish", taskgen.GetHostName(), fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "finish", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+		case "TaskCommitFail":
+			task := msg.Body.(TaskInfo)
+			newMessage := Message{
+				From:    taskgen.GetHostName(),
+				To:      msg.From,
+				Content: "TaskDispense",
+				Body:    task,
+			}
+			err := taskgen.Os.Send(newMessage)
+			if err != nil {
+				panic(err)
+			}
+
 		}
 
 	}

@@ -2,17 +2,15 @@ package core
 
 import (
 	"fmt"
-	"math/rand"
 	"simds-standalone/common"
-	"simds-standalone/config"
 )
 
 // Scheduler 组件
 type CenterScheduler struct {
 	BasicNode
-	TaskList Vec[TaskInfo]
-	TaskMap  map[string]*TaskInfo
-	Workers  map[string]*NodeInfo
+	TaskMap map[string]*TaskInfo
+	Workers map[string]*NodeInfo
+	storage string
 }
 
 // NewCenterScheduler 创造新的Scheduler
@@ -44,22 +42,70 @@ func (s *CenterScheduler) Update() {
 		if err != nil {
 			panic(err)
 		}
+
+		s.Os.LogInfo("stdout", s.GetHostName(), event.Content, fmt.Sprint(event.Body))
+
 		switch event.Content {
-		case "TaskDispense":
+
+		case "TaskDispense", "TaskCommitFail":
 			task := event.Body.(TaskInfo)
-			task.Status = "WaitSchedule"
-			s.TaskList.InQueue(task)
-			s.Os.LogInfo("stdout", s.GetHostName(), "TaskDispense", fmt.Sprint(task))
+			dstWorker, ok := schdulingAlgorithm(s, &task)
+			if ok {
+				task.Worker = dstWorker
+				s.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
+				receiver := task.Worker
+				if s.storage != "" {
+					receiver = s.storage
+				}
+				task.Worker = dstWorker
+				newMessage := Message{
+					From:    s.GetHostName(),
+					To:      receiver,
+					Content: "TaskRun",
+					Body:    task,
+				}
+				err := s.Os.Send(newMessage)
+				if err != nil {
+					panic(err)
+				}
+				s.Os.LogInfo("stdout", s.GetHostName(), "TaskScheduled", fmt.Sprint(task))
+			} else {
+				newMessage := Message{
+					From:    s.GetHostName(),
+					To:      event.From,
+					Content: "TaskCommitFail",
+					Body:    task,
+				}
+				err := s.Os.Send(newMessage)
+				if err != nil {
+					panic(err)
+				}
+				s.Os.LogInfo("stdout", s.GetHostName(), "TaskScheduledFail", fmt.Sprint(task))
+			}
 		case "TaskFinish":
 			taskInfo := event.Body.(TaskInfo)
 			s.Workers[event.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)
-			s.Os.LogInfo("stdout", s.GetHostName(), "TaskFinish", fmt.Sprint(taskInfo))
-		case "TaskScheduled":
+
+		case "NodeInfosUpdate":
+			nodeinfoList := event.Body.(Vec[NodeInfo])
+			for _, ni := range nodeinfoList {
+				s.Workers[ni.Addr] = ni.Clone()
+			}
+			s.Os.LogInfo("stdout", s.GetHostName(), "NodeInfosUpdate")
+
+			/* 		case "TaskScheduled":
 			task := event.Body.(TaskInfo)
 			s.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
+
+			receiver := task.Worker
+
+			if s.storage != "" {
+				receiver = s.storage
+			}
+
 			newMessage := Message{
 				From:    s.GetHostName(),
-				To:      task.Worker,
+				To:      receiver,
 				Content: "TaskRun",
 				Body:    task,
 			}
@@ -67,58 +113,30 @@ func (s *CenterScheduler) Update() {
 			if err != nil {
 				panic(err)
 			}
-			s.Os.LogInfo("stdout", s.GetHostName(), "TaskRun", task.Id)
-
+			s.Os.LogInfo("stdout", s.GetHostName(), "TaskRun", task.Id) */
 		}
 	}
 }
 
 func (s *CenterScheduler) SimulateTasksUpdate() {
-	var maxScheduleTime = schdulingAlgorithmTimes(config.Val.SchedulerPerformance)
-	for i := 0; i < maxScheduleTime; i++ {
-		task, err := s.TaskList.Dequeue()
-		if err != nil {
-			break
-		}
-		dstWorker, ok := schdulingAlgorithm(s, &task)
-		if ok {
 
-			task.Worker = dstWorker
-			task.Status = "Allocated"
-			newMessage := Message{
-				From:    s.GetHostName(),
-				To:      s.GetHostName(),
-				Content: "TaskScheduled",
-				Body:    task,
-			}
-			err := s.Os.Send(newMessage)
-			if err != nil {
-				panic(err)
-			}
-			s.Os.LogInfo("stdout", s.GetHostName(), "TaskScheduled", fmt.Sprint(task))
-		} else {
-			s.TaskList.InQueueFront(task)
-		}
-
-	}
 }
 
 // 在一个调度器中，每次更新执行调度算法的次数，该函数的影响参数是
 // performance : 该机器的性能参数 unit tasks / second
-func schdulingAlgorithmTimes(performance float32) int {
-	times_float := performance / float32(config.Val.FPS) // 每次更新相当于时间 1 / config.Val/FPS秒
-	base := int(times_float)
-	var times_int int
-	if rand.Float32() < times_float-float32(base) {
-		times_int = base + 1
-	} else {
-		times_int = base
-	}
+// func schdulingAlgorithmTimes(performance float32) int {
+// 	times_float := performance / float32(config.Val.FPS) // 每次更新相当于时间 1 / config.Val/FPS秒
+// 	base := int(times_float)
+// 	var times_int int
+// 	if rand.Float32() < times_float-float32(base) {
+// 		times_int = base + 1
+// 	} else {
+// 		times_int = base
+// 	}
+// 	return times_int
+// }
 
-	return times_int
-}
-
-// schdulingAlgorithm 简单的调度算法，找到第一个合适调度的节点,找不到 ok返回false
+// schdulingAlgorithm 简单的首次适应调度算法，找到第一个合适调度的节点,找不到 ok返回false
 func schdulingAlgorithm(scheduler *CenterScheduler, task *TaskInfo) (dstAddr string, ok bool) {
 	dstAddr = ""
 

@@ -47,7 +47,7 @@ var Val struct {
 	// sparrow
 	SparrowSchedulerNumFactor float32
 
-	//ShareState
+	//ShareState the nodeinfo update information
 	StateUpdatePeriod int32
 
 	// in deploy mode

@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"os/exec"
 	"simds-standalone/config"
 	"time"
 )
@@ -48,6 +49,8 @@ func (worker *Worker) Update() {
 			panic(err)
 		}
 		hostTime := worker.Os.GetTime()
+		worker.Os.LogInfo("stdout", worker.GetHostName(), event.Content, fmt.Sprint(event.Body))
+
 		switch event.Content {
 		case "TaskStart":
 			taskid := event.Body.(TaskInfo).Id
@@ -56,32 +59,39 @@ func (worker *Worker) Update() {
 					t.Status = "start"
 					t.StartTime = hostTime
 					t.LeftTime = t.LifeTime
-					worker.Os.LogInfo("stdout", worker.GetHostName(), "TasKStart", fmt.Sprint(t))
-					worker.Os.LogInfo(TASKS_EVENT_LOG_NAME, t.Id, "start", worker.GetHostName(), fmt.Sprint(t.CpuRequest), fmt.Sprint(t.MemoryRequest))
 
+					worker.Os.LogInfo(TASKS_EVENT_LOG_NAME, t.Id, "start", worker.GetHostName(), fmt.Sprint(t.CpuRequest), fmt.Sprint(t.MemoryRequest))
+					worker.Os.Send(Message{
+						From:    worker.Host,
+						To:      t.User,
+						Content: "TaskStart",
+						Body:    t,
+					})
 				}
 			}
 		case "TaskPreAllocate":
 			newTask := event.Body.(TaskInfo)
 			worker.TaskMap[newTask.Id] = &newTask
 			newTask.Status = "needStart"
-			worker.Os.LogInfo("stdout", worker.GetHostName(), "TaskPreAllocate", fmt.Sprint(newTask))
 		case "TaskRun":
 			newTask := event.Body.(TaskInfo)
 			newTask.StartTime = hostTime
 			newTask.LeftTime = newTask.LifeTime
 			worker.TaskMap[newTask.Id] = &newTask
 			newTask.Status = "start"
-			worker.Os.LogInfo("stdout", worker.GetHostName(), "TaskRun", fmt.Sprint(newTask))
-			worker.Os.LogInfo(TASKS_EVENT_LOG_NAME, newTask.Id, "start", worker.GetHostName(), fmt.Sprint(newTask.CpuRequest), fmt.Sprint(newTask.MemoryRequest))
+			worker._runTask(newTask)
+			worker.Os.Send(Message{
+				From:    worker.Host,
+				To:      newTask.User,
+				Content: "TaskStart",
+				Body:    newTask,
+			})
 
 		case "TaskCancelAlloc":
 			taskid := event.Body.(TaskInfo).Id
 			if t, ok := worker.TaskMap[taskid]; ok {
 				if t.Status == "needStart" {
 					t.Status = "finish"
-					worker.Os.LogInfo("stdout", worker.GetHostName(), "TaskCancelAlloc", fmt.Sprint(t))
-
 					if worker.Manager != "" {
 						informReceiverTaskStatus(worker, t, "TaskFinish")
 					}
@@ -98,11 +108,37 @@ func (worker *Worker) Update() {
 			delete(worker.TaskMap, id)
 			nodeinfo := _calculateNodeInfo(worker)
 			worker.Os.LogInfo("stdout", worker.GetHostName(), "TaskFinish", fmt.Sprint(nodeinfo))
-			worker.Os.LogInfo(TASKS_EVENT_LOG_NAME, "finish", t.Id, worker.GetHostName(), fmt.Sprint(t.CpuRequest), fmt.Sprint(t.MemoryRequest))
-
+			worker.Os.Send(Message{
+				From:    worker.Host,
+				To:      t.User,
+				Content: "TaskFinish",
+				Body:    t,
+			})
 		}
 	}
 }
+
+func (node *Worker) _runTask(t TaskInfo) {
+	node.Os.Run(func() {
+		cmd := exec.Command("bash", "-c", t.Cmd)
+		err := cmd.Run()
+		if err != nil {
+			panic(err)
+		}
+		newMessage := Message{
+			From:    node.GetHostName(),
+			To:      node.GetHostName(),
+			Content: "TaskFinish",
+			Body:    t,
+		}
+		err = node.Os.Send(newMessage)
+		if err != nil {
+			panic(err)
+		}
+
+	})
+}
+
 func (worker *Worker) SimulateTasksUpdate() {
 	for _, t := range worker.TaskMap {
 		if t.Status == "start" && t.LeftTime > 0 {

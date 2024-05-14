@@ -90,6 +90,12 @@ func parseNetEventCSV(csvPath string) []*NetEvent {
 	}
 
 	sort.Sort(NetEventLine(res))
+
+	bias := res[0].Time
+	for i := range res {
+		res[i].Time += -1 * bias
+	}
+
 	return res
 }
 

@@ -54,11 +54,13 @@ func test(cli *k8s.K8sClient) {
 
 	var cluster core.Cluster = clusterBuilder()
 	for i, node := range cluster.Nodes {
-		fmt.Println("deploy", node.GetHostName())
 		if strings.HasPrefix(node.GetHostName(), "taskgen") {
 			time.Sleep(time.Second * 10)
 		}
-
+		if strings.HasPrefix(node.GetHostName(), "storage") {
+			time.Sleep(time.Second * 10)
+		}
+		fmt.Println("deploy", node.GetHostName())
 		name := fmt.Sprintf("simds-%s", node.GetHostName())
 		cli.CreatePod(name, name, config.Val.DockerImageRepo, []string{"sh",
 			"-c",
@@ -68,7 +70,7 @@ func test(cli *k8s.K8sClient) {
 }
 
 func collectResult(cli *k8s.K8sClient) {
-	mergeCsvOfMultiplePods(cli, cli.GetPodsWithPrefix("simds"), "tasks_event.log", path.Join(config.Val.OutputDir, "tasks_event.log"))
+	mergeCsvOfMultiplePods(cli, cli.GetPodsWithPrefix("simds-taskgen"), "tasks_event.log", path.Join(config.Val.OutputDir, "tasks_event.log"))
 	mergeCsvOfMultiplePods(cli, cli.GetPodsWithPrefix("simds"), "network_event.log", path.Join(config.Val.OutputDir, "network_event.log"))
 }
 

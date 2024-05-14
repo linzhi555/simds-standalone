@@ -53,13 +53,13 @@ func outputLatencyResultFigure(fileName string, l TaskStageCostList) {
 	if err != nil {
 		panic(err)
 	}
-
 	p.Add(newCurve)
 
 	// Save the plot to a PNG file.
 	if err := p.Save(10*vg.Inch, 10*vg.Inch, fileName); err != nil {
 		panic(err)
 	}
+
 }
 
 func calPercentCurves(latencyList TaskStageCostList) plotter.XYs {

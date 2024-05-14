@@ -6,7 +6,7 @@ service simletServer{
     rpc SendMessage(Message) returns (Response) {}
 }
 
-
+              
 message Message{
     string From = 10;
     string To = 20;

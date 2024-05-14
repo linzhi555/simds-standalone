@@ -2,22 +2,24 @@ package core
 
 import (
 	"log"
+	"simds-standalone/config"
 	"time"
 )
 
 // StateStorage 节点，用于共享状态的存储
 type StateStorage struct {
-	Os           OsApi
-	Host         string
+	BasicNode
 	LastSendTime time.Time
+	Started      bool
+	Schedulers   []string
 	Workers      map[string]*NodeInfo
 }
 
 // NewStateStorage 创建新的StateStorage
 func NewStateStorage(hostname string) *StateStorage {
 	return &StateStorage{
-		Host:    hostname,
-		Workers: make(map[string]*NodeInfo),
+		BasicNode: BasicNode{Host: hostname},
+		Workers:   make(map[string]*NodeInfo),
 	}
 }
 
@@ -30,7 +32,102 @@ func (s *StateStorage) StateCopy() Vec[NodeInfo] {
 	return nodes
 }
 
-// SetOsApi For NodeComponent interface
-func (s *StateStorage) SetOsApi(osapi OsApi) { s.Os = osapi }
-
 func (s *StateStorage) Debug() { log.Println(s.Workers) }
+
+func (s *StateStorage) Update() {
+	if !s.Started {
+		s.LastSendTime = s.Os.GetTime()
+		s.Os.Run(func() {
+			for {
+				time.Sleep(time.Duration(config.Val.StateUpdatePeriod) * time.Millisecond)
+				newMessage := Message{
+					From:    s.GetHostName(),
+					To:      s.GetHostName(),
+					Content: "NeedUpdateNodeInfo",
+				}
+				err := s.Os.Send(newMessage)
+				if err != nil {
+					log.Println(err)
+				}
+			}
+		})
+		s.Started = true
+	}
+
+	for s.Os.HasMessage() {
+		newMessage, err := s.Os.Recv()
+		if err != nil {
+			panic(err)
+		}
+		switch newMessage.Content {
+
+		case "TaskRun":
+			task := newMessage.Body.(TaskInfo)
+			if s.Workers[task.Worker].CanAllocate(task.CpuRequest, task.MemoryRequest) {
+				s.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
+				err := s.Os.Send(Message{
+					From:    s.GetHostName(),
+					To:      task.Worker,
+					Content: "TaskRun",
+					Body:    task,
+				})
+				if err != nil {
+					panic(err)
+				}
+
+			} else {
+				err := s.Os.Send(Message{
+					From:    s.GetHostName(),
+					To:      newMessage.From,
+					Content: "TaskCommitFail",
+					Body:    task,
+				})
+				if err != nil {
+					panic(err)
+				}
+				err = s.Os.Send(Message{
+					From:    s.GetHostName(),
+					To:      newMessage.From,
+					Content: "NodeInfosUpdate",
+					Body:    Vec[NodeInfo]{*s.Workers[task.Worker]},
+				})
+				if err != nil {
+					panic(err)
+				}
+			}
+		case "TaskFinish":
+			taskInfo := newMessage.Body.(TaskInfo)
+			s.Workers[newMessage.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)
+		case "NeedUpdateNodeInfo":
+			s.LastSendTime = s.Os.GetTime()
+			stateCopy := s.StateCopy()
+			for _, scheduler := range s.Schedulers {
+				err := s.Os.Send(Message{
+					From:    s.GetHostName(),
+					To:      scheduler,
+					Content: "NodeInfosUpdate",
+					Body:    *stateCopy.Clone(),
+				})
+				if err != nil {
+					panic(err)
+				}
+			}
+
+		}
+	}
+}
+
+func (s *StateStorage) SimulateTasksUpdate() {
+	if s.Os.GetTime().Sub(s.LastSendTime).Milliseconds() > int64(config.Val.StateUpdatePeriod) {
+		newMessage := Message{
+			From:    s.GetHostName(),
+			To:      s.GetHostName(),
+			Content: "NeedUpdateNodeInfo",
+		}
+		err := s.Os.Send(newMessage)
+		s.Os.LogInfo("stdout", s.GetHostName(), newMessage.Content)
+		if err != nil {
+			panic(err)
+		}
+	}
+}

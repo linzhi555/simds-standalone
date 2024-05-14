@@ -19,6 +19,8 @@ var (
 	FINISH = "finish"
 )
 
+var FAIL = 999 * time.Hour
+
 type TaskEvent struct {
 	Time   time.Time
 	TaskId string
@@ -161,7 +163,7 @@ func (l TaskEventLine) AnalyseStageDuration(stage1 string, stage2 string) TaskSt
 		if _, ok := eventStage2[taskid]; ok {
 			temp.Cost = eventStage2[taskid].Sub(eventStage1[taskid])
 		} else {
-			temp.Cost = 999 * time.Hour
+			temp.Cost = FAIL
 		}
 		res = append(res, temp)
 
@@ -356,7 +358,12 @@ func (c *Cluster) AnalyseSchedulerLatency(outPutDir string) {
 
 	c.TaskLatencyList = costList
 
-	outputLatencyResultFigure(outPutFigurePath, costList)
+	if costList[0].Cost == FAIL {
+		log.Panic("all task fail to schedule")
+	} else {
+		outputLatencyResultFigure(outPutFigurePath, costList)
+	}
+
 }
 
 func (c *Cluster) AnalyseTaskLifeTime(outPutDir string) {

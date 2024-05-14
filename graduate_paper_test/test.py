@@ -94,21 +94,23 @@ if __name__ == "__main__":
         
     config = load_config()
 
-
     config_copy = config.copy()
-    config_copy["NodeNum"] = 1000
-    test_compose(config_copy,[centerCluster],"task_mode","TaskMode",["noWave","onePeak","trace"],["constantly","pulse","trace"],drawOnly=args.drawOnly)
+    test_compose(config_copy,[dcssCluster],"nodenum","NodeNum",[100,300,500],["100","300","500"],drawOnly=args.drawOnly)
+
+    # config_copy = config.copy()
+    # config_copy["NodeNum"] = 1000
+    # test_compose(config_copy,[centerCluster],"task_mode","TaskMode",["noWave","onePeak","trace"],["constantly","pulse","trace"],drawOnly=args.drawOnly)
  
-    config_copy = config.copy()
-    test_compose(config_copy,[centerCluster],"scheduler_performance","SchedulerPerformance",[15000,20000,25000,30000],["15000","20000","25000","30000"],drawOnly=args.drawOnly)
+    # config_copy = config.copy()
+    # test_compose(config_copy,[centerCluster],"scheduler_performance","SchedulerPerformance",[15000,20000,25000,30000],["15000","20000","25000","30000"],drawOnly=args.drawOnly)
 
-    config_copy = config.copy()
-    test_compose(config_copy,[centerCluster,sharedCluster,sparrowCluster],"nodenum","NodeNum",[1000,3000,5000],["1k","3k","5k"],drawOnly=args.drawOnly)
+    # config_copy = config.copy()
+    # test_compose(config_copy,[centerCluster,sharedCluster,sparrowCluster],"nodenum","NodeNum",[1000,3000,5000],["1k","3k","5k"],drawOnly=args.drawOnly)
  
-    config_copy = config.copy()
-    test_compose(config_copy,[sharedCluster],"StateUpdatePeriod","StateUpdatePeriod",[100,400,1000],["100ms","400ms","1000ms"],drawOnly=args.drawOnly)
+    # config_copy = config.copy()
+    # test_compose(config_copy,[sharedCluster],"StateUpdatePeriod","StateUpdatePeriod",[100,400,1000],["100ms","400ms","1000ms"],drawOnly=args.drawOnly)
 
-    config_copy = config.copy()
-    test_compose(config_copy,[centerCluster,sharedCluster,sparrowCluster],"net_lantency","NetLatency",[1,4,12],["1ms","4ms","12ms"],drawOnly=args.drawOnly)
+    # config_copy = config.copy()
+    # test_compose(config_copy,[centerCluster,sharedCluster,sparrowCluster],"net_lantency","NetLatency",[1,4,12],["1ms","4ms","12ms"],drawOnly=args.drawOnly)
  
 
