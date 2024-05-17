@@ -18,7 +18,6 @@ import (
 )
 
 var NodeState core.Node
-var NodeInput *Input = &Input{}
 
 type Input struct {
 	sync.Mutex
@@ -44,12 +43,13 @@ func (input *Input) HasMessage() bool {
 }
 
 type server struct {
+	input *Input
 }
 
 const NETWORK_EVENT_LOG_NAME = "network_event.log"
 
 func (s *server) SendMessage(ctx context.Context, msg *svc.Message) (*svc.Response, error) {
-	NodeInput.InQueue(core.Message{
+	s.input.InQueue(core.Message{
 		From:    msg.From,
 		To:      msg.To,
 		Content: msg.Content,
@@ -59,58 +59,21 @@ func (s *server) SendMessage(ctx context.Context, msg *svc.Message) (*svc.Respon
 	return &svc.Response{OK: true, ErrMsg: "null"}, nil
 }
 
-func InputServing() {
-
-	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", 8888))
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	s := grpc.NewServer()
-	svc.RegisterSimletServerServer(s, &server{})
-	log.Printf("server listening at %v", lis.Addr())
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
-	panic("server finished")
-}
-
-// func clienting() {
-// 	start := time.Now()
-// 	conn, err := grpc.Dial("simds-node0-svc:8888", grpc.WithTransportCredentials(insecure.NewCredentials()))
-// 	if err != nil {
-// 		log.Fatalf("did not connect: %v", err)
-// 	}
-// 	defer conn.Close()
-// 	log.Println(time.Since(start))
-// 	c := svc.NewSimletServerClient(conn)
-// 	log.Println(time.Since(start))
-
-// 	// Contact the server and print out its response.
-// 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-// 	defer cancel()
-
-// 	r, err := c.SendMessage(ctx, &svc.Message{From: config.Val.NodeName})
-// 	if err != nil {
-// 		log.Fatalf("could not get result: %v", err)
-// 	}
-// 	log.Println(time.Since(start))
-// 	log.Printf("result %s", r)
-
-// 	r2, err := c.SendMessage(ctx, &svc.Message{From: config.Val.NodeName})
-// 	if err != nil {
-// 		log.Fatalf("could not get result: %v", err)
-// 	}
-// 	log.Println(time.Since(start))
-// 	log.Printf("result %s", r2)
-
-// }
-
 type NodeOs struct {
-	clients map[string]svc.SimletServerClient
+	clients       map[string]svc.SimletServerClient
+	nodeInput     *Input
+	outputChannel chan core.Message
 }
 
 func NewNodeOs() *NodeOs {
-	return &NodeOs{clients: make(map[string]svc.SimletServerClient)}
+	node := &NodeOs{
+		clients:       make(map[string]svc.SimletServerClient),
+		nodeInput:     &Input{},
+		outputChannel: make(chan core.Message, 10000),
+	}
+	go node.inputServing()
+	go node.outputServing()
+	return node
 }
 
 // GetTime 提供模拟时间
@@ -123,33 +86,54 @@ func (o *NodeOs) Run(f func()) {
 }
 
 func (o *NodeOs) HasMessage() bool {
-	return NodeInput.HasMessage()
+	return o.nodeInput.HasMessage()
 }
 
 func (o *NodeOs) Recv() (core.Message, error) {
-	return NodeInput.Recv()
+	return o.nodeInput.Recv()
+}
+func (o *NodeOs) Send(m core.Message) error {
+	o.outputChannel <- m
+	return nil
+
 }
 
-func (o *NodeOs) Send(m core.Message) error {
-	if _, ok := o.clients[m.To]; !ok {
-		start := time.Now()
-		conn, err := grpc.Dial(fmt.Sprintf("simds-%s-svc:8888", m.To), grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			return err
-		}
-		log.Println("establish rpc connection spend", time.Since(start))
-		c := svc.NewSimletServerClient(conn)
-		o.clients[m.To] = c
-	}
-	c := o.clients[m.To]
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+func (o *NodeOs) inputServing() {
 
-	_, err := c.SendMessage(ctx, &svc.Message{From: m.From, To: m.To, Content: m.Content, Body: core.ToJson(m.Body)})
+	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", 8888))
 	if err != nil {
-		log.Println("could not get result: ", err, m)
+		log.Fatalf("failed to listen: %v", err)
 	}
-	return nil
+	s := grpc.NewServer()
+	svc.RegisterSimletServerServer(s, &server{o.nodeInput})
+	log.Printf("server listening at %v", lis.Addr())
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
+	panic("server finished")
+}
+
+func (o *NodeOs) outputServing() {
+	for {
+		m := <-o.outputChannel
+		if _, ok := o.clients[m.To]; !ok {
+			start := time.Now()
+			conn, err := grpc.Dial(fmt.Sprintf("simds-%s-svc:8888", m.To), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				log.Println(err)
+			}
+			log.Println("establish rpc connection spend", time.Since(start))
+			c := svc.NewSimletServerClient(conn)
+			o.clients[m.To] = c
+		}
+		c := o.clients[m.To]
+		ctx, _ := context.WithTimeout(context.Background(), time.Second)
+
+		_, err := c.SendMessage(ctx, &svc.Message{From: m.From, To: m.To, Content: m.Content, Body: core.ToJson(m.Body)})
+		if err != nil {
+			log.Println("could not get result: ", err, m)
+		}
+	}
 }
 
 func (o *NodeOs) LogInfo(out string, items ...string) {
@@ -199,7 +183,6 @@ func main() {
 	// Init log file
 	common.AppendLineCsvFile(NETWORK_EVENT_LOG_NAME, []string{"time", "type", "from", "to"})
 	common.AppendLineCsvFile(core.TASKS_EVENT_LOG_NAME, []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
-	go InputServing()
 
 	// core.InitLogs()
 	config.LogConfig(path.Join(config.Val.OutputDir, "config.log"))
@@ -221,6 +204,7 @@ func main() {
 			break
 		}
 	}
+
 	NodeState.SetOsApi(NewNodeOs())
 
 	// Init input channel

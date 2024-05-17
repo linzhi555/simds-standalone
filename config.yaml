@@ -1,6 +1,6 @@
 FPS:  10000            #hom many frame per second
-NodeNum:        10  # how many large the cluster
-NetLatency:     3          # the average network latency, unit: milisecond 
+NodeNum:        5000  # how many large the cluster
+NetLatency:     10          # the average network latency, unit: milisecond 
 NodeCpu:        1000         # the node cpu capacity
 NodeMemory:     1000         # the node memory capacity
 
@@ -23,7 +23,7 @@ DcssNeiborRandomP:      0.5         #how many random neibor of a node
 DcssDividePolicy     : "random"  #
 
 # sparrow mode schedulerNum = SparrowSchedulerNumFactor * NodeNum
-SparrowSchedulerNumFactor:  0.0300
+#SparrowSchedulerNumFactor:  0.0300
 
 # only in share state cluster
 StateUpdatePeriod:   100   # the period of scheduler get the newest cluster state, unit : milisecond

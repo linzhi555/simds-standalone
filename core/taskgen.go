@@ -142,9 +142,7 @@ func (taskgen *TaskGen) Update() {
 			if err != nil {
 				panic(err)
 			}
-
 		}
-
 	}
 
 	taskgenAddr := taskgen.GetHostName()
@@ -170,7 +168,7 @@ func (taskgen *TaskGen) Update() {
 		if err != nil {
 			panic(err)
 		}
-		taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", taskgen.GetHostName(), fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+		taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
 		taskgen.CurTaskId++
 	}
 }

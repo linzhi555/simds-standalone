@@ -105,7 +105,12 @@ func (engine *Engine) updateNodes() {
 	for i := 0; i < RenderThreadNum; i++ {
 		go func(s, e int) {
 			for j := s; j < e; j++ {
-				engine.Nodes[j].Update()              // 事件循环处理。
+				t := time.Now()
+
+				engine.Nodes[j].Update() // 事件循环处理。
+				if engine.Nodes[j].GetHostName() == "master0" {
+					log.Println(time.Since(t))
+				}
 				engine.Nodes[j].SimulateTasksUpdate() // 模拟任务进度更新。
 			}
 			finishChan <- true

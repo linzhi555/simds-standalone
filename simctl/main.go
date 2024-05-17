@@ -134,5 +134,4 @@ func main() {
 	test(cli)
 	time.Sleep(50 * time.Second)
 	collectResult(cli)
-
 }
