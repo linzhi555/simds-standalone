@@ -24,29 +24,25 @@ func (node *DcssNode) Debug() {
 // DcssNodeUpdate 模拟器每次tick时对分布式集群的调度器组件进行初始化
 // 调度器组件可以自己收到任务直接运行，也可以将任务进行转发，之后处理转发失败以及成功信
 // 息，同时也要处理其他同类节点转发请求
-func (node *DcssNode) Update() {
-	for node.Os.HasMessage() {
-		newMessage, err := node.Os.Recv()
-		if err != nil {
-			panic(err)
-		}
-		switch newMessage.Content {
-		case "TaskDispense":
-			node.dcssTaskDispenseHandle(newMessage)
-		case "TaskDivide":
-			node.dcssTaskDivideHandle(newMessage)
-		case "TaskDivideConfirm":
-			node.dcssTaskDivideConfirmHandle(newMessage)
-		case "TaskDivideAllocate":
-			node.dcssTaskDivideAllocateHandle(newMessage)
-		case "TaskDivideCancel":
-			node.dcssTaskDivideCancelHandle(newMessage)
-		case "TaskDivideReject":
-			node.dcssTaskDivideRejectHandle(newMessage)
-		case "TaskFinish":
-			node.dcssFinishHandle(newMessage)
-		}
+func (node *DcssNode) Update(msg Message) {
+
+	switch msg.Content {
+	case "TaskDispense":
+		node.dcssTaskDispenseHandle(msg)
+	case "TaskDivide":
+		node.dcssTaskDivideHandle(msg)
+	case "TaskDivideConfirm":
+		node.dcssTaskDivideConfirmHandle(msg)
+	case "TaskDivideAllocate":
+		node.dcssTaskDivideAllocateHandle(msg)
+	case "TaskDivideCancel":
+		node.dcssTaskDivideCancelHandle(msg)
+	case "TaskDivideReject":
+		node.dcssTaskDivideRejectHandle(msg)
+	case "TaskFinish":
+		node.dcssFinishHandle(msg)
 	}
+
 }
 
 func (node *DcssNode) dcssTaskDispenseHandle(newMessage Message) {

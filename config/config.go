@@ -84,7 +84,8 @@ func init() {
 
 	err = viper.Unmarshal(&Val)
 	if Val.GoProcs == -1 {
-		Val.GoProcs = int32(runtime.NumCPU())
+		Val.GoProcs = int32(runtime.NumCPU()) / 2
+		//panic(Val.GoProcs)
 	}
 
 	if err != nil {

@@ -18,23 +18,21 @@ var ZEROTIME time.Time = time.Now()
 // MockOs 为组件提供模拟的系统调用
 type EngineOs struct {
 	host   string
-	node   core.Node
 	engine *Engine
-	tasks  *core.Vec[core.TaskInfo]
 }
 
 // GetTime 提供模拟时间
 func (o *EngineOs) GetTime() time.Time {
-	return ZEROTIME.Add(time.Duration(o.engine.UpdateCount*1000000/uint64(config.Val.FPS)) * time.Microsecond)
+	return o.engine.GetWorldTime()
 }
 
 func (o *EngineOs) Run(f func()) {
 
 }
 
-func (o *EngineOs) HasMessage() bool {
-	return !o.engine.Network.Outs[o.host].Empty()
-}
+// func (o *EngineOs) HasMessage() bool {
+// 	return !o.engine.Network.Outs[o.host].Empty()
+// }
 
 func (o *EngineOs) Recv() (core.Message, error) {
 	return o.engine.Network.Outs[o.host].Dequeue()
@@ -84,8 +82,13 @@ func newVirtualNetwork() VirtualNetwork {
 
 type Engine struct {
 	UpdateCount uint64
+	UpdateGap   time.Duration // 每次更新推进的时间
 	Nodes       []core.Node
 	Network     VirtualNetwork
+}
+
+func (engine *Engine) GetWorldTime() time.Time {
+	return ZEROTIME.Add(time.Duration(engine.UpdateCount) * engine.UpdateGap)
 }
 
 // / 对所有节点更新一次
@@ -105,12 +108,25 @@ func (engine *Engine) updateNodes() {
 	for i := 0; i < RenderThreadNum; i++ {
 		go func(s, e int) {
 			for j := s; j < e; j++ {
-				t := time.Now()
+				hostname := engine.Nodes[j].GetHostName()
+				nextUpdateTime := engine.Nodes[j].GetNextUpdateTime()
 
-				engine.Nodes[j].Update() // 事件循环处理。
-				if engine.Nodes[j].GetHostName() == "master0" {
-					log.Println(time.Since(t))
+				if engine.GetWorldTime().Sub(nextUpdateTime) >= 0 {
+					if msg, err := engine.Network.Outs[hostname].Dequeue(); err == nil {
+						t := time.Now()
+						engine.Nodes[j].Update(msg) // 事件循环处理。
+						costTime := time.Since(t)
+						engine.Nodes[j].SetNextUpdateTime(engine.GetWorldTime().Add(costTime)) // 设置下一次更新的时间
+						//engine.Nodes[j].SetNextUpdateTime(engine.GetWorldTime().Add(time.Millisecond)) // 设置下一次更新的时间
+
+						if engine.Nodes[j].GetHostName() == "master0" {
+							log.Println(engine.Nodes[j].GetNextUpdateTime().Sub(engine.GetWorldTime()))
+						}
+					}
+				} else {
+					log.Println(engine.Nodes[j].GetNextUpdateTime().Sub(engine.GetWorldTime()))
 				}
+
 				engine.Nodes[j].SimulateTasksUpdate() // 模拟任务进度更新。
 			}
 			finishChan <- true
@@ -193,7 +209,7 @@ func InitEngine(cluster core.Cluster) *Engine {
 	e.Nodes = cluster.Nodes
 	e.Network = newVirtualNetwork()
 	e.Network.Os = &EngineOs{host: "network", engine: &e}
-
+	e.UpdateGap = time.Second / time.Duration(config.Val.FPS)
 	for _, node := range e.Nodes {
 		e.Network.Ins[node.GetHostName()] = &core.Vec[core.Message]{}
 		e.Network.Outs[node.GetHostName()] = &core.Vec[core.Message]{}
@@ -203,16 +219,27 @@ func InitEngine(cluster core.Cluster) *Engine {
 		os := EngineOs{}
 		os.host = e.Nodes[i].GetHostName()
 		os.engine = &e
+
+		os.Send(core.Message{
+			From:    os.host,
+			To:      os.host,
+			Content: "SignalBoot",
+			Body:    core.Signal("SignalBoot"),
+		})
+
+		e.Nodes[i].SetNextUpdateTime(e.GetWorldTime())
 		e.Nodes[i].SetOsApi(&os)
 	}
+
 	return &e
 }
 
 func (engine *Engine) Run() {
-	frameNum := uint64(config.Val.FPS * config.Val.SimulateDuration / 1000)
+	frameNum := (time.Duration(config.Val.SimulateDuration) * (time.Millisecond)).Seconds() * float64(config.Val.FPS)
+
 	step := uint64(config.Val.FPS)
 	for engine.UpdateCount < uint64(frameNum) {
-		log.Println("Simulation Progress", engine.UpdateCount*1000/uint64(config.Val.FPS), "ms", "/", config.Val.SimulateDuration, "ms")
+		log.Println("Simulation Progress", time.Duration(engine.UpdateCount*uint64(time.Second)/uint64(config.Val.FPS)).Milliseconds(), "ms", "/", config.Val.SimulateDuration, "ms")
 		start := time.Now()
 		engine.UpdateNtimes(step)
 		log.Println("render", step, "frames", "spend:", time.Since(start))

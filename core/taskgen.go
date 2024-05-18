@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"log"
 	"simds-standalone/common"
 	"simds-standalone/config"
 	"time"
@@ -110,39 +111,67 @@ func onePeakTaskStream() []SrcNode {
 
 func (n *TaskGen) Debug() {}
 
-func (taskgen *TaskGen) Update() {
-	if !taskgen.Started {
+func (taskgen *TaskGen) Update(msg Message) {
+	switch msg.Content {
+	case "SignalBoot":
 		taskgen.StartTime = taskgen.Os.GetTime()
 		taskgen.Started = true
-		return
-	}
+		taskgen.Os.Run(func() { taskgen._sendingTask() })
 
-	for taskgen.Os.HasMessage() {
-		msg, err := taskgen.Os.Recv()
+	case "TaskStart":
+		newtask := msg.Body.(TaskInfo)
+		taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "start", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+	case "TaskFinish":
+		newtask := msg.Body.(TaskInfo)
+		taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "finish", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+	case "TaskCommitFail":
+		task := msg.Body.(TaskInfo)
+		newMessage := Message{
+			From:    taskgen.GetHostName(),
+			To:      msg.From,
+			Content: "TaskDispense",
+			Body:    task,
+		}
+		err := taskgen.Os.Send(newMessage)
 		if err != nil {
 			panic(err)
 		}
+	}
+}
 
-		switch msg.Content {
-		case "TaskStart":
-			newtask := msg.Body.(TaskInfo)
-			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "start", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
-		case "TaskFinish":
-			newtask := msg.Body.(TaskInfo)
-			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "finish", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
-		case "TaskCommitFail":
-			task := msg.Body.(TaskInfo)
-			newMessage := Message{
-				From:    taskgen.GetHostName(),
-				To:      msg.From,
-				Content: "TaskDispense",
-				Body:    task,
-			}
-			err := taskgen.Os.Send(newMessage)
-			if err != nil {
-				panic(err)
-			}
+func (taskgen *TaskGen) _sendingTask() {
+	taskgenAddr := taskgen.GetHostName()
+
+	receiverNum := len(taskgen.Receivers)
+	log.Println("start sending task")
+	for taskgen.CurTaskId < len(taskgen.Src) {
+		for taskgen.Src[taskgen.CurTaskId].time > taskgen.Os.GetTime().Sub(taskgen.StartTime) {
 		}
+
+		newtask := taskgen.Src[taskgen.CurTaskId].task
+		log.Println(newtask)
+
+		newtask.User = taskgen.Host
+		receiverAddr := taskgen.Receivers[taskgen.CurTaskId%receiverNum]
+		newMessage := Message{
+			From:    taskgenAddr,
+			To:      receiverAddr,
+			Content: "TaskDispense",
+			Body:    newtask,
+		}
+		err := taskgen.Os.Send(newMessage)
+		if err != nil {
+			panic(err)
+		}
+		taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+		taskgen.CurTaskId++
+	}
+
+}
+
+func (taskgen *TaskGen) SimulateTasksUpdate() {
+	if !taskgen.Started {
+		return
 	}
 
 	taskgenAddr := taskgen.GetHostName()
@@ -171,7 +200,4 @@ func (taskgen *TaskGen) Update() {
 		taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
 		taskgen.CurTaskId++
 	}
-}
-
-func (taskgen *TaskGen) SimulateTasksUpdate() {
 }

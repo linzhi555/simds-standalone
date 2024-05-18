@@ -36,73 +36,20 @@ func (s *CenterScheduler) Debug() {
 // 	return keys
 // }
 
-func (s *CenterScheduler) Update() {
-	for s.Os.HasMessage() {
-		event, err := s.Os.Recv()
-		if err != nil {
-			panic(err)
-		}
+func (s *CenterScheduler) Update(msg Message) {
+	switch msg.Content {
 
-		s.Os.LogInfo("stdout", s.GetHostName(), event.Content, fmt.Sprint(event.Body))
-
-		switch event.Content {
-
-		case "TaskDispense", "TaskCommitFail":
-			task := event.Body.(TaskInfo)
-			dstWorker, ok := schdulingAlgorithm(s, &task)
-			if ok {
-				task.Worker = dstWorker
-				s.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
-				receiver := task.Worker
-				if s.storage != "" {
-					receiver = s.storage
-				}
-				task.Worker = dstWorker
-				newMessage := Message{
-					From:    s.GetHostName(),
-					To:      receiver,
-					Content: "TaskRun",
-					Body:    task,
-				}
-				err := s.Os.Send(newMessage)
-				if err != nil {
-					panic(err)
-				}
-				s.Os.LogInfo("stdout", s.GetHostName(), "TaskScheduled", fmt.Sprint(task))
-			} else {
-				newMessage := Message{
-					From:    s.GetHostName(),
-					To:      event.From,
-					Content: "TaskCommitFail",
-					Body:    task,
-				}
-				err := s.Os.Send(newMessage)
-				if err != nil {
-					panic(err)
-				}
-				s.Os.LogInfo("stdout", s.GetHostName(), "TaskScheduledFail", fmt.Sprint(task))
-			}
-		case "TaskFinish":
-			taskInfo := event.Body.(TaskInfo)
-			s.Workers[event.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)
-
-		case "NodeInfosUpdate":
-			nodeinfoList := event.Body.(Vec[NodeInfo])
-			for _, ni := range nodeinfoList {
-				s.Workers[ni.Addr] = ni.Clone()
-			}
-			s.Os.LogInfo("stdout", s.GetHostName(), "NodeInfosUpdate")
-
-			/* 		case "TaskScheduled":
-			task := event.Body.(TaskInfo)
+	case "TaskDispense", "TaskCommitFail":
+		task := msg.Body.(TaskInfo)
+		dstWorker, ok := schdulingAlgorithm(s, &task)
+		if ok {
+			task.Worker = dstWorker
 			s.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
-
 			receiver := task.Worker
-
 			if s.storage != "" {
 				receiver = s.storage
 			}
-
+			task.Worker = dstWorker
 			newMessage := Message{
 				From:    s.GetHostName(),
 				To:      receiver,
@@ -113,9 +60,32 @@ func (s *CenterScheduler) Update() {
 			if err != nil {
 				panic(err)
 			}
-			s.Os.LogInfo("stdout", s.GetHostName(), "TaskRun", task.Id) */
+			s.Os.LogInfo("stdout", s.GetHostName(), "TaskScheduled", fmt.Sprint(task))
+		} else {
+			newMessage := Message{
+				From:    s.GetHostName(),
+				To:      msg.From,
+				Content: "TaskCommitFail",
+				Body:    task,
+			}
+			err := s.Os.Send(newMessage)
+			if err != nil {
+				panic(err)
+			}
+			s.Os.LogInfo("stdout", s.GetHostName(), "TaskScheduledFail", fmt.Sprint(task))
 		}
+	case "TaskFinish":
+		taskInfo := msg.Body.(TaskInfo)
+		s.Workers[msg.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)
+
+	case "NodeInfosUpdate":
+		nodeinfoList := msg.Body.(Vec[NodeInfo])
+		for _, ni := range nodeinfoList {
+			s.Workers[ni.Addr] = ni.Clone()
+		}
+		s.Os.LogInfo("stdout", s.GetHostName(), "NodeInfosUpdate")
 	}
+
 }
 
 func (s *CenterScheduler) SimulateTasksUpdate() {

@@ -34,8 +34,11 @@ func (s *StateStorage) StateCopy() Vec[NodeInfo] {
 
 func (s *StateStorage) Debug() { log.Println(s.Workers) }
 
-func (s *StateStorage) Update() {
-	if !s.Started {
+func (s *StateStorage) Update(msg Message) {
+
+	switch msg.Content {
+
+	case "SignalBoot":
 		s.LastSendTime = s.Os.GetTime()
 		s.Os.Run(func() {
 			for {
@@ -51,70 +54,61 @@ func (s *StateStorage) Update() {
 				}
 			}
 		})
-		s.Started = true
-	}
 
-	for s.Os.HasMessage() {
-		newMessage, err := s.Os.Recv()
-		if err != nil {
-			panic(err)
-		}
-		switch newMessage.Content {
-
-		case "TaskRun":
-			task := newMessage.Body.(TaskInfo)
-			if s.Workers[task.Worker].CanAllocate(task.CpuRequest, task.MemoryRequest) {
-				s.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
-				err := s.Os.Send(Message{
-					From:    s.GetHostName(),
-					To:      task.Worker,
-					Content: "TaskRun",
-					Body:    task,
-				})
-				if err != nil {
-					panic(err)
-				}
-
-			} else {
-				err := s.Os.Send(Message{
-					From:    s.GetHostName(),
-					To:      newMessage.From,
-					Content: "TaskCommitFail",
-					Body:    task,
-				})
-				if err != nil {
-					panic(err)
-				}
-				err = s.Os.Send(Message{
-					From:    s.GetHostName(),
-					To:      newMessage.From,
-					Content: "NodeInfosUpdate",
-					Body:    Vec[NodeInfo]{*s.Workers[task.Worker]},
-				})
-				if err != nil {
-					panic(err)
-				}
-			}
-		case "TaskFinish":
-			taskInfo := newMessage.Body.(TaskInfo)
-			s.Workers[newMessage.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)
-		case "NeedUpdateNodeInfo":
-			s.LastSendTime = s.Os.GetTime()
-			stateCopy := s.StateCopy()
-			for _, scheduler := range s.Schedulers {
-				err := s.Os.Send(Message{
-					From:    s.GetHostName(),
-					To:      scheduler,
-					Content: "NodeInfosUpdate",
-					Body:    *stateCopy.Clone(),
-				})
-				if err != nil {
-					panic(err)
-				}
+	case "TaskRun":
+		task := msg.Body.(TaskInfo)
+		if s.Workers[task.Worker].CanAllocate(task.CpuRequest, task.MemoryRequest) {
+			s.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
+			err := s.Os.Send(Message{
+				From:    s.GetHostName(),
+				To:      task.Worker,
+				Content: "TaskRun",
+				Body:    task,
+			})
+			if err != nil {
+				panic(err)
 			}
 
+		} else {
+			err := s.Os.Send(Message{
+				From:    s.GetHostName(),
+				To:      msg.From,
+				Content: "TaskCommitFail",
+				Body:    task,
+			})
+			if err != nil {
+				panic(err)
+			}
+			err = s.Os.Send(Message{
+				From:    s.GetHostName(),
+				To:      msg.From,
+				Content: "NodeInfosUpdate",
+				Body:    Vec[NodeInfo]{*s.Workers[task.Worker]},
+			})
+			if err != nil {
+				panic(err)
+			}
 		}
+	case "TaskFinish":
+		taskInfo := msg.Body.(TaskInfo)
+		s.Workers[msg.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)
+	case "NeedUpdateNodeInfo":
+		s.LastSendTime = s.Os.GetTime()
+		stateCopy := s.StateCopy()
+		for _, scheduler := range s.Schedulers {
+			err := s.Os.Send(Message{
+				From:    s.GetHostName(),
+				To:      scheduler,
+				Content: "NodeInfosUpdate",
+				Body:    *stateCopy.Clone(),
+			})
+			if err != nil {
+				panic(err)
+			}
+		}
+
 	}
+
 }
 
 func (s *StateStorage) SimulateTasksUpdate() {

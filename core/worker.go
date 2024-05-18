@@ -41,81 +41,75 @@ func (n *Worker) Debug() {
 // 收到后台任务管理器的信息
 // 1. 任务介绍信息，则将此消息通知给Manager
 
-func (worker *Worker) Update() {
+func (worker *Worker) Update(msg Message) {
 
-	for worker.Os.HasMessage() {
-		event, err := worker.Os.Recv()
-		if err != nil {
-			panic(err)
+	switch msg.Content {
+
+	case "TaskStart":
+
+		taskid := msg.Body.(TaskInfo).Id
+		if t, ok := worker.TaskMap[taskid]; ok {
+			if t.Status == "needStart" {
+				t.Status = "start"
+				t.StartTime = worker.Os.GetTime()
+				t.LeftTime = t.LifeTime
+
+				worker.Os.LogInfo(TASKS_EVENT_LOG_NAME, t.Id, "start", worker.GetHostName(), fmt.Sprint(t.CpuRequest), fmt.Sprint(t.MemoryRequest))
+				worker.Os.Send(Message{
+					From:    worker.Host,
+					To:      t.User,
+					Content: "TaskStart",
+					Body:    t,
+				})
+			}
 		}
-		hostTime := worker.Os.GetTime()
-		worker.Os.LogInfo("stdout", worker.GetHostName(), event.Content, fmt.Sprint(event.Body))
+	case "TaskPreAllocate":
+		newTask := msg.Body.(TaskInfo)
+		worker.TaskMap[newTask.Id] = &newTask
+		newTask.Status = "needStart"
+	case "TaskRun":
+		newTask := msg.Body.(TaskInfo)
+		newTask.StartTime = worker.Os.GetTime()
+		newTask.LeftTime = newTask.LifeTime
+		worker.TaskMap[newTask.Id] = &newTask
+		newTask.Status = "start"
+		worker._runTask(newTask)
+		worker.Os.Send(Message{
+			From:    worker.Host,
+			To:      newTask.User,
+			Content: "TaskStart",
+			Body:    newTask,
+		})
 
-		switch event.Content {
-		case "TaskStart":
-			taskid := event.Body.(TaskInfo).Id
-			if t, ok := worker.TaskMap[taskid]; ok {
-				if t.Status == "needStart" {
-					t.Status = "start"
-					t.StartTime = hostTime
-					t.LeftTime = t.LifeTime
-
-					worker.Os.LogInfo(TASKS_EVENT_LOG_NAME, t.Id, "start", worker.GetHostName(), fmt.Sprint(t.CpuRequest), fmt.Sprint(t.MemoryRequest))
-					worker.Os.Send(Message{
-						From:    worker.Host,
-						To:      t.User,
-						Content: "TaskStart",
-						Body:    t,
-					})
+	case "TaskCancelAlloc":
+		taskid := msg.Body.(TaskInfo).Id
+		if t, ok := worker.TaskMap[taskid]; ok {
+			if t.Status == "needStart" {
+				t.Status = "finish"
+				if worker.Manager != "" {
+					informReceiverTaskStatus(worker, t, "TaskFinish")
 				}
-			}
-		case "TaskPreAllocate":
-			newTask := event.Body.(TaskInfo)
-			worker.TaskMap[newTask.Id] = &newTask
-			newTask.Status = "needStart"
-		case "TaskRun":
-			newTask := event.Body.(TaskInfo)
-			newTask.StartTime = hostTime
-			newTask.LeftTime = newTask.LifeTime
-			worker.TaskMap[newTask.Id] = &newTask
-			newTask.Status = "start"
-			worker._runTask(newTask)
-			worker.Os.Send(Message{
-				From:    worker.Host,
-				To:      newTask.User,
-				Content: "TaskStart",
-				Body:    newTask,
-			})
+				delete(worker.TaskMap, taskid)
 
-		case "TaskCancelAlloc":
-			taskid := event.Body.(TaskInfo).Id
-			if t, ok := worker.TaskMap[taskid]; ok {
-				if t.Status == "needStart" {
-					t.Status = "finish"
-					if worker.Manager != "" {
-						informReceiverTaskStatus(worker, t, "TaskFinish")
-					}
-					delete(worker.TaskMap, taskid)
-
-				}
 			}
-		case "TaskFinish":
-			t := event.Body.(TaskInfo)
-			id := t.Id
-			if worker.Manager != "" {
-				informReceiverTaskStatus(worker, &t, "TaskFinish")
-			}
-			delete(worker.TaskMap, id)
-			nodeinfo := _calculateNodeInfo(worker)
-			worker.Os.LogInfo("stdout", worker.GetHostName(), "TaskFinish", fmt.Sprint(nodeinfo))
-			worker.Os.Send(Message{
-				From:    worker.Host,
-				To:      t.User,
-				Content: "TaskFinish",
-				Body:    t,
-			})
 		}
+	case "TaskFinish":
+		t := msg.Body.(TaskInfo)
+		id := t.Id
+		if worker.Manager != "" {
+			informReceiverTaskStatus(worker, &t, "TaskFinish")
+		}
+		delete(worker.TaskMap, id)
+		nodeinfo := _calculateNodeInfo(worker)
+		worker.Os.LogInfo("stdout", worker.GetHostName(), "TaskFinish", fmt.Sprint(nodeinfo))
+		worker.Os.Send(Message{
+			From:    worker.Host,
+			To:      t.User,
+			Content: "TaskFinish",
+			Body:    t,
+		})
 	}
+
 }
 
 func (node *Worker) _runTask(t TaskInfo) {

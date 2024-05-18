@@ -16,8 +16,9 @@ type Cluster struct {
 type NodeType string
 
 type BasicNode struct {
-	Os   OsApi
-	Host string
+	Os             OsApi
+	Host           string
+	NextUpdateTime time.Time
 }
 
 func (b *BasicNode) GetHostName() string {
@@ -28,12 +29,24 @@ func (b *BasicNode) SetOsApi(os OsApi) {
 	b.Os = os
 }
 
+func (b *BasicNode) GetNextUpdateTime() time.Time {
+	return b.NextUpdateTime
+}
+
+func (b *BasicNode) SetNextUpdateTime(t time.Time) {
+	b.NextUpdateTime = t
+}
+
 type Node interface {
 	GetHostName() string
 	Debug()
-	SimulateTasksUpdate() //Only  In Simulation Mode
 	SetOsApi(OsApi)
-	Update()
+	Update(Message)
+
+	// below is only  for simulation mode not for deploy mode
+	SimulateTasksUpdate()
+	GetNextUpdateTime() time.Time
+	SetNextUpdateTime(t time.Time)
 }
 
 // OsApi 系统调用 抽象接口
@@ -67,16 +80,21 @@ func FromJson(contentType string, s string) MessageBody {
 			panic(err)
 		}
 		return res
+	} else if strings.HasPrefix(contentType, "Signal") {
+		return Signal(s)
 	} else {
-		return nil
+		panic("wrong type contentType")
 	}
-
 }
 
 // MessageBody Message的Body字段
 type MessageBody interface {
 	MessageBody()
 }
+
+type Signal string
+
+func (s Signal) MessageBody() {}
 
 // TaskInfo 任务的基本信息，还有一些附加的调度器使用的字段
 type TaskInfo struct {
@@ -222,7 +240,6 @@ type Message struct {
 
 // NetInterface 用于处理 Message
 type NetInterface interface {
-	HasMessage() bool
-	Recv() (Message, error)
+	//Recv() (Message, error)
 	Send(Message) error
 }

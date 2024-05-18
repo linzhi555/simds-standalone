@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -10,7 +11,6 @@ import (
 	"simds-standalone/config"
 	"simds-standalone/core"
 	"simds-standalone/simlet/svc"
-	"sync"
 	"time"
 
 	"google.golang.org/grpc"
@@ -19,56 +19,33 @@ import (
 
 var NodeState core.Node
 
-type Input struct {
-	sync.Mutex
-	buffer core.Vec[core.Message]
-}
-
-func (input *Input) Recv() (core.Message, error) {
-	input.Lock()
-	defer input.Unlock()
-	return input.buffer.Dequeue()
-}
-
-func (input *Input) InQueue(m core.Message) {
-	input.Lock()
-	defer input.Unlock()
-	input.buffer.InQueue(m)
-}
-
-func (input *Input) HasMessage() bool {
-	input.Lock()
-	defer input.Unlock()
-	return !input.buffer.Empty()
-}
-
 type server struct {
-	input *Input
+	input chan core.Message
 }
 
 const NETWORK_EVENT_LOG_NAME = "network_event.log"
 
 func (s *server) SendMessage(ctx context.Context, msg *svc.Message) (*svc.Response, error) {
-	s.input.InQueue(core.Message{
+	s.input <- core.Message{
 		From:    msg.From,
 		To:      msg.To,
 		Content: msg.Content,
 		Body:    core.FromJson(msg.Content, msg.Body),
-	})
+	}
 	_logInfo(NETWORK_EVENT_LOG_NAME, msg.Content, msg.From, msg.To)
 	return &svc.Response{OK: true, ErrMsg: "null"}, nil
 }
 
 type NodeOs struct {
 	clients       map[string]svc.SimletServerClient
-	nodeInput     *Input
+	nodeInput     chan core.Message
 	outputChannel chan core.Message
 }
 
 func NewNodeOs() *NodeOs {
 	node := &NodeOs{
 		clients:       make(map[string]svc.SimletServerClient),
-		nodeInput:     &Input{},
+		nodeInput:     make(chan core.Message, 1000000),
 		outputChannel: make(chan core.Message, 10000),
 	}
 	go node.inputServing()
@@ -85,15 +62,21 @@ func (o *NodeOs) Run(f func()) {
 	go f()
 }
 
-func (o *NodeOs) HasMessage() bool {
-	return o.nodeInput.HasMessage()
+func (o *NodeOs) Recv() (core.Message, error) {
+	select {
+	case msg := <-o.nodeInput:
+		return msg, nil
+	default:
+		return core.Message{}, errors.New("no messages")
+	}
 }
 
-func (o *NodeOs) Recv() (core.Message, error) {
-	return o.nodeInput.Recv()
-}
 func (o *NodeOs) Send(m core.Message) error {
-	o.outputChannel <- m
+	if m.To == NodeState.GetHostName() {
+		o.nodeInput <- m
+	} else {
+		o.outputChannel <- m
+	}
 	return nil
 
 }
@@ -205,15 +188,22 @@ func main() {
 		}
 	}
 
-	NodeState.SetOsApi(NewNodeOs())
+	nodeOs := NewNodeOs()
+	NodeState.SetOsApi(nodeOs)
+
+	nodeOs.Send(core.Message{
+		From:    NodeState.GetHostName(),
+		To:      NodeState.GetHostName(),
+		Content: "SignalBoot",
+		Body:    core.Signal("SignalBoot"),
+	})
 
 	// Init input channel
 	time.Sleep(time.Second * 3)
 	// run node
 	for {
-		timer1 := time.NewTimer(time.Millisecond)
-		NodeState.Update()
-		<-timer1.C
+		msg := <-nodeOs.nodeInput
+		NodeState.Update(msg)
 	}
 
 }
