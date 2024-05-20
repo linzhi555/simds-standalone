@@ -50,17 +50,7 @@ func (worker *Worker) Update(msg Message) {
 		taskid := msg.Body.(TaskInfo).Id
 		if t, ok := worker.TaskMap[taskid]; ok {
 			if t.Status == "needStart" {
-				t.Status = "start"
-				t.StartTime = worker.Os.GetTime()
-				t.LeftTime = t.LifeTime
-
-				worker.Os.LogInfo(TASKS_EVENT_LOG_NAME, t.Id, "start", worker.GetHostName(), fmt.Sprint(t.CpuRequest), fmt.Sprint(t.MemoryRequest))
-				worker.Os.Send(Message{
-					From:    worker.Host,
-					To:      t.User,
-					Content: "TaskStart",
-					Body:    t,
-				})
+				worker.deakRunTask(*t)
 			}
 		}
 	case "TaskPreAllocate":
@@ -69,17 +59,7 @@ func (worker *Worker) Update(msg Message) {
 		newTask.Status = "needStart"
 	case "TaskRun":
 		newTask := msg.Body.(TaskInfo)
-		newTask.StartTime = worker.Os.GetTime()
-		newTask.LeftTime = newTask.LifeTime
-		worker.TaskMap[newTask.Id] = &newTask
-		newTask.Status = "start"
-		worker._runTask(newTask)
-		worker.Os.Send(Message{
-			From:    worker.Host,
-			To:      newTask.User,
-			Content: "TaskStart",
-			Body:    newTask,
-		})
+		worker.deakRunTask(newTask)
 
 	case "TaskCancelAlloc":
 		taskid := msg.Body.(TaskInfo).Id
@@ -110,6 +90,20 @@ func (worker *Worker) Update(msg Message) {
 		})
 	}
 
+}
+
+func (worker *Worker) deakRunTask(t TaskInfo) {
+	worker.TaskMap[t.Id] = &t
+	t.StartTime = worker.Os.GetTime()
+	t.LeftTime = t.LifeTime
+	t.Status = "start"
+	worker._runTask(t)
+	worker.Os.Send(Message{
+		From:    worker.Host,
+		To:      t.User,
+		Content: "TaskStart",
+		Body:    t,
+	})
 }
 
 func (node *Worker) _runTask(t TaskInfo) {

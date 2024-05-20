@@ -29,10 +29,6 @@ analyse:
 	cd $(TargetFolder) && python3 draw.py 
 	#rm $(TargetFolder)/components.log
 
-ComposeFolder = ./test_compose
-testCompose:
-	bash ./test_compose.sh $(ComposeFolder)
-
 fmt:
 	gofmt -l -w .
 	golangci-lint run

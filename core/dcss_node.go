@@ -84,6 +84,19 @@ func (node *DcssNode) _delaySchedule(task TaskInfo) {
 	task.Status = "delaySchedule"
 	task.LeftTime = time.Millisecond * 10
 	node.RunningTask[task.Id] = &task
+	node.Os.Run(func() {
+		time.Sleep(time.Millisecond * 10)
+		newMessage := Message{
+			From:    node.GetHostName(),
+			To:      node.GetHostName(),
+			Content: "TaskDispense",
+			Body:    task,
+		}
+		err := node.Os.Send(newMessage)
+		if err != nil {
+			panic(err)
+		}
+	})
 }
 
 func (node *DcssNode) _dcssDivideTask(task TaskInfo) {

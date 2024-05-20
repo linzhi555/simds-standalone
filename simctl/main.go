@@ -16,23 +16,24 @@ import (
 
 func PushImage() {
 	cmd := exec.Command("go", "build", "-o", "./target/simlet", "./simlet")
-	if err := cmd.Run(); err != nil {
+	if output, err := cmd.Output(); err != nil {
 		log.Println("simlet Build Failed")
-		log.Fatal(err)
+		log.Fatal(output)
 	}
 	log.Println("simlet Build Succssed")
 
 	cmd = exec.Command("docker", "build", "-t", config.Val.DockerImageRepo, ".")
-	if err := cmd.Run(); err != nil {
+	output, err := cmd.Output()
+	if err != nil {
 		log.Println("Image Build Failed")
-		log.Fatal(err)
+		log.Println(output)
 	}
 	log.Println("Image Build Succssed")
 
 	cmd = exec.Command("docker", "push", config.Val.DockerImageRepo)
-	if err := cmd.Run(); err != nil {
+	if output, err := cmd.Output(); err != nil {
 		log.Println("Image Push Failed")
-		log.Fatal(err)
+		log.Fatal(output)
 	}
 	log.Println("Image Push Succssed")
 }
@@ -55,16 +56,18 @@ func test(cli *k8s.K8sClient) {
 	var cluster core.Cluster = clusterBuilder()
 	for i, node := range cluster.Nodes {
 		if strings.HasPrefix(node.GetHostName(), "taskgen") {
-			time.Sleep(time.Second * 10)
+			time.Sleep(time.Second * 20)
 		}
 		if strings.HasPrefix(node.GetHostName(), "storage") {
-			time.Sleep(time.Second * 10)
+			time.Sleep(time.Second * 20)
 		}
 		fmt.Println("deploy", node.GetHostName())
 		name := fmt.Sprintf("simds-%s", node.GetHostName())
 		cli.CreatePod(name, name, config.Val.DockerImageRepo, []string{"sh",
 			"-c",
-			fmt.Sprintf("/simlet --Cluster %s --NodeName %s  >simlet.log 2>simlet_err.log; sleep 20000", config.Val.Cluster, node.GetHostName())})
+			fmt.Sprintf(
+				"tc qdisc add dev eth0 root netem delay %dms %dms; /simlet --Cluster %s --NodeName %s  >simlet.log 2>simlet_err.log; sleep 20000",
+				config.Val.NetLatency, int32(float32(config.Val.NetLatency)*0.15), config.Val.Cluster, node.GetHostName())})
 		cli.CreateService(fmt.Sprintf("%s-svc", name), name, 8888, 32055+i)
 	}
 }

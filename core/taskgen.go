@@ -117,7 +117,6 @@ func (taskgen *TaskGen) Update(msg Message) {
 		taskgen.StartTime = taskgen.Os.GetTime()
 		taskgen.Started = true
 		taskgen.Os.Run(func() { taskgen._sendingTask() })
-
 	case "TaskStart":
 		newtask := msg.Body.(TaskInfo)
 		taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "start", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
@@ -149,7 +148,6 @@ func (taskgen *TaskGen) _sendingTask() {
 		}
 
 		newtask := taskgen.Src[taskgen.CurTaskId].task
-		log.Println(newtask)
 
 		newtask.User = taskgen.Host
 		receiverAddr := taskgen.Receivers[taskgen.CurTaskId%receiverNum]

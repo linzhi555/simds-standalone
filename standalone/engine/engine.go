@@ -119,14 +119,8 @@ func (engine *Engine) updateNodes() {
 						engine.Nodes[j].SetNextUpdateTime(engine.GetWorldTime().Add(costTime)) // 设置下一次更新的时间
 						//engine.Nodes[j].SetNextUpdateTime(engine.GetWorldTime().Add(time.Millisecond)) // 设置下一次更新的时间
 
-						if engine.Nodes[j].GetHostName() == "master0" {
-							log.Println(engine.Nodes[j].GetNextUpdateTime().Sub(engine.GetWorldTime()))
-						}
 					}
-				} else {
-					log.Println(engine.Nodes[j].GetNextUpdateTime().Sub(engine.GetWorldTime()))
 				}
-
 				engine.Nodes[j].SimulateTasksUpdate() // 模拟任务进度更新。
 			}
 			finishChan <- true

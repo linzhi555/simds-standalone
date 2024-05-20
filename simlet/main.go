@@ -13,6 +13,7 @@ import (
 	"simds-standalone/simlet/svc"
 	"time"
 
+	cmap "github.com/orcaman/concurrent-map/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -26,25 +27,28 @@ type server struct {
 const NETWORK_EVENT_LOG_NAME = "network_event.log"
 
 func (s *server) SendMessage(ctx context.Context, msg *svc.Message) (*svc.Response, error) {
+	body := core.FromJson(msg.Content, msg.Body)
 	s.input <- core.Message{
 		From:    msg.From,
 		To:      msg.To,
 		Content: msg.Content,
-		Body:    core.FromJson(msg.Content, msg.Body),
+		Body:    body,
 	}
 	_logInfo(NETWORK_EVENT_LOG_NAME, msg.Content, msg.From, msg.To)
+	log.Println(msg.Content, msg.From, msg.To, body)
+
 	return &svc.Response{OK: true, ErrMsg: "null"}, nil
 }
 
 type NodeOs struct {
-	clients       map[string]svc.SimletServerClient
+	clients       cmap.ConcurrentMap[string, svc.SimletServerClient]
 	nodeInput     chan core.Message
 	outputChannel chan core.Message
 }
 
 func NewNodeOs() *NodeOs {
 	node := &NodeOs{
-		clients:       make(map[string]svc.SimletServerClient),
+		clients:       cmap.New[svc.SimletServerClient](),
 		nodeInput:     make(chan core.Message, 1000000),
 		outputChannel: make(chan core.Message, 10000),
 	}
@@ -98,24 +102,25 @@ func (o *NodeOs) inputServing() {
 
 func (o *NodeOs) outputServing() {
 	for {
-		m := <-o.outputChannel
-		if _, ok := o.clients[m.To]; !ok {
-			start := time.Now()
-			conn, err := grpc.Dial(fmt.Sprintf("simds-%s-svc:8888", m.To), grpc.WithTransportCredentials(insecure.NewCredentials()))
-			if err != nil {
-				log.Println(err)
+		message := <-o.outputChannel
+		go func(m core.Message) {
+			if _, ok := o.clients.Get(m.To); !ok {
+				start := time.Now()
+				conn, err := grpc.Dial(fmt.Sprintf("simds-%s-svc:8888", m.To), grpc.WithTransportCredentials(insecure.NewCredentials()))
+				if err != nil {
+					log.Println(err)
+				}
+				log.Println("establish rpc connection spend", time.Since(start))
+				c := svc.NewSimletServerClient(conn)
+				o.clients.Set(m.To, c)
 			}
-			log.Println("establish rpc connection spend", time.Since(start))
-			c := svc.NewSimletServerClient(conn)
-			o.clients[m.To] = c
-		}
-		c := o.clients[m.To]
-		ctx, _ := context.WithTimeout(context.Background(), time.Second)
-
-		_, err := c.SendMessage(ctx, &svc.Message{From: m.From, To: m.To, Content: m.Content, Body: core.ToJson(m.Body)})
-		if err != nil {
-			log.Println("could not get result: ", err, m)
-		}
+			c, _ := o.clients.Get(m.To)
+			ctx, _ := context.WithTimeout(context.Background(), time.Second)
+			_, err := c.SendMessage(ctx, &svc.Message{From: m.From, To: m.To, Content: m.Content, Body: core.ToJson(m.Body)})
+			if err != nil {
+				log.Println("could not get result: ", err, m)
+			}
+		}(message)
 	}
 }
 
