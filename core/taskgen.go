@@ -5,6 +5,7 @@ import (
 	"log"
 	"simds-standalone/common"
 	"simds-standalone/config"
+	"strings"
 	"time"
 )
 
@@ -114,15 +115,23 @@ func (n *TaskGen) Debug() {}
 func (taskgen *TaskGen) Update(msg Message) {
 	switch msg.Content {
 	case "SignalBoot":
+		taskgen.Os.Run(func() { taskgen._preheat() })
+
+	case "SignalPreheatFinish":
 		taskgen.StartTime = taskgen.Os.GetTime()
 		taskgen.Started = true
 		taskgen.Os.Run(func() { taskgen._sendingTask() })
 	case "TaskStart":
 		newtask := msg.Body.(TaskInfo)
-		taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "start", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+		if !strings.HasSuffix(newtask.Id, "preheat") {
+			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "start", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+		}
+
 	case "TaskFinish":
 		newtask := msg.Body.(TaskInfo)
-		taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "finish", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+		if !strings.HasSuffix(newtask.Id, "preheat") {
+			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "finish", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+		}
 	case "TaskCommitFail":
 		task := msg.Body.(TaskInfo)
 		newMessage := Message{
@@ -138,11 +147,52 @@ func (taskgen *TaskGen) Update(msg Message) {
 	}
 }
 
+func (taskgen *TaskGen) _preheat() {
+	taskgenAddr := taskgen.GetHostName()
+
+	receiverNum := len(taskgen.Receivers)
+	log.Println("start preheat")
+
+	startTime := time.Now()
+	for taskgen.CurTaskId < len(taskgen.Src) {
+		for taskgen.Src[taskgen.CurTaskId].time > taskgen.Os.GetTime().Sub(startTime) {
+		}
+
+		newtask := taskgen.Src[taskgen.CurTaskId].task
+		newtask.Id += "_preheat"
+		newtask.User = taskgen.Host
+		receiverAddr := taskgen.Receivers[taskgen.CurTaskId%receiverNum]
+		newMessage := Message{
+			From:    taskgenAddr,
+			To:      receiverAddr,
+			Content: "TaskDispense",
+			Body:    newtask,
+		}
+		err := taskgen.Os.Send(newMessage)
+		if err != nil {
+			panic(err)
+		}
+		taskgen.CurTaskId++
+	}
+	taskgen.CurTaskId = 0
+	newMessage := Message{
+		From:    taskgenAddr,
+		To:      taskgenAddr,
+		Content: "SignalPreheatFinish",
+		Body:    Signal("SignalPreheatFinish"),
+	}
+	err := taskgen.Os.Send(newMessage)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (taskgen *TaskGen) _sendingTask() {
 	taskgenAddr := taskgen.GetHostName()
 
 	receiverNum := len(taskgen.Receivers)
 	log.Println("start sending task")
+
 	for taskgen.CurTaskId < len(taskgen.Src) {
 		for taskgen.Src[taskgen.CurTaskId].time > taskgen.Os.GetTime().Sub(taskgen.StartTime) {
 		}
@@ -164,11 +214,21 @@ func (taskgen *TaskGen) _sendingTask() {
 		taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
 		taskgen.CurTaskId++
 	}
-
 }
 
 func (taskgen *TaskGen) SimulateTasksUpdate() {
+
 	if !taskgen.Started {
+		newMessage := Message{
+			From:    taskgen.Host,
+			To:      taskgen.Host,
+			Content: "SignalPreheatFinish",
+			Body:    Signal("SignalPreheatFinish"),
+		}
+		err := taskgen.Os.Send(newMessage)
+		if err != nil {
+			panic(err)
+		}
 		return
 	}
 

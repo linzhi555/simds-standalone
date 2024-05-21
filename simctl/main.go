@@ -135,6 +135,6 @@ func main() {
 	clean(cli)
 	PushImage()
 	test(cli)
-	time.Sleep(50 * time.Second)
+	time.Sleep(100 * time.Second)
 	collectResult(cli)
 }
