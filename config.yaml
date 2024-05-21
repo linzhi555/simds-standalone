@@ -1,7 +1,7 @@
 FPS:  10000            #hom many frame per second
 GoProcs: 3
 NodeNum:        20  # how many large the cluster
-NetLatency:     5         # the average network latency, unit: milisecond 
+NetLatency:     1         # the average network latency, unit: milisecond 
 NodeCpu:        1000         # the node cpu capacity
 NodeMemory:     1000         # the node memory capacity
 
@@ -9,7 +9,7 @@ NodeMemory:     1000         # the node memory capacity
 SimulateDuration:   40000          # how long the simulation last / unit : milisecond
 TaskMode: "trace"  # the mode of the tasks "onePeak" "noWave" "trace"
 TraceFile: "./trace/tasks_stream.log"  # the mode of the tasks "rand_normal" "trace"
-TaskNumFactor:   6.8  # task/persecond = TaskNumFactor * NodeNum 
+TaskNumFactor:   6  # task/persecond = TaskNumFactor * NodeNum 
 TaskCpu:        300          # the average task cpu request
 TaskMemory:     300          # the average task memory request
 TaskLifeTime:   330        # the average task lifeTime  , unit : milisecond

@@ -33,6 +33,10 @@ func NewTaskGen(hostname string) *TaskGen {
 		CurTaskId: 0,
 	}
 
+	return taskgen
+}
+
+func (taskgen *TaskGen) InitTaskSRc() {
 	switch config.Val.TaskMode {
 	case "onePeak":
 		taskgen.Src = onePeakTaskStream()
@@ -45,8 +49,6 @@ func NewTaskGen(hostname string) *TaskGen {
 	default:
 		panic("this mod is not implented")
 	}
-
-	return taskgen
 }
 
 // 负载没有波动的连续任务流
@@ -115,8 +117,12 @@ func (n *TaskGen) Debug() {}
 func (taskgen *TaskGen) Update(msg Message) {
 	switch msg.Content {
 	case "SignalBoot":
-		taskgen.Os.Run(func() { taskgen._preheat() })
+		taskgen.InitTaskSRc()
+		for i := range taskgen.Src {
+			fmt.Println(taskgen.Src[i])
+		}
 
+		taskgen.Os.Run(func() { taskgen._preheat() })
 	case "SignalPreheatFinish":
 		taskgen.StartTime = taskgen.Os.GetTime()
 		taskgen.Started = true
@@ -175,6 +181,7 @@ func (taskgen *TaskGen) _preheat() {
 		taskgen.CurTaskId++
 	}
 	taskgen.CurTaskId = 0
+	time.Sleep(10 * time.Second)
 	newMessage := Message{
 		From:    taskgenAddr,
 		To:      taskgenAddr,

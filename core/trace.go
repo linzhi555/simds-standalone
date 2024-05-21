@@ -23,14 +23,15 @@ func readTraceTaskStream(traceFile string, resourceRate float64, endTime int32) 
 	src := make([]SrcNode, 0)
 
 	table, _ := common.CsvToList(traceFile)
-
 	for i := range table {
+		lifeTime := time.Duration(common.Str_to_int64(table[i][2])) * time.Microsecond
 		newTask := TaskInfo{
 			Id:            table[i][1], // table [i][1] is the taskid
 			CpuRequest:    int32(common.Str_to_float64(table[i][3]) * resourceRate),
 			MemoryRequest: int32(common.Str_to_float64(table[i][4]) * resourceRate),
-			LifeTime:      time.Duration(common.Str_to_int64(table[i][2])) * time.Microsecond,
+			LifeTime:      lifeTime,
 			Status:        "submit",
+			Cmd:           fmt.Sprintf("sleep %f", lifeTime.Seconds()),
 		}
 		submitTime := time.Duration(common.Str_to_int64(table[i][0])) * time.Microsecond // table [i][1] is the taskid
 
