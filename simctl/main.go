@@ -68,7 +68,7 @@ func test(cli *k8s.K8sClient) {
 			fmt.Sprintf(
 				"tc qdisc add dev eth0 root netem delay %dms %dms; /simlet --Cluster %s --NodeName %s  >simlet.log 2>simlet_err.log; sleep 20000",
 				config.Val.NetLatency, int32(float32(config.Val.NetLatency)*0.15), config.Val.Cluster, node.GetHostName())})
-		cli.CreateService(fmt.Sprintf("%s-svc", name), name, 8888, 32055+i)
+		cli.CreateService(fmt.Sprintf("%s-svc", name), name, 8888, 30100+i)
 	}
 }
 
