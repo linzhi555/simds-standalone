@@ -323,7 +323,6 @@ func pow2(a float32) float32 {
 
 func (c *Cluster) AnalyseSchedulerLatency(outPutDir string) {
 	costList := c.AllEvents.AnalyseStageDuration(SUBMIT, START)
-	outPutFigurePath := path.Join(outPutDir, "latencyCurve.png")
 	outPutLogPath := path.Join(outPutDir, "latencyCurve.log")
 	outPutMetricPath := path.Join(outPutDir, "latency_metric.log")
 
@@ -360,10 +359,7 @@ func (c *Cluster) AnalyseSchedulerLatency(outPutDir string) {
 
 	if costList[0].Cost == FAIL {
 		log.Panic("all task fail to schedule")
-	} else {
-		outputLatencyResultFigure(outPutFigurePath, costList)
-	}
-
+	} 
 }
 
 func (c *Cluster) AnalyseTaskLifeTime(outPutDir string) {

@@ -7,10 +7,12 @@ sys.path.append("py")
 import draw
 
 
+pyFileDir= os.path.dirname(os.path.realpath(__file__))
+
+
 def load_config() -> dict:
-    testDir =  os.path.dirname(os.path.realpath(__file__))
     config = {}
-    with open("{testDir}/config_template.yaml".format(testDir=testDir), "r") as stream:
+    with open( os.path.join(pyFileDir,"config_template.yaml"), "r") as stream:
         try:
             config = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
@@ -38,8 +40,8 @@ def run_compose(config,clusters:List[Cluster],testname:str,paramsName:str,params
         for cluster in clusters:
             configCopy = config.copy()
             configCopy[paramsName] = param
-            configOut = "graduate_paper_test/config.yaml"
-            targetOut = "graduate_paper_test/target/{}/{}_{}".format(testname,cluster.name,label)
+            configOut = os.path.join(pyFileDir, "config.yaml")
+            targetOut = os.path.join(pyFileDir,"target",testname,"{}_{}".format(cluster.name,label))
             if cluster.specialConfig != None:
                 for k,v in cluster.specialConfig.items():
                     configCopy[k]=v
@@ -52,7 +54,7 @@ def draw_compose(clusters:List[Cluster],testname:str,paramsName:str,params:List,
     for _,label in zip(params,parmsLables):
         tests = []
         for cluster in clusters:
-            targetOut = "graduate_paper_test/target/{}/{}_{}".format(testname,cluster.name,label)
+            targetOut = os.path.join(pyFileDir,"target",testname,"{}_{}".format(cluster.name,label))
             tests.append([targetOut, "{} {} ".format(cluster.describ,label)])
         draw.draw_task_submission_rate(tests)
         draw.draw_muilt_lantencyCurve(tests)
@@ -60,13 +62,13 @@ def draw_compose(clusters:List[Cluster],testname:str,paramsName:str,params:List,
         draw.draw_muilt_var_resource (tests)
         draw.draw_muilt_net_busy (tests)
         draw.draw_task_latency_CDF(tests)
-        outfolder = "graduate_paper_test/target/all/{testname}/{label}".format(testname=testname,label=label)
+        outfolder = os.path.join(pyFileDir,"target","all",testname,label)
         os.system("mkdir -p {outfolder}  && mv *.png {outfolder}".format(outfolder=outfolder))
 
     for cluster in clusters:
         tests = []
         for _,label in zip(params,parmsLables):
-            targetOut = "graduate_paper_test/target/{}/{}_{}".format(testname,cluster.name,label)
+            targetOut = os.path.join(pyFileDir,"target",testname,"{}_{}".format(cluster.name,label))
             tests.append([targetOut, "{} {} ".format(cluster.describ,label)])
         draw.draw_task_submission_rate(tests)
         draw.draw_muilt_lantencyCurve(tests)
@@ -74,7 +76,7 @@ def draw_compose(clusters:List[Cluster],testname:str,paramsName:str,params:List,
         draw.draw_muilt_var_resource (tests)
         draw.draw_muilt_net_busy (tests)
         draw.draw_task_latency_CDF(tests)
-        outfolder = "graduate_paper_test/target/all/{testname}/{cluster}".format(testname=testname,cluster=cluster.name)
+        outfolder = os.path.join(pyFileDir,"target","all", testname ,cluster.name)
         os.system("mkdir -p {outfolder}  && mv *.png {outfolder}".format(outfolder=outfolder))
 
 
@@ -87,15 +89,15 @@ if __name__ == "__main__":
 
     centerCluster = Cluster("center","Centralized","make test Cluster=Center")
     sharedCluster = Cluster("share","Shared State","make test Cluster=ShareState")
-    sparrowCluster = Cluster("sparrow","Decentralized","make test Cluster=Sparrow")
-    dcssCluster = Cluster("dcss","Decentralized Net","make test Cluster=Dcss")
+    dcssCluster = Cluster("dcss","dcss ","make test Cluster=Dcss")
+    
+    dcssK8sCluster = Cluster("dcssk8s","dcssk8s ","make k8sTest Cluster=Dcss")
 
-    allclusters = [centerCluster,sharedCluster,sparrowCluster]
         
     config = load_config()
 
     config_copy = config.copy()
-    test_compose(config_copy,[dcssCluster],"nodenum","NodeNum",[100,300,500],["100","300","500"],drawOnly=args.drawOnly)
+    test_compose(config_copy,[dcssCluster,dcssK8sCluster],"nodenum","NodeNum",[20],["20"],drawOnly=args.drawOnly)
 
     # config_copy = config.copy()
     # config_copy["NodeNum"] = 1000

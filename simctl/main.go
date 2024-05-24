@@ -66,8 +66,8 @@ func test(cli *k8s.K8sClient) {
 		cli.CreatePod(name, name, config.Val.DockerImageRepo, []string{"sh",
 			"-c",
 			fmt.Sprintf(
-				"tc qdisc add dev eth0 root netem delay %dms %dms; /simlet --Cluster %s --NodeName %s  >simlet.log 2>simlet_err.log; sleep 20000",
-				config.Val.NetLatency, int32(float32(config.Val.NetLatency)*0.15), config.Val.Cluster, node.GetHostName())})
+				"tc qdisc add dev eth0 root netem delay %dus %dus; /simlet --Cluster %s --NodeName %s  >simlet.log 2>simlet_err.log; sleep 20000",
+				config.Val.NetLatency*1000, int32(float32(config.Val.NetLatency*1000)*0.15), config.Val.Cluster, node.GetHostName())})
 		cli.CreateService(fmt.Sprintf("%s-svc", name), name, 8888, 30100+i)
 	}
 }

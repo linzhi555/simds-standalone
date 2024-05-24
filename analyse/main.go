@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"path"
 	"simds-standalone/config"
 
 	"github.com/spf13/pflag"
@@ -41,12 +40,10 @@ func main() {
 	info("analysing task lifet time...")
 	c.AnalyseTaskLifeTime(outputDir)
 	info("analysing cluster resource status curves...")
-	curves := c.CalStatusCurves(outputDir)
+	c.CalStatusCurves(outputDir)
 
 	info("analysing net busy ...")
 	AnalyseNet(netLogFile, outputDir)
 
 	info("output pngs ...")
-	OutputAverageCpuRamCurve(path.Join(outputDir, "clusterStatusAverage.png"), curves)
-	OutputVarianceCpuRamCurve(path.Join(outputDir, "clusterStatusVariance.png"), curves)
 }

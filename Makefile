@@ -25,9 +25,8 @@ preDeal:
 
 analyse:
 	go run ./analyse  --OutputDir $(TargetFolder) -c $(Config)
-	cp ./py/draw.py $(TargetFolder)
+	cp ./test/draw.py $(TargetFolder)
 	cd $(TargetFolder) && python3 draw.py 
-	#rm $(TargetFolder)/components.log
 
 fmt:
 	gofmt -l -w .

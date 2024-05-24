@@ -13,7 +13,7 @@ const TASKS_EVENT_LOG_NAME = "tasks_event.log"
 
 type TaskGen struct {
 	BasicNode
-	Started   bool
+	Status    string
 	StartTime time.Time
 	CurTaskId int
 	Receivers []string
@@ -118,6 +118,7 @@ func (taskgen *TaskGen) Update(msg Message) {
 	switch msg.Content {
 	case "SignalBoot":
 		taskgen.InitTaskSRc()
+		taskgen.Status = "preheat"
 		for i := range taskgen.Src {
 			fmt.Println(taskgen.Src[i])
 		}
@@ -125,7 +126,7 @@ func (taskgen *TaskGen) Update(msg Message) {
 		taskgen.Os.Run(func() { taskgen._preheat() })
 	case "SignalPreheatFinish":
 		taskgen.StartTime = taskgen.Os.GetTime()
-		taskgen.Started = true
+		taskgen.Status = "start"
 		taskgen.Os.Run(func() { taskgen._sendingTask() })
 	case "TaskStart":
 		newtask := msg.Body.(TaskInfo)
@@ -224,8 +225,9 @@ func (taskgen *TaskGen) _sendingTask() {
 }
 
 func (taskgen *TaskGen) SimulateTasksUpdate() {
+	switch taskgen.Status {
 
-	if !taskgen.Started {
+	case "preheat":
 		newMessage := Message{
 			From:    taskgen.Host,
 			To:      taskgen.Host,
@@ -236,33 +238,32 @@ func (taskgen *TaskGen) SimulateTasksUpdate() {
 		if err != nil {
 			panic(err)
 		}
-		return
-	}
+		taskgen.Status = "preheatFinish"
 
-	taskgenAddr := taskgen.GetHostName()
+	case "start":
+		taskgenAddr := taskgen.GetHostName()
+		receiverNum := len(taskgen.Receivers)
+		timeNow := taskgen.Os.GetTime().Sub(taskgen.StartTime)
+		for taskgen.CurTaskId < len(taskgen.Src) {
+			if taskgen.Src[taskgen.CurTaskId].time > timeNow {
+				break
+			}
 
-	receiverNum := len(taskgen.Receivers)
-
-	timeNow := taskgen.Os.GetTime().Sub(taskgen.StartTime)
-	for taskgen.CurTaskId < len(taskgen.Src) {
-		if taskgen.Src[taskgen.CurTaskId].time > timeNow {
-			break
+			newtask := taskgen.Src[taskgen.CurTaskId].task
+			newtask.User = taskgen.Host
+			receiverAddr := taskgen.Receivers[taskgen.CurTaskId%receiverNum]
+			newMessage := Message{
+				From:    taskgenAddr,
+				To:      receiverAddr,
+				Content: "TaskDispense",
+				Body:    newtask,
+			}
+			err := taskgen.Os.Send(newMessage)
+			if err != nil {
+				panic(err)
+			}
+			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+			taskgen.CurTaskId++
 		}
-
-		newtask := taskgen.Src[taskgen.CurTaskId].task
-		newtask.User = taskgen.Host
-		receiverAddr := taskgen.Receivers[taskgen.CurTaskId%receiverNum]
-		newMessage := Message{
-			From:    taskgenAddr,
-			To:      receiverAddr,
-			Content: "TaskDispense",
-			Body:    newtask,
-		}
-		err := taskgen.Os.Send(newMessage)
-		if err != nil {
-			panic(err)
-		}
-		taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
-		taskgen.CurTaskId++
 	}
 }
