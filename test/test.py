@@ -97,7 +97,11 @@ if __name__ == "__main__":
     config = load_config()
 
     config_copy = config.copy()
+
+    #config_copy["NetLatency"]=1
+    #config_copy["TaskMode"]="onePeak"
     test_compose(config_copy,[dcssCluster,dcssK8sCluster],"nodenum","NodeNum",[20],["20"],drawOnly=args.drawOnly)
+    
 
     # config_copy = config.copy()
     # config_copy["NodeNum"] = 1000

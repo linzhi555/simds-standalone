@@ -37,6 +37,12 @@ func main() {
 	time.Sleep(3 * time.Second)
 
 	simulator := engine.InitEngine(cluster)
-	simulator.Run()
+
+	if config.Val.Debug {
+		simulator.RunInConsole()
+	}else {
+		simulator.Run()
+	}
+
 
 }
