@@ -40,14 +40,14 @@ def run_compose(config,clusters:List[Cluster],testname:str,paramsName:str,params
         for cluster in clusters:
             configCopy = config.copy()
             configCopy[paramsName] = param
-            configOut = os.path.join( "config.yaml")
+            configOut = os.path.join(pyFileDir, "config.yaml")
             targetOut = os.path.join(pyFileDir,"target",testname,"{}_{}".format(cluster.name,label))
             if cluster.specialConfig != None:
                 for k,v in cluster.specialConfig.items():
                     configCopy[k]=v
             with open(configOut, "w") as output:
                 yaml.dump(configCopy,output)
-            os.system("{} Config={} TargetFolder=\"{}\"".format(cluster.command,configOut,targetOut))
+            os.system("{} Config={} TargetFolder=\"{}\"".format(cluster.command,'./test/config.yaml',targetOut))
 
 
 def draw_compose(clusters:List[Cluster],testname:str,paramsName:str,params:List,parmsLables:List[str]):
