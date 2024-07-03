@@ -40,7 +40,7 @@ def run_compose(config,clusters:List[Cluster],testname:str,paramsName:str,params
         for cluster in clusters:
             configCopy = config.copy()
             configCopy[paramsName] = param
-            configOut = os.path.join(pyFileDir, "config.yaml")
+            configOut = os.path.join( "config.yaml")
             targetOut = os.path.join(pyFileDir,"target",testname,"{}_{}".format(cluster.name,label))
             if cluster.specialConfig != None:
                 for k,v in cluster.specialConfig.items():
@@ -98,8 +98,8 @@ if __name__ == "__main__":
 
     config_copy = config.copy()
 
-    #config_copy["NetLatency"]=1
-    #config_copy["TaskMode"]="onePeak"
+    config_copy["NetLatency"]=1
+    config_copy["TaskMode"]="onePeak"
     test_compose(config_copy,[dcssCluster,dcssK8sCluster],"nodenum","NodeNum",[20],["20"],drawOnly=args.drawOnly)
     
 

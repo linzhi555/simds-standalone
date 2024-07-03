@@ -15,25 +15,25 @@ import (
 )
 
 func PushImage() {
-	cmd := exec.Command("go", "build", "-o", "./target/simlet", "./simlet")
-	if output, err := cmd.Output(); err != nil {
+	cmd := exec.Command("bash","-c","CGO_ENABLED=0" ,"go", "build", "-o", "./target/simlet", "./simlet")
+	if output, err := cmd.CombinedOutput(); err != nil {
 		log.Println("simlet Build Failed")
-		log.Fatal(output)
+		log.Fatal(string(output))
 	}
 	log.Println("simlet Build Succssed")
 
-	cmd = exec.Command("docker", "build", "-t", config.Val.DockerImageRepo, ".")
-	output, err := cmd.Output()
+	cmd = exec.Command("docker", "build", "--build-arg", fmt.Sprintf("Config=%s", config.Val.ConfigPath), "-t", config.Val.DockerImageRepo, ".")
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Println("Image Build Failed")
-		log.Println(output)
+		log.Fatal(string(output))
 	}
 	log.Println("Image Build Succssed")
 
 	cmd = exec.Command("docker", "push", config.Val.DockerImageRepo)
-	if output, err := cmd.Output(); err != nil {
+	if output, err := cmd.CombinedOutput(); err != nil {
 		log.Println("Image Push Failed")
-		log.Fatal(output)
+		log.Fatal(string(output))
 	}
 	log.Println("Image Push Succssed")
 }
