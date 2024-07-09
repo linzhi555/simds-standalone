@@ -15,7 +15,7 @@ import (
 )
 
 func PushImage() {
-	cmd := exec.Command("bash","-c","CGO_ENABLED=0" ,"go", "build", "-o", "./target/simlet", "./simlet")
+	cmd := exec.Command("go", "build", "-o", "./target/simlet", "./simlet")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		log.Println("simlet Build Failed")
 		log.Fatal(string(output))
