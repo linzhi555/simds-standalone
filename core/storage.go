@@ -107,6 +107,19 @@ func (s *StateStorage) Update(msg Message) {
 			}
 		}
 
+	case "TaskCommitFail":
+		task := msg.Body.(TaskInfo)
+		newMessage := Message{
+			From:    s.GetHostName(),
+			To:      msg.From,
+			Content: "TaskDispense",
+			Body:    task,
+		}
+		err := s.Os.Send(newMessage)
+		if err != nil {
+			panic(err)
+		}
+
 	}
 
 }

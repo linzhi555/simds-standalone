@@ -173,7 +173,13 @@ func (engine *Engine) updateNetwork() {
 				panic(fmt.Sprint(m) + ":net can not reach")
 			}
 			needDelete = true
-			network.Os.LogInfo(NETWORK_EVENT_LOG_NAME, m.Content, m.From, m.To)
+
+			bodystring := fmt.Sprint(m.Body)
+			if len(bodystring) > 100 {
+				bodystring = bodystring[0:97] + "..."
+			}
+			network.Os.LogInfo(NETWORK_EVENT_LOG_NAME, m.Content, m.From, m.To, bodystring)
+
 			out.InQueue(m)
 		} else {
 			network.Waittings[i].LeftTime -= (time.Second / time.Duration(config.Val.FPS))
@@ -201,7 +207,7 @@ func (engine *Engine) UpdateNtimes(n uint64) {
 }
 
 func InitEngine(cluster core.Cluster) *Engine {
-	common.AppendLineCsvFile(path.Join(config.Val.OutputDir, NETWORK_EVENT_LOG_NAME), []string{"time", "type", "from", "to"})
+	common.AppendLineCsvFile(path.Join(config.Val.OutputDir, NETWORK_EVENT_LOG_NAME), []string{"time", "type", "from", "to", "body"})
 	common.AppendLineCsvFile(path.Join(config.Val.OutputDir, core.TASKS_EVENT_LOG_NAME), []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
 
 	var e Engine
@@ -299,7 +305,6 @@ func simdsLua(simulator *Engine) *lua.LState {
 		simulator.UpdateNtimes(uint64(lv) - simulator.UpdateCount)
 		return 1 /* number of results */
 	}
-
 
 	time := func(L *lua.LState) int {
 		fmt.Printf("Simulator Time: %f s, UpdateFrames: %d, FPS: %d \n", float32(simulator.UpdateCount)/float32(config.Val.FPS), simulator.UpdateCount, config.Val.FPS)

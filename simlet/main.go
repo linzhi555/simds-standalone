@@ -34,7 +34,13 @@ func (s *server) SendMessage(ctx context.Context, msg *svc.Message) (*svc.Respon
 		Content: msg.Content,
 		Body:    body,
 	}
-	_logInfo(NETWORK_EVENT_LOG_NAME, msg.Content, msg.From, msg.To)
+
+	bodystring := fmt.Sprint(msg.Body)
+	if len(bodystring) > 100 {
+		bodystring = bodystring[0:97] + "..."
+	}
+	_logInfo(NETWORK_EVENT_LOG_NAME, msg.Content, msg.From, msg.To, bodystring)
+
 	log.Println(msg.Content, msg.From, msg.To, body)
 
 	return &svc.Response{OK: true, ErrMsg: "null"}, nil
@@ -169,7 +175,7 @@ func main() {
 	log.Println("simlet started as", config.Val.NodeName)
 
 	// Init log file
-	common.AppendLineCsvFile(NETWORK_EVENT_LOG_NAME, []string{"time", "type", "from", "to"})
+	common.AppendLineCsvFile(NETWORK_EVENT_LOG_NAME, []string{"time", "type", "from", "to", "body"})
 	common.AppendLineCsvFile(core.TASKS_EVENT_LOG_NAME, []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
 
 	// core.InitLogs()
