@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"path"
 	"runtime"
@@ -41,7 +42,10 @@ func main() {
 	if config.Val.Debug {
 		simulator.RunInConsole()
 	}else {
+		start := time.Now()
 		simulator.Run()
+		costTime := time.Since(start)
+		simulator.Network.Os.LogInfo("costTime.log",fmt.Sprint(costTime))
 	}
 
 

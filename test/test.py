@@ -42,7 +42,6 @@ def test_compose(
         run_compose(config, clusters, testname, paramsName, params, parmsLables)
     draw_compose(clusters, testname, paramsName, params, parmsLables)
 
-
 def run_compose(
     config,
     clusters: List[Cluster],
@@ -69,7 +68,6 @@ def run_compose(
                     cluster.command, "./test/config.yaml", targetOut
                 )
             )
-
 
 def draw_compose(
     clusters: List[Cluster],
@@ -128,33 +126,17 @@ if __name__ == "__main__":
     dcssK8sCluster = Cluster("dcssk8s", "dcssk8s ", "make k8sTest Cluster=Dcss")
     shareK8sCluster = Cluster("sharek8s", "sharek8s", "make k8sTest Cluster=ShareState")
 
-    config = load_config()
+    config_template = load_config()
+    
+    # test the influence of net latency
 
-    # config_copy = config.copy()
-    # config_copy["TaskMode"] = "onePeak"
-    # test_compose(
-    #     config_copy,
-    #     [dcssCluster, dcssK8sCluster],
-    #     "latency",
-    #     "NetLatency",
-    #     [1, 2, 4, 8],
-    #     [
-    #         "1ms",
-    #         "2ms",
-    #         "4ms",
-    #         "8ms",
-    #     ],
-    #     drawOnly=args.drawOnly,
-    # )
-
-    config_copy = config.copy()
-    config_copy["TaskMode"] = "onePeak"
-    config_copy["TaskNumFactor"] = 4
-
+    config = config_template.copy()
+    config["TaskMode"] = "onePeak"
+    config["TaskNumFactor"] = 6
     test_compose(
-        config_copy,
-        [shareCluster, shareK8sCluster],
-        "share_latency",
+        config,
+        [dcssCluster, dcssK8sCluster],
+        "NetLatency",
         "NetLatency",
         [1, 2, 4],
         [
@@ -165,20 +147,42 @@ if __name__ == "__main__":
         drawOnly=args.drawOnly,
     )
 
+    # test the state update period
+    config = config_template.copy()
+    config["TaskMode"] = "onePeak"
+    config["TaskNumFactor"] = 4
+    test_compose(
+        config,
+        [shareCluster, shareK8sCluster],
+        "StateUpdatePeriod",
+        "StateUpdatePeriod",
+        [100, 150, 300],
+        [
+            "100ms",
+            "150ms",
+            "300ms",
+        ],
+        drawOnly=args.drawOnly,
+    )
+
+    # test the go procs
+
+    config = config_template.copy()
+    config["TaskMode"] = "onePeak"
+    config["NodeNum"] = 10000
+    config["TaskNumFactor"] = 6
+    test_compose(
+        config,
+        [dcssCluster],
+        "GoProcs",
+        "GoProcs",
+        [1, 2, 4],
+        [
+            "1thread",
+            "2thread",
+            "4thread",
+        ],
+        drawOnly=args.drawOnly,
+    )
 
 
-    # config_copy = config.copy()
-    # config_copy["NodeNum"] = 1000
-    # test_compose(config_copy,[centerCluster],"task_mode","TaskMode",["noWave","onePeak","trace"],["constantly","pulse","trace"],drawOnly=args.drawOnly)
-
-    # config_copy = config.copy()
-    # test_compose(config_copy,[centerCluster],"scheduler_performance","SchedulerPerformance",[15000,20000,25000,30000],["15000","20000","25000","30000"],drawOnly=args.drawOnly)
-
-    # config_copy = config.copy()
-    # test_compose(config_copy,[centerCluster,sharedCluster,sparrowCluster],"nodenum","NodeNum",[1000,3000,5000],["1k","3k","5k"],drawOnly=args.drawOnly)
-
-    # config_copy = config.copy()
-    # test_compose(config_copy,[sharedCluster],"StateUpdatePeriod","StateUpdatePeriod",[100,400,1000],["100ms","400ms","1000ms"],drawOnly=args.drawOnly)
-
-    # config_copy = config.copy()
-    # test_compose(config_copy,[centerCluster,sharedCluster,sparrowCluster],"net_lantency","NetLatency",[1,4,12],["1ms","4ms","12ms"],drawOnly=args.drawOnly)
