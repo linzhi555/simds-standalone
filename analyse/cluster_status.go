@@ -359,7 +359,7 @@ func (c *Cluster) AnalyseSchedulerLatency(outPutDir string) {
 
 	if costList[0].Cost == FAIL {
 		log.Panic("all task fail to schedule")
-	} 
+	}
 }
 
 func (c *Cluster) AnalyseTaskLifeTime(outPutDir string) {

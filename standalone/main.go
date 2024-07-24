@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"time"
 
+	"simds-standalone/cluster"
 	"simds-standalone/common"
 	"simds-standalone/config"
 	"simds-standalone/core"
@@ -24,10 +25,10 @@ func main() {
 	// core.InitLogs()
 	config.LogConfig(path.Join(config.Val.OutputDir, "config.log"))
 
-	clusterBuilder, ok := core.ClusterMarket[config.Val.Cluster]
+	clusterBuilder, ok := cluster.ClusterMarket[config.Val.Cluster]
 	if !ok {
-		keys := make([]string, 0, len(core.ClusterMarket))
-		for k := range core.ClusterMarket {
+		keys := make([]string, 0, len(cluster.ClusterMarket))
+		for k := range cluster.ClusterMarket {
 			keys = append(keys, k)
 		}
 		log.Panicln("wrong type of cluster,registed cluster is", keys)
@@ -41,12 +42,11 @@ func main() {
 
 	if config.Val.Debug {
 		simulator.RunInConsole()
-	}else {
+	} else {
 		start := time.Now()
 		simulator.Run()
 		costTime := time.Since(start)
-		simulator.Network.Os.LogInfo("costTime.log",fmt.Sprint(costTime))
+		simulator.Network.Os.LogInfo("costTime.log", fmt.Sprint(costTime))
 	}
-
 
 }

@@ -1,31 +1,32 @@
-package core
+package sharestate
 
 import (
 	"log"
 	"simds-standalone/config"
+	"simds-standalone/core"
 	"time"
 )
 
 // StateStorage 节点，用于共享状态的存储
 type StateStorage struct {
-	BasicNode
+	core.BasicNode
 	LastSendTime time.Time
 	Started      bool
 	Schedulers   []string
-	Workers      map[string]*NodeInfo
+	Workers      map[string]*core.NodeInfo
 }
 
 // NewStateStorage 创建新的StateStorage
 func NewStateStorage(hostname string) *StateStorage {
 	return &StateStorage{
-		BasicNode: BasicNode{Host: hostname},
-		Workers:   make(map[string]*NodeInfo),
+		BasicNode: core.BasicNode{Host: hostname},
+		Workers:   make(map[string]*core.NodeInfo),
 	}
 }
 
 // StateCopy 复制一份集群状态拷贝
-func (s *StateStorage) StateCopy() Vec[NodeInfo] {
-	nodes := make(Vec[NodeInfo], 0, len(s.Workers))
+func (s *StateStorage) StateCopy() core.Vec[core.NodeInfo] {
+	nodes := make(core.Vec[core.NodeInfo], 0, len(s.Workers))
 	for _, ni := range s.Workers {
 		nodes = append(nodes, *ni)
 	}
@@ -34,7 +35,7 @@ func (s *StateStorage) StateCopy() Vec[NodeInfo] {
 
 func (s *StateStorage) Debug() { log.Println(s.Workers) }
 
-func (s *StateStorage) Update(msg Message) {
+func (s *StateStorage) Update(msg core.Message) {
 
 	switch msg.Content {
 
@@ -43,7 +44,7 @@ func (s *StateStorage) Update(msg Message) {
 		s.Os.Run(func() {
 			for {
 				time.Sleep(time.Duration(config.Val.StateUpdatePeriod) * time.Millisecond)
-				newMessage := Message{
+				newMessage := core.Message{
 					From:    s.GetHostName(),
 					To:      s.GetHostName(),
 					Content: "NeedUpdateNodeInfo",
@@ -56,10 +57,10 @@ func (s *StateStorage) Update(msg Message) {
 		})
 
 	case "TaskRun":
-		task := msg.Body.(TaskInfo)
+		task := msg.Body.(core.TaskInfo)
 		if s.Workers[task.Worker].CanAllocate(task.CpuRequest, task.MemoryRequest) {
 			s.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
-			err := s.Os.Send(Message{
+			err := s.Os.Send(core.Message{
 				From:    s.GetHostName(),
 				To:      task.Worker,
 				Content: "TaskRun",
@@ -70,7 +71,7 @@ func (s *StateStorage) Update(msg Message) {
 			}
 
 		} else {
-			err := s.Os.Send(Message{
+			err := s.Os.Send(core.Message{
 				From:    s.GetHostName(),
 				To:      msg.From,
 				Content: "TaskCommitFail",
@@ -79,24 +80,24 @@ func (s *StateStorage) Update(msg Message) {
 			if err != nil {
 				panic(err)
 			}
-			err = s.Os.Send(Message{
+			err = s.Os.Send(core.Message{
 				From:    s.GetHostName(),
 				To:      msg.From,
 				Content: "NodeInfosUpdate",
-				Body:    Vec[NodeInfo]{*s.Workers[task.Worker]},
+				Body:    core.Vec[core.NodeInfo]{*s.Workers[task.Worker]},
 			})
 			if err != nil {
 				panic(err)
 			}
 		}
 	case "TaskFinish":
-		taskInfo := msg.Body.(TaskInfo)
+		taskInfo := msg.Body.(core.TaskInfo)
 		s.Workers[msg.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)
 	case "NeedUpdateNodeInfo":
 		s.LastSendTime = s.Os.GetTime()
 		stateCopy := s.StateCopy()
 		for _, scheduler := range s.Schedulers {
-			err := s.Os.Send(Message{
+			err := s.Os.Send(core.Message{
 				From:    s.GetHostName(),
 				To:      scheduler,
 				Content: "NodeInfosUpdate",
@@ -108,8 +109,8 @@ func (s *StateStorage) Update(msg Message) {
 		}
 
 	case "TaskCommitFail":
-		task := msg.Body.(TaskInfo)
-		newMessage := Message{
+		task := msg.Body.(core.TaskInfo)
+		newMessage := core.Message{
 			From:    s.GetHostName(),
 			To:      msg.From,
 			Content: "TaskDispense",
@@ -126,7 +127,7 @@ func (s *StateStorage) Update(msg Message) {
 
 func (s *StateStorage) SimulateTasksUpdate() {
 	if s.Os.GetTime().Sub(s.LastSendTime).Milliseconds() > int64(config.Val.StateUpdatePeriod) {
-		newMessage := Message{
+		newMessage := core.Message{
 			From:    s.GetHostName(),
 			To:      s.GetHostName(),
 			Content: "NeedUpdateNodeInfo",

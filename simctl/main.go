@@ -6,6 +6,7 @@ import (
 	"log"
 	"os/exec"
 	"path"
+	"simds-standalone/cluster"
 	"simds-standalone/common"
 	"simds-standalone/config"
 	"simds-standalone/core"
@@ -44,10 +45,10 @@ func clean(cli *k8s.K8sClient) {
 }
 func test(cli *k8s.K8sClient) {
 	// Initialize self as a specified node of cluster
-	clusterBuilder, ok := core.ClusterMarket[config.Val.Cluster]
+	clusterBuilder, ok := cluster.ClusterMarket[config.Val.Cluster]
 	if !ok {
-		keys := make([]string, 0, len(core.ClusterMarket))
-		for k := range core.ClusterMarket {
+		keys := make([]string, 0, len(cluster.ClusterMarket))
+		for k := range cluster.ClusterMarket {
 			keys = append(keys, k)
 		}
 		log.Panicln("wrong type of cluster,registed cluster is", keys)

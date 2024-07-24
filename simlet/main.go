@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"path"
+	"simds-standalone/cluster"
 	"simds-standalone/common"
 	"simds-standalone/config"
 	"simds-standalone/core"
@@ -182,10 +183,10 @@ func main() {
 	config.LogConfig(path.Join(config.Val.OutputDir, "config.log"))
 
 	// Initialize self as a specified node of cluster
-	clusterBuilder, ok := core.ClusterMarket[config.Val.Cluster]
+	clusterBuilder, ok := cluster.ClusterMarket[config.Val.Cluster]
 	if !ok {
-		keys := make([]string, 0, len(core.ClusterMarket))
-		for k := range core.ClusterMarket {
+		keys := make([]string, 0, len(cluster.ClusterMarket))
+		for k := range cluster.ClusterMarket {
 			keys = append(keys, k)
 		}
 		log.Panicln("wrong type of cluster,registed cluster is", keys)
