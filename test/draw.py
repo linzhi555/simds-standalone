@@ -10,7 +10,9 @@ LINE_WIDTH = 2.0
 FAIL_TASK_LATENCY = 5000
 INFINITY = 100000
 
-
+def savefig(outputPath,png:str):
+    plt.savefig(os.path.join(outputPath,png))
+ 
 class markerGenerator():
     def __init__(self):
         self.count = 0
@@ -163,10 +165,10 @@ def draw_in_current_test_folder():
     plt.yticks(fontsize=FONT_SIZE*0.8)
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
-    plt.savefig('./cluster_status.png')
+    savefig(".",'./cluster_status.png')
 
 
-def draw_muilt_lantencyCurve(tests: list):
+def draw_muilt_lantencyCurve(tests: list,outdir:str):
     """画多个实验的任务调度延迟曲线对比图"""
     marker = markerGenerator()
     plt.clf()
@@ -198,12 +200,12 @@ def draw_muilt_lantencyCurve(tests: list):
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
     plt.subplots_adjust(left=0.19, right=0.93,bottom=0.15,top=0.95)
-    plt.savefig('./lantency_compare.png')
+    savefig(outdir,'./lantency_compare.png')
 
     plt.yscale("log", base=10)
-    plt.savefig('./lantency_compare_log.png')
+    savefig(outdir,'./lantency_compare_log.png')
 
-def draw_muilt_avg_resource(tests: list):
+def draw_muilt_avg_resource(tests: list,outdir:str):
     """画多个实验的集群平均负载曲线对比图"""
     marker = markerGenerator()
     plt.clf()
@@ -218,10 +220,10 @@ def draw_muilt_avg_resource(tests: list):
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
     plt.subplots_adjust(left=0.13, right=0.93,top=0.95)
-    plt.savefig('./load_compare.png')
+    savefig(outdir,'./load_compare.png')
 
 
-def draw_muilt_var_resource(tests: list):
+def draw_muilt_var_resource(tests: list,outdir:str):
     """画多个实验的集群负载方差对比图"""
     marker = markerGenerator()
     plt.clf()
@@ -238,7 +240,7 @@ def draw_muilt_var_resource(tests: list):
     plt.grid(True)
     plt.subplots_adjust(left=0.20, right=0.93,top=0.95)
     
-    plt.savefig('./cpu_variance_compare.png')
+    savefig(outdir,'./cpu_variance_compare.png')
     
     marker = markerGenerator()
     plt.clf()
@@ -255,10 +257,10 @@ def draw_muilt_var_resource(tests: list):
     plt.grid(True)
     plt.subplots_adjust(left=0.20, right=0.93,top=0.95) 
     
-    plt.savefig('./memory_variance_compare.png')
+    savefig(outdir,'./memory_variance_compare.png')
 
 
-def draw_muilt_net_busy(tests: list):
+def draw_muilt_net_busy(tests: list,outdir:str):
     """画多个实验的网络繁忙程度对比图"""
     plt.clf()
     for t in tests:
@@ -278,7 +280,7 @@ def draw_muilt_net_busy(tests: list):
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
     plt.subplots_adjust(left=0.3, right=0.93,top=0.95)
-    plt.savefig('./net_busy_compare_cluster.png')
+    savefig(outdir,'./net_busy_compare_cluster.png')
 
     plt.clf()
     for t in tests:
@@ -297,10 +299,10 @@ def draw_muilt_net_busy(tests: list):
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
     plt.subplots_adjust(left=0.3, right=0.93,top=0.95)
-    plt.savefig('./net_busy_compare_most_busy.png')
+    savefig(outdir,'./net_busy_compare_most_busy.png')
 
 
-def draw_task_submission_rate(tests: list):
+def draw_task_submission_rate(tests: list,outdir:str):
     """画多个实验的任务提交速率图"""
     i=0
     for t in tests:
@@ -335,10 +337,10 @@ def draw_task_submission_rate(tests: list):
 
         plt.grid(True)
         plt.subplots_adjust(left=0.15, right=0.85,top=0.95,bottom=0.15)
-        plt.savefig('./task_submission_rate_{}.png'.format(t[1].replace(" ","_")))
+        savefig(outdir,'./task_submission_rate_{}.png'.format(t[1].replace(" ","_")))
         i += 1
 
-def draw_task_latency_CDF(tests: list):
+def draw_task_latency_CDF(tests: list,outdir:str):
     """画多个实验的任务延迟的累积概率分布函数"""
     marker = markerGenerator()
     plt.clf()
@@ -358,10 +360,10 @@ def draw_task_latency_CDF(tests: list):
     plt.yticks(fontsize=FONT_SIZE*0.8)
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.ylim(0.95, 1.002)
-    plt.savefig('./latency_CDF_compare.png')
+    savefig(outdir,'./latency_CDF_compare.png')
     
     plt.ylim(0.0, 1.1)
-    plt.savefig('./latency_CDF_compare_full.png')
+    savefig(outdir,'./latency_CDF_compare_full.png')
 
 
 if __name__ == "__main__":

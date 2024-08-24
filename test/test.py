@@ -77,40 +77,38 @@ def draw_compose(
     parmsLables: List[str],
 ):
     for _, label in zip(params, parmsLables):
+        outfolder = os.path.join(pyFileDir, "target", "all", testname, label)
+        os.system("mkdir -p {outfolder}" .format(outfolder=outfolder))
+
         tests = []
         for cluster in clusters:
             targetOut = os.path.join(
                 pyFileDir, "target", testname, "{}_{}".format(cluster.name, label)
             )
             tests.append([targetOut, "{} {} ".format(cluster.describ, label)])
-        draw.draw_task_submission_rate(tests)
-        draw.draw_muilt_lantencyCurve(tests)
-        draw.draw_muilt_avg_resource(tests)
-        draw.draw_muilt_var_resource(tests)
-        draw.draw_muilt_net_busy(tests)
-        draw.draw_task_latency_CDF(tests)
-        outfolder = os.path.join(pyFileDir, "target", "all", testname, label)
-        os.system(
-            "mkdir -p {outfolder}  && mv *.png {outfolder}".format(outfolder=outfolder)
-        )
+        draw.draw_task_submission_rate(tests,outfolder)
+        draw.draw_muilt_lantencyCurve(tests,outfolder)
+        draw.draw_muilt_avg_resource(tests,outfolder)
+        draw.draw_muilt_var_resource(tests,outfolder)
+        draw.draw_muilt_net_busy(tests,outfolder)
+        draw.draw_task_latency_CDF(tests,outfolder)
 
     for cluster in clusters:
+        outfolder = os.path.join(pyFileDir, "target", "all", testname, cluster.name)
+        os.system("mkdir -p {outfolder}".format(outfolder=outfolder))
+
         tests = []
         for _, label in zip(params, parmsLables):
             targetOut = os.path.join(
                 pyFileDir, "target", testname, "{}_{}".format(cluster.name, label)
             )
             tests.append([targetOut, "{} {} ".format(cluster.describ, label)])
-        draw.draw_task_submission_rate(tests)
-        draw.draw_muilt_lantencyCurve(tests)
-        draw.draw_muilt_avg_resource(tests)
-        draw.draw_muilt_var_resource(tests)
-        draw.draw_muilt_net_busy(tests)
-        draw.draw_task_latency_CDF(tests)
-        outfolder = os.path.join(pyFileDir, "target", "all", testname, cluster.name)
-        os.system(
-            "mkdir -p {outfolder}  && mv *.png {outfolder}".format(outfolder=outfolder)
-        )
+        draw.draw_task_submission_rate(tests,outfolder)
+        draw.draw_muilt_lantencyCurve(tests,outfolder)
+        draw.draw_muilt_avg_resource(tests,outfolder)
+        draw.draw_muilt_var_resource(tests,outfolder)
+        draw.draw_muilt_net_busy(tests,outfolder)
+        draw.draw_task_latency_CDF(tests,outfolder)
 
 
 parser = argparse.ArgumentParser(description="run net shape test")
@@ -135,6 +133,7 @@ if __name__ == "__main__":
     config["TaskNumFactor"] = 6
     test_compose(
         config,
+        #[dcssCluster],
         [dcssCluster, dcssK8sCluster],
         "NetLatency",
         "NetLatency",
