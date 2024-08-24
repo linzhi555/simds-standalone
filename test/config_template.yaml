@@ -30,7 +30,8 @@ DcssDividePolicy     : "random"  #
 StateUpdatePeriod:   100   # the period of scheduler get the newest cluster state, unit : milisecond
 
 #K8SConfig: "/home/lin/dev/admin.conf"
-K8SConfig: "/home/lin/.kube/config"
+K8sConfig: "/home/lin/.kube/config"
+#K8SConfig: "/home/lin/dev/simds-standalone/kubeconfig/config"
 
 K8STemplatePath: "./simctl/template"
 DockerImageRepo: "registry.cn-hangzhou.aliyuncs.com/lin2631/simlet:latest"

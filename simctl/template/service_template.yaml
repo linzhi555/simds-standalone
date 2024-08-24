@@ -6,10 +6,8 @@ metadata:
 spec:
   selector:
     app: nginx
-  type: NodePort
   ports:
     - name: svc-port1
       protocol: TCP
       port: 8888
       targetPort: 80
-      nodePort: 32000

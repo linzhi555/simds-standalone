@@ -13,8 +13,8 @@ spec:
     command: 
     - /bin/bash
     imagePullPolicy: Always
-    securityContext:
-      privileged: true
+      #    securityContext:
+      #      privileged: true
     resources:
       requests:
         cpu: "0.01"

@@ -54,8 +54,10 @@ var Val struct {
 	CleanMode       bool
 	K8SConfig       string
 	K8STemplatePath string
-	DockerImageRepo string
 	NodeName        string
+	PushImageRepo   string
+	PullImageRepo   string
+
 }
 
 func init() {
@@ -79,7 +81,7 @@ func init() {
 
 	viper.SetConfigFile(*configFile)
 	if err := viper.ReadInConfig(); err != nil {
-		panic("config file not find")
+		panic("config file read fail: "+ err.Error())
 	}
 
 	err = viper.Unmarshal(&Val)

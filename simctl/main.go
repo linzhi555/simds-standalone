@@ -23,7 +23,7 @@ func PushImage() {
 	}
 	log.Println("simlet Build Succssed")
 
-	cmd = exec.Command("docker", "build", "--build-arg", fmt.Sprintf("Config=%s", config.Val.ConfigPath), "-t", config.Val.DockerImageRepo, ".")
+	cmd = exec.Command("docker", "build", "--build-arg", fmt.Sprintf("Config=%s", config.Val.ConfigPath), "-t", config.Val.PushImageRepo, ".")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Println("Image Build Failed")
@@ -31,7 +31,7 @@ func PushImage() {
 	}
 	log.Println("Image Build Succssed")
 
-	cmd = exec.Command("docker", "push", config.Val.DockerImageRepo)
+	cmd = exec.Command("docker", "push", config.Val.PushImageRepo)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		log.Println("Image Push Failed")
 		log.Fatal(string(output))
@@ -43,6 +43,7 @@ func clean(cli *k8s.K8sClient) {
 	cli.DeletePodsWithPrefix("simds")
 	cli.DeleteServiceWithPrefix("simds")
 }
+
 func test(cli *k8s.K8sClient) {
 	// Initialize self as a specified node of cluster
 	clusterBuilder, ok := cluster.ClusterMarket[config.Val.Cluster]
@@ -55,7 +56,7 @@ func test(cli *k8s.K8sClient) {
 	}
 
 	var cluster core.Cluster = clusterBuilder()
-	for i, node := range cluster.Nodes {
+	for _, node := range cluster.Nodes {
 		if strings.HasPrefix(node.GetHostName(), "taskgen") {
 			time.Sleep(time.Second * 20)
 		}
@@ -64,12 +65,16 @@ func test(cli *k8s.K8sClient) {
 		}
 		fmt.Println("deploy", node.GetHostName())
 		name := fmt.Sprintf("simds-%s", node.GetHostName())
-		cli.CreatePod(name, name, config.Val.DockerImageRepo, []string{"sh",
-			"-c",
-			fmt.Sprintf(
-				"tc qdisc add dev eth0 root netem delay %dus %dus; /simlet --Cluster %s --NodeName %s  >simlet.log 2>simlet_err.log; sleep 20000",
-				config.Val.NetLatency*1000, int32(float32(config.Val.NetLatency*1000)*0.15), config.Val.Cluster, node.GetHostName())})
-		cli.CreateService(fmt.Sprintf("%s-svc", name), name, 8888, 30100+i)
+		cli.CreatePod(name, name, config.Val.PullImageRepo,
+			[]string{"sh",
+				"-c",
+				fmt.Sprintf(
+					"/simlet --Cluster %s --NodeName %s  >simlet.log 2>simlet_err.log; sleep 20000",
+					config.Val.Cluster, node.GetHostName(),
+				),
+			},
+		)
+		cli.CreateClusterIPService(fmt.Sprintf("%s-svc", name), name, 8888)
 	}
 }
 
@@ -119,10 +124,16 @@ func mergeCsvOfMultiplePods(cli *k8s.K8sClient, pods []string, logfile string, o
 	}
 	common.ListToCsv(AllTable, TableTop, outfile)
 }
+
 func main() {
 
 	templatePath := config.Val.K8STemplatePath
-	cli, err := k8s.ConnectToK8s(config.Val.K8SConfig, path.Join(templatePath, "pod_template.yaml"), path.Join(templatePath, "service_template.yaml"))
+	cli, err := k8s.ConnectToK8s(
+		config.Val.K8SConfig,
+		path.Join(templatePath, "pod_template.yaml"),
+		path.Join(templatePath, "service_template.yaml"),
+	)
+
 	if err != nil {
 		panic(err)
 	}

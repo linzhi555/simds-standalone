@@ -175,11 +175,28 @@ func (cli *K8sClient) DeletePod(name string) {
 	podClient.Delete(context.Background(), name, metav1.DeleteOptions{GracePeriodSeconds: &deleteTime})
 }
 
-func (cli *K8sClient) CreateService(name, lable string, inPort, outPort int) {
+func (cli *K8sClient) CreateClusterIPService(name, lable string, inPort int) {
 	svcClient := cli.clientset.CoreV1().Services(cli.ServiceTemplate.Namespace)
 
 	newSvc := cli.ServiceTemplate.DeepCopy()
 	newSvc.ObjectMeta.Name = name
+	newSvc.Spec.Type = v1.ServiceTypeClusterIP
+	newSvc.Spec.Selector["app"] = lable
+	newSvc.Spec.Ports[0].Port = int32(inPort)
+	newSvc.Spec.Ports[0].TargetPort = intstr.FromInt(inPort)
+
+	_, err := svcClient.Create(context.Background(), newSvc, metav1.CreateOptions{})
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (cli *K8sClient) CreateNodePortService(name, lable string, inPort, outPort int) {
+	svcClient := cli.clientset.CoreV1().Services(cli.ServiceTemplate.Namespace)
+
+	newSvc := cli.ServiceTemplate.DeepCopy()
+	newSvc.ObjectMeta.Name = name
+	newSvc.Spec.Type = v1.ServiceTypeNodePort
 	newSvc.Spec.Selector["app"] = lable
 	newSvc.Spec.Ports[0].Port = int32(inPort)
 	newSvc.Spec.Ports[0].TargetPort = intstr.FromInt(inPort)
@@ -189,7 +206,6 @@ func (cli *K8sClient) CreateService(name, lable string, inPort, outPort int) {
 	if err != nil {
 		panic(err)
 	}
-
 }
 
 // delete the service by name
