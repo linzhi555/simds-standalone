@@ -1,7 +1,7 @@
 package main
 
 import (
-	"simds-standalone/core"
+	"simds-standalone/cluster/base"
 )
 
 const (
@@ -16,5 +16,5 @@ const (
 )
 
 func main() {
-	core.DealRawFile(basicLoadRate, lifeRate, resourceRate, timebias, maxResourceLimit, rawOutfile, "./tasks_stream.log")
+	base.DealRawFile(basicLoadRate, lifeRate, resourceRate, timebias, maxResourceLimit, rawOutfile, "./tasks_stream.log")
 }

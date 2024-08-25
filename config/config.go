@@ -57,7 +57,6 @@ var Val struct {
 	NodeName        string
 	PushImageRepo   string
 	PullImageRepo   string
-
 }
 
 func init() {
@@ -81,7 +80,7 @@ func init() {
 
 	viper.SetConfigFile(*configFile)
 	if err := viper.ReadInConfig(); err != nil {
-		panic("config file read fail: "+ err.Error())
+		panic("config file read fail: " + err.Error())
 	}
 
 	err = viper.Unmarshal(&Val)

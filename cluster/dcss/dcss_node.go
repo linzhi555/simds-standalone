@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math/rand"
 	"os/exec"
+	"simds-standalone/cluster/base"
 	"simds-standalone/config"
-	base "simds-standalone/core"
 	"time"
 )
 

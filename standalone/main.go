@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"simds-standalone/cluster"
+	"simds-standalone/cluster/base"
 	"simds-standalone/common"
 	"simds-standalone/config"
-	"simds-standalone/core"
 	"simds-standalone/standalone/engine"
 )
 
@@ -22,7 +22,6 @@ func main() {
 	common.StartPerf()
 	defer common.StopPerf()
 
-	// core.InitLogs()
 	config.LogConfig(path.Join(config.Val.OutputDir, "config.log"))
 
 	clusterBuilder, ok := cluster.ClusterMarket[config.Val.Cluster]
@@ -35,7 +34,7 @@ func main() {
 	}
 
 	// 创建所需集群
-	var cluster core.Cluster = clusterBuilder()
+	var cluster base.Cluster = clusterBuilder()
 	time.Sleep(3 * time.Second)
 
 	simulator := engine.InitEngine(cluster)

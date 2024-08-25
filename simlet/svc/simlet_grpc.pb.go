@@ -8,7 +8,6 @@ package svc
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -24,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SimletServerClient interface {
 	SendMessage(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Response, error)
+	UpdateRouterTable(ctx context.Context, in *RouterTable, opts ...grpc.CallOption) (*Response, error)
 }
 
 type simletServerClient struct {
@@ -43,11 +43,21 @@ func (c *simletServerClient) SendMessage(ctx context.Context, in *Message, opts 
 	return out, nil
 }
 
+func (c *simletServerClient) UpdateRouterTable(ctx context.Context, in *RouterTable, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := c.cc.Invoke(ctx, "/svc.simletServer/UpdateRouterTable", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SimletServerServer is the server API for SimletServer service.
 // All implementations should embed UnimplementedSimletServerServer
 // for forward compatibility
 type SimletServerServer interface {
 	SendMessage(context.Context, *Message) (*Response, error)
+	UpdateRouterTable(context.Context, *RouterTable) (*Response, error)
 }
 
 // UnimplementedSimletServerServer should be embedded to have forward compatible implementations.
@@ -56,6 +66,9 @@ type UnimplementedSimletServerServer struct {
 
 func (UnimplementedSimletServerServer) SendMessage(context.Context, *Message) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
+}
+func (UnimplementedSimletServerServer) UpdateRouterTable(context.Context, *RouterTable) (*Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateRouterTable not implemented")
 }
 
 // UnsafeSimletServerServer may be embedded to opt out of forward compatibility for this service.
@@ -87,6 +100,24 @@ func _SimletServer_SendMessage_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SimletServer_UpdateRouterTable_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RouterTable)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SimletServerServer).UpdateRouterTable(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/svc.simletServer/UpdateRouterTable",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SimletServerServer).UpdateRouterTable(ctx, req.(*RouterTable))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SimletServer_ServiceDesc is the grpc.ServiceDesc for SimletServer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -97,6 +128,10 @@ var SimletServer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendMessage",
 			Handler:    _SimletServer_SendMessage_Handler,
+		},
+		{
+			MethodName: "UpdateRouterTable",
+			Handler:    _SimletServer_UpdateRouterTable_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

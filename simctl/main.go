@@ -2,17 +2,22 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"os/exec"
 	"path"
+	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
 	"simds-standalone/cluster"
+	"simds-standalone/cluster/base"
 	"simds-standalone/common"
 	"simds-standalone/config"
-	"simds-standalone/core"
 	"simds-standalone/simctl/k8s"
-	"strings"
-	"time"
+	"simds-standalone/simlet/svc"
 )
 
 func PushImage() {
@@ -55,14 +60,11 @@ func test(cli *k8s.K8sClient) {
 		log.Panicln("wrong type of cluster,registed cluster is", keys)
 	}
 
-	var cluster core.Cluster = clusterBuilder()
-	for _, node := range cluster.Nodes {
-		if strings.HasPrefix(node.GetHostName(), "taskgen") {
-			time.Sleep(time.Second * 20)
-		}
-		if strings.HasPrefix(node.GetHostName(), "storage") {
-			time.Sleep(time.Second * 20)
-		}
+	var table svc.RouterTable
+	var cluster base.Cluster = clusterBuilder()
+
+	// create pod
+	for i, node := range cluster.Nodes {
 		fmt.Println("deploy", node.GetHostName())
 		name := fmt.Sprintf("simds-%s", node.GetHostName())
 		cli.CreatePod(name, name, config.Val.PullImageRepo,
@@ -74,8 +76,42 @@ func test(cli *k8s.K8sClient) {
 				),
 			},
 		)
-		cli.CreateClusterIPService(fmt.Sprintf("%s-svc", name), name, 8888)
+
+		cli.WaitUtilAllRunning([]string{name})
+		ip, err := cli.GetPodIP(name)
+		if err != nil {
+			panic(err)
+		}
+		podAddr := ip + ":8888"
+		log.Println(name, podAddr)
+
+		cli.CreateNodePortService(name+"-svc", name, 8888, 32000+i)
+		table.Columns = append(table.Columns, &svc.AddrPair{ActorAddr: node.GetHostName(), SimletAddr: podAddr})
 	}
+
+	for i, addrPair := range table.Columns {
+		host, _ := cli.GetPodHostIP("simds-" + addrPair.ActorAddr)
+		err := updateRouterTable(host+":"+fmt.Sprint(32000+i), &table)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func updateRouterTable(addr string, table *svc.RouterTable) error {
+	log.Println("update router table for ", addr)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return err
+	}
+	cli := svc.NewSimletServerClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, err = cli.UpdateRouterTable(ctx, table)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func collectResult(cli *k8s.K8sClient) {

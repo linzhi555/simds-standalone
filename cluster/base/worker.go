@@ -4,23 +4,22 @@ import (
 	"fmt"
 	"os/exec"
 	"simds-standalone/config"
-	"simds-standalone/core"
 	"time"
 )
 
 type Worker struct {
-	core.BasicNode
-	Node    core.NodeInfo // do not store the information , calculate when needed from tasks
-	Manager string        // will nofify the ther worker's Manager if the task state is changed
-	TaskMap map[string]*core.TaskInfo
+	BasicNode
+	Node    NodeInfo // do not store the information , calculate when needed from tasks
+	Manager string   // will nofify the ther worker's Manager if the task state is changed
+	TaskMap map[string]*TaskInfo
 }
 
-func NewWorker(host string, nodeinfo core.NodeInfo, manager string) *Worker {
+func NewWorker(host string, nodeinfo NodeInfo, manager string) *Worker {
 	return &Worker{
-		BasicNode: core.BasicNode{Host: host},
+		BasicNode: BasicNode{Host: host},
 		Manager:   manager,
 		Node:      nodeinfo,
-		TaskMap:   map[string]*core.TaskInfo{},
+		TaskMap:   map[string]*TaskInfo{},
 	}
 }
 
@@ -42,28 +41,28 @@ func (n *Worker) Debug() {
 // 收到后台任务管理器的信息
 // 1. 任务介绍信息，则将此消息通知给Manager
 
-func (worker *Worker) Update(msg core.Message) {
+func (worker *Worker) Update(msg Message) {
 
 	switch msg.Content {
 
 	case "TaskStart":
 
-		taskid := msg.Body.(core.TaskInfo).Id
+		taskid := msg.Body.(TaskInfo).Id
 		if t, ok := worker.TaskMap[taskid]; ok {
 			if t.Status == "needStart" {
 				worker.deakRunTask(*t)
 			}
 		}
 	case "TaskPreAllocate":
-		newTask := msg.Body.(core.TaskInfo)
+		newTask := msg.Body.(TaskInfo)
 		worker.TaskMap[newTask.Id] = &newTask
 		newTask.Status = "needStart"
 	case "TaskRun":
-		newTask := msg.Body.(core.TaskInfo)
+		newTask := msg.Body.(TaskInfo)
 		worker.deakRunTask(newTask)
 
 	case "TaskCancelAlloc":
-		taskid := msg.Body.(core.TaskInfo).Id
+		taskid := msg.Body.(TaskInfo).Id
 		if t, ok := worker.TaskMap[taskid]; ok {
 			if t.Status == "needStart" {
 				t.Status = "finish"
@@ -75,7 +74,7 @@ func (worker *Worker) Update(msg core.Message) {
 			}
 		}
 	case "TaskFinish":
-		t := msg.Body.(core.TaskInfo)
+		t := msg.Body.(TaskInfo)
 		id := t.Id
 		if worker.Manager != "" {
 			informReceiverTaskStatus(worker, &t, "TaskFinish")
@@ -83,7 +82,7 @@ func (worker *Worker) Update(msg core.Message) {
 		delete(worker.TaskMap, id)
 		nodeinfo := _calculateNodeInfo(worker)
 		worker.Os.LogInfo("stdout", worker.GetHostName(), "TaskFinish", fmt.Sprint(nodeinfo))
-		worker.Os.Send(core.Message{
+		worker.Os.Send(Message{
 			From:    worker.Host,
 			To:      t.User,
 			Content: "TaskFinish",
@@ -93,13 +92,13 @@ func (worker *Worker) Update(msg core.Message) {
 
 }
 
-func (worker *Worker) deakRunTask(t core.TaskInfo) {
+func (worker *Worker) deakRunTask(t TaskInfo) {
 	worker.TaskMap[t.Id] = &t
 	t.StartTime = worker.Os.GetTime()
 	t.LeftTime = t.LifeTime
 	t.Status = "start"
 	worker._runTask(t)
-	worker.Os.Send(core.Message{
+	worker.Os.Send(Message{
 		From:    worker.Host,
 		To:      t.User,
 		Content: "TaskStart",
@@ -107,14 +106,14 @@ func (worker *Worker) deakRunTask(t core.TaskInfo) {
 	})
 }
 
-func (node *Worker) _runTask(t core.TaskInfo) {
+func (node *Worker) _runTask(t TaskInfo) {
 	node.Os.Run(func() {
 		cmd := exec.Command("bash", "-c", t.Cmd)
 		err := cmd.Run()
 		if err != nil {
 			panic(err)
 		}
-		newMessage := core.Message{
+		newMessage := Message{
 			From:    node.GetHostName(),
 			To:      node.GetHostName(),
 			Content: "TaskFinish",
@@ -133,7 +132,7 @@ func (worker *Worker) SimulateTasksUpdate() {
 		if t.Status == "start" && t.LeftTime > 0 {
 			t.LeftTime -= (time.Second / time.Duration(config.Val.FPS))
 			if t.LeftTime <= 0 {
-				newMessage := core.Message{
+				newMessage := Message{
 					From:    worker.GetHostName(),
 					To:      worker.GetHostName(),
 					Content: "TaskFinish",
@@ -149,8 +148,8 @@ func (worker *Worker) SimulateTasksUpdate() {
 	}
 }
 
-func informReceiverTaskStatus(worker *Worker, t *core.TaskInfo, content string) {
-	newMessage := core.Message{
+func informReceiverTaskStatus(worker *Worker, t *TaskInfo, content string) {
+	newMessage := Message{
 		From:    worker.GetHostName(),
 		To:      worker.Manager,
 		Content: content,
@@ -162,7 +161,7 @@ func informReceiverTaskStatus(worker *Worker, t *core.TaskInfo, content string) 
 	}
 }
 
-func _calculateNodeInfo(worker *Worker) core.NodeInfo {
+func _calculateNodeInfo(worker *Worker) NodeInfo {
 	var cpu int32 = 0
 	var memory int32 = 0
 
@@ -171,7 +170,7 @@ func _calculateNodeInfo(worker *Worker) core.NodeInfo {
 		memory += t.MemoryRequest
 	}
 
-	var nodeinfo core.NodeInfo = core.NodeInfo{
+	var nodeinfo NodeInfo = NodeInfo{
 		Addr:           worker.GetHostName(),
 		Cpu:            config.Val.NodeCpu,
 		Memory:         config.Val.NodeMemory,

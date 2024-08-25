@@ -1,14 +1,14 @@
 package cluster
 
 import (
-	centrailzed "simds-standalone/cluster/centralized"
+	"simds-standalone/cluster/base"
+	"simds-standalone/cluster/centralized"
 	"simds-standalone/cluster/dcss"
 	"simds-standalone/cluster/sharestate"
-	"simds-standalone/core"
 )
 
 // // 请将添加的集群在这里注册
-var ClusterMarket = map[string]func() core.Cluster{
+var ClusterMarket = map[string]func() base.Cluster{
 	"Center":     centrailzed.BuildCenterCluster,
 	"Dcss":       dcss.BuildDcssCluster,
 	"ShareState": sharestate.BuildShareStateCluster,

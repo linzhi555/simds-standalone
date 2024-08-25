@@ -1,4 +1,4 @@
-package core
+package base
 
 // types.go 定义一系列的基础类型
 
@@ -240,6 +240,5 @@ type Message struct {
 
 // NetInterface 用于处理 Message
 type NetInterface interface {
-	//Recv() (Message, error)
 	Send(Message) error
 }

@@ -1,4 +1,4 @@
-FPS:  100000            #hom many frame per second
+FPS:  10000            #hom many frame per second
 GoProcs: 12
 NodeNum:        10  # how many large the cluster
 NetLatency:     1         # the average network latency, unit: milisecond 
@@ -6,8 +6,8 @@ NodeCpu:        1000         # the node cpu capacity
 NodeMemory:     1000         # the node memory capacity
 
 
-SimulateDuration:   20000          # how long the simulation last / unit : milisecond
-TaskMode: "noWave"  # the mode of the tasks "onePeak" "noWave" "trace"
+SimulateDuration:   40000          # how long the simulation last / unit : milisecond
+TaskMode: "onePeak"  # the mode of the tasks "onePeak" "noWave" "trace"
 TraceFile: "./trace/tasks_stream.log"  # the mode of the tasks "rand_normal" "trace"
 TaskNumFactor:   6  # task/persecond = TaskNumFactor * NodeNum 
 TaskCpu:        300          # the average task cpu request
@@ -28,7 +28,6 @@ DcssDividePolicy     : "random"  #
 
 # only in share state cluster
 StateUpdatePeriod:   100   # the period of scheduler get the newest cluster state, unit : milisecond
-
 
 ## deploy mode
 K8STemplatePath: "./simctl/template"

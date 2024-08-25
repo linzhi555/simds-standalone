@@ -4,7 +4,19 @@ package svc;
 
 service simletServer{
     rpc SendMessage(Message) returns (Response) {}
+    rpc UpdateRouterTable(RouterTable) returns (Response) {}
 }
+
+message AddrPair{
+    string ActorAddr = 10;
+    string SimletAddr = 20;
+}
+
+
+message RouterTable{
+    repeated AddrPair Columns=10;
+}
+
 
               
 message Message{

@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"simds-standalone/cluster/base"
 	"simds-standalone/config"
-	base "simds-standalone/core"
 )
 
 func BuildDcssCluster() base.Cluster {

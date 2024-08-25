@@ -5,11 +5,13 @@ import (
 	"io"
 	"log"
 	"path"
-	"simds-standalone/common"
-	"simds-standalone/config"
-	"simds-standalone/core"
+
 	"strings"
 	"time"
+
+	"simds-standalone/cluster/base"
+	"simds-standalone/common"
+	"simds-standalone/config"
 
 	"github.com/chzyer/readline"
 	lua "github.com/yuin/gopher-lua"
@@ -39,11 +41,7 @@ func (o *EngineOs) Run(f func()) {
 // 	return !o.engine.Network.Outs[o.host].Empty()
 // }
 
-func (o *EngineOs) Recv() (core.Message, error) {
-	return o.engine.Network.Outs[o.host].Dequeue()
-}
-
-func (o *EngineOs) Send(m core.Message) error {
+func (o *EngineOs) Send(m base.Message) error {
 	o.engine.Network.Ins[o.host].InQueue(m)
 	return nil
 }
@@ -69,26 +67,26 @@ func (o *EngineOs) LogInfo(out string, items ...string) {
 
 // MockNetwork 模拟的网络组件
 type VirtualNetwork struct {
-	Os         core.OsApi
+	Os         base.OsApi
 	NetLatency int32
-	Waittings  core.Vec[core.Message]
-	Ins        map[string]*core.Vec[core.Message]
-	Outs       map[string]*core.Vec[core.Message]
+	Waittings  base.Vec[base.Message]
+	Ins        map[string]*base.Vec[base.Message]
+	Outs       map[string]*base.Vec[base.Message]
 }
 
 func newVirtualNetwork() VirtualNetwork {
 	return VirtualNetwork{
 		NetLatency: config.Val.NetLatency,
-		Waittings:  core.Vec[core.Message]{},
-		Ins:        make(map[string]*core.Vec[core.Message]),
-		Outs:       make(map[string]*core.Vec[core.Message]),
+		Waittings:  base.Vec[base.Message]{},
+		Ins:        make(map[string]*base.Vec[base.Message]),
+		Outs:       make(map[string]*base.Vec[base.Message]),
 	}
 }
 
 type Engine struct {
 	UpdateCount uint64
 	UpdateGap   time.Duration // 每次更新推进的时间
-	Nodes       []core.Node
+	Nodes       []base.Node
 	Network     VirtualNetwork
 }
 
@@ -206,9 +204,9 @@ func (engine *Engine) UpdateNtimes(n uint64) {
 	}
 }
 
-func InitEngine(cluster core.Cluster) *Engine {
+func InitEngine(cluster base.Cluster) *Engine {
 	common.AppendLineCsvFile(path.Join(config.Val.OutputDir, NETWORK_EVENT_LOG_NAME), []string{"time", "type", "from", "to", "body"})
-	common.AppendLineCsvFile(path.Join(config.Val.OutputDir, core.TASKS_EVENT_LOG_NAME), []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
+	common.AppendLineCsvFile(path.Join(config.Val.OutputDir, base.TASKS_EVENT_LOG_NAME), []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
 
 	var e Engine
 	e.Nodes = cluster.Nodes
@@ -216,8 +214,8 @@ func InitEngine(cluster core.Cluster) *Engine {
 	e.Network.Os = &EngineOs{host: "network", engine: &e}
 	e.UpdateGap = time.Second / time.Duration(config.Val.FPS)
 	for _, node := range e.Nodes {
-		e.Network.Ins[node.GetHostName()] = &core.Vec[core.Message]{}
-		e.Network.Outs[node.GetHostName()] = &core.Vec[core.Message]{}
+		e.Network.Ins[node.GetHostName()] = &base.Vec[base.Message]{}
+		e.Network.Outs[node.GetHostName()] = &base.Vec[base.Message]{}
 	}
 
 	for i := range e.Nodes {
@@ -225,11 +223,11 @@ func InitEngine(cluster core.Cluster) *Engine {
 		os.host = e.Nodes[i].GetHostName()
 		os.engine = &e
 
-		os.Send(core.Message{
+		os.Send(base.Message{
 			From:    os.host,
 			To:      os.host,
 			Content: "SignalBoot",
-			Body:    core.Signal("SignalBoot"),
+			Body:    base.Signal("SignalBoot"),
 		})
 
 		e.Nodes[i].SetNextUpdateTime(e.GetWorldTime())

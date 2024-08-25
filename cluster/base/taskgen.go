@@ -1,4 +1,4 @@
-package core
+package base
 
 import (
 	"fmt"
@@ -36,7 +36,7 @@ func NewTaskGen(hostname string) *TaskGen {
 	return taskgen
 }
 
-func (taskgen *TaskGen) InitTaskSRc() {
+func (taskgen *TaskGen) InitTaskSrc() {
 	switch config.Val.TaskMode {
 	case "onePeak":
 		taskgen.Src = onePeakTaskStream()
@@ -117,14 +117,7 @@ func (n *TaskGen) Debug() {}
 func (taskgen *TaskGen) Update(msg Message) {
 	switch msg.Content {
 	case "SignalBoot":
-		taskgen.InitTaskSRc()
-		taskgen.Status = "preheat"
-		for i := range taskgen.Src {
-			fmt.Println(taskgen.Src[i])
-		}
-
-		taskgen.Os.Run(func() { taskgen._preheat() })
-	case "SignalPreheatFinish":
+		taskgen.InitTaskSrc()
 		taskgen.StartTime = taskgen.Os.GetTime()
 		taskgen.Status = "start"
 		taskgen.Os.Run(func() { taskgen._sendingTask() })
@@ -151,47 +144,6 @@ func (taskgen *TaskGen) Update(msg Message) {
 		if err != nil {
 			panic(err)
 		}
-	}
-}
-
-func (taskgen *TaskGen) _preheat() {
-	taskgenAddr := taskgen.GetHostName()
-
-	receiverNum := len(taskgen.Receivers)
-	log.Println("start preheat")
-
-	startTime := time.Now()
-	for taskgen.CurTaskId < len(taskgen.Src) {
-		for taskgen.Src[taskgen.CurTaskId].time > taskgen.Os.GetTime().Sub(startTime) {
-		}
-
-		newtask := taskgen.Src[taskgen.CurTaskId].task
-		newtask.Id += "_preheat"
-		newtask.User = taskgen.Host
-		receiverAddr := taskgen.Receivers[taskgen.CurTaskId%receiverNum]
-		newMessage := Message{
-			From:    taskgenAddr,
-			To:      receiverAddr,
-			Content: "TaskDispense",
-			Body:    newtask,
-		}
-		err := taskgen.Os.Send(newMessage)
-		if err != nil {
-			panic(err)
-		}
-		taskgen.CurTaskId++
-	}
-	taskgen.CurTaskId = 0
-	time.Sleep(10 * time.Second)
-	newMessage := Message{
-		From:    taskgenAddr,
-		To:      taskgenAddr,
-		Content: "SignalPreheatFinish",
-		Body:    Signal("SignalPreheatFinish"),
-	}
-	err := taskgen.Os.Send(newMessage)
-	if err != nil {
-		panic(err)
 	}
 }
 
@@ -225,45 +177,28 @@ func (taskgen *TaskGen) _sendingTask() {
 }
 
 func (taskgen *TaskGen) SimulateTasksUpdate() {
-	switch taskgen.Status {
+	taskgenAddr := taskgen.GetHostName()
+	receiverNum := len(taskgen.Receivers)
+	timeNow := taskgen.Os.GetTime().Sub(taskgen.StartTime)
+	for taskgen.CurTaskId < len(taskgen.Src) {
+		if taskgen.Src[taskgen.CurTaskId].time > timeNow {
+			break
+		}
 
-	case "preheat":
+		newtask := taskgen.Src[taskgen.CurTaskId].task
+		newtask.User = taskgen.Host
+		receiverAddr := taskgen.Receivers[taskgen.CurTaskId%receiverNum]
 		newMessage := Message{
-			From:    taskgen.Host,
-			To:      taskgen.Host,
-			Content: "SignalPreheatFinish",
-			Body:    Signal("SignalPreheatFinish"),
+			From:    taskgenAddr,
+			To:      receiverAddr,
+			Content: "TaskDispense",
+			Body:    newtask,
 		}
 		err := taskgen.Os.Send(newMessage)
 		if err != nil {
 			panic(err)
 		}
-		taskgen.Status = "preheatFinish"
-
-	case "start":
-		taskgenAddr := taskgen.GetHostName()
-		receiverNum := len(taskgen.Receivers)
-		timeNow := taskgen.Os.GetTime().Sub(taskgen.StartTime)
-		for taskgen.CurTaskId < len(taskgen.Src) {
-			if taskgen.Src[taskgen.CurTaskId].time > timeNow {
-				break
-			}
-
-			newtask := taskgen.Src[taskgen.CurTaskId].task
-			newtask.User = taskgen.Host
-			receiverAddr := taskgen.Receivers[taskgen.CurTaskId%receiverNum]
-			newMessage := Message{
-				From:    taskgenAddr,
-				To:      receiverAddr,
-				Content: "TaskDispense",
-				Body:    newtask,
-			}
-			err := taskgen.Os.Send(newMessage)
-			if err != nil {
-				panic(err)
-			}
-			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
-			taskgen.CurTaskId++
-		}
+		taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+		taskgen.CurTaskId++
 	}
 }

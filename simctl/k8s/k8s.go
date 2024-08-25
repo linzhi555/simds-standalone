@@ -301,14 +301,14 @@ func (cli *K8sClient) DeletePodsWithPrefix(prefix string) {
 	}
 }
 
-func (cli *K8sClient) GetPodIP(podname string) string {
-	pod, _ := cli.clientset.CoreV1().Pods(cli.PodTemplate.Namespace).Get(context.TODO(), podname, metav1.GetOptions{})
-	return pod.Status.PodIP
+func (cli *K8sClient) GetPodIP(podname string) (string, error) {
+	pod, err := cli.clientset.CoreV1().Pods(cli.PodTemplate.Namespace).Get(context.TODO(), podname, metav1.GetOptions{})
+	return pod.Status.PodIP, err
 }
 
-func (cli *K8sClient) GetPodHostIP(podname string) string {
-	pod, _ := cli.clientset.CoreV1().Pods(cli.PodTemplate.Namespace).Get(context.TODO(), podname, metav1.GetOptions{})
-	return pod.Status.HostIP
+func (cli *K8sClient) GetPodHostIP(podname string) (string, error) {
+	pod, err := cli.clientset.CoreV1().Pods(cli.PodTemplate.Namespace).Get(context.TODO(), podname, metav1.GetOptions{})
+	return pod.Status.HostIP, err
 }
 
 // Get all the pods which has the prefix
