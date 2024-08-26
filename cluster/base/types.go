@@ -13,31 +13,46 @@ type Cluster struct {
 	Nodes []Node
 }
 
-type NodeType string
+func (c *Cluster) Join(node Node){
+	c.Nodes = append(c.Nodes, node)
+}
 
-type BasicNode struct {
+type Node struct{
+	Actors []Actor
+}
+
+func NewNode(actors ...Actor) Node{
+	var node Node
+	for _,actor := range actors{
+		node.Actors = append(node.Actors, actor)
+	}
+	return node
+}
+
+
+type BasicActor struct {
 	Os             OsApi
 	Host           string
 	NextUpdateTime time.Time
 }
 
-func (b *BasicNode) GetHostName() string {
+func (b *BasicActor) GetHostName() string {
 	return b.Host
 }
 
-func (b *BasicNode) SetOsApi(os OsApi) {
+func (b *BasicActor) SetOsApi(os OsApi) {
 	b.Os = os
 }
 
-func (b *BasicNode) GetNextUpdateTime() time.Time {
+func (b *BasicActor) GetNextUpdateTime() time.Time {
 	return b.NextUpdateTime
 }
 
-func (b *BasicNode) SetNextUpdateTime(t time.Time) {
+func (b *BasicActor) SetNextUpdateTime(t time.Time) {
 	b.NextUpdateTime = t
 }
 
-type Node interface {
+type Actor interface {
 	GetHostName() string
 	Debug()
 	SetOsApi(OsApi)

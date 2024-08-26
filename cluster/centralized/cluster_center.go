@@ -8,18 +8,20 @@ import (
 
 func BuildCenterCluster() base.Cluster {
 
-	var nodes []base.Node
+	var cluster base.Cluster
 	taskgen0 := base.NewTaskGen("simds-taskgen0")
 	master0 := base.NewCenterScheduler("simds-master0")
 	taskgen0.Receivers = append(taskgen0.Receivers, master0.GetHostName())
 	for i := 0; i < int(config.Val.NodeNum); i++ {
 		workerName := fmt.Sprintf("simds-worker%d", i)
-		newworker := base.NewWorker(workerName, base.NodeInfo{workerName, config.Val.NodeCpu, config.Val.NodeMemory, 0, 0}, "simds-master0")
+		newworker := base.NewWorker(workerName, base.NodeInfo{Addr: workerName, Cpu: config.Val.NodeCpu, Memory: config.Val.NodeMemory, CpuAllocted: 0, MemoryAllocted: 0}, "simds-master0")
 		master0.Workers[workerName] = newworker.Node.Clone()
-		nodes = append(nodes, newworker)
+		cluster.Join(base.NewNode(newworker))
 	}
-	nodes = append(nodes, master0)
-	nodes = append(nodes, taskgen0)
-	return base.Cluster{Nodes: nodes}
+
+	cluster.Join(base.NewNode(taskgen0))
+	cluster.Join(base.NewNode(master0))
+
+	return cluster
 
 }

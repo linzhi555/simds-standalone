@@ -12,7 +12,7 @@ import (
 const TASKS_EVENT_LOG_NAME = "tasks_event.log"
 
 type TaskGen struct {
-	BasicNode
+	BasicActor
 	Status    string
 	StartTime time.Time
 	CurTaskId int
@@ -29,7 +29,7 @@ type SrcNode struct {
 func NewTaskGen(hostname string) *TaskGen {
 
 	taskgen := &TaskGen{
-		BasicNode: BasicNode{Host: hostname},
+		BasicActor: BasicActor{Host: hostname},
 		CurTaskId: 0,
 	}
 

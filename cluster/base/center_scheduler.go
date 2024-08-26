@@ -7,7 +7,7 @@ import (
 
 // Scheduler 组件
 type CenterScheduler struct {
-	BasicNode
+	BasicActor
 	TaskMap map[string]*TaskInfo
 	Workers map[string]*NodeInfo
 	Storage string
@@ -16,7 +16,7 @@ type CenterScheduler struct {
 // NewCenterScheduler 创造新的Scheduler
 func NewCenterScheduler(hostname string) *CenterScheduler {
 	return &CenterScheduler{
-		BasicNode: BasicNode{Host: hostname},
+		BasicActor: BasicActor{Host: hostname},
 		Workers:   make(map[string]*NodeInfo),
 	}
 }

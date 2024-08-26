@@ -11,7 +11,7 @@ import (
 
 // Scheduler 组件
 type DcssNode struct {
-	base.BasicNode
+	base.BasicActor
 	TaskMap     map[string]*base.TaskInfo
 	RunningTask map[string]*base.TaskInfo
 	Neighbors   map[string]*base.NodeInfo
@@ -19,6 +19,18 @@ type DcssNode struct {
 }
 
 func (node *DcssNode) Debug() {
+
+}
+
+func  NewDcssNode(nodeName string)  *DcssNode{
+	newNode := DcssNode{
+		BasicActor: base.BasicActor{
+			Host: nodeName,
+		},
+		Neighbors: make(map[string]*base.NodeInfo),
+		LocalNode: &base.NodeInfo{nodeName, config.Val.NodeCpu, config.Val.NodeMemory, 0, 0},
+	}
+	return &newNode
 
 }
 

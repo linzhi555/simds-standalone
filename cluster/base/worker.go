@@ -8,7 +8,7 @@ import (
 )
 
 type Worker struct {
-	BasicNode
+	BasicActor
 	Node    NodeInfo // do not store the information , calculate when needed from tasks
 	Manager string   // will nofify the ther worker's Manager if the task state is changed
 	TaskMap map[string]*TaskInfo
@@ -16,7 +16,7 @@ type Worker struct {
 
 func NewWorker(host string, nodeinfo NodeInfo, manager string) *Worker {
 	return &Worker{
-		BasicNode: BasicNode{Host: host},
+		BasicActor: BasicActor{Host: host},
 		Manager:   manager,
 		Node:      nodeinfo,
 		TaskMap:   map[string]*TaskInfo{},

@@ -12,29 +12,23 @@ import (
 
 func BuildDcssCluster() base.Cluster {
 
-	var nodes []base.Node
+	var cluster base.Cluster
 	taskgen0 := base.NewTaskGen("simds-taskgen0")
 
 	for i := 0; i < int(config.Val.NodeNum); i++ {
-		nodeName := fmt.Sprintf("simds-node%d", i)
-		newNode := DcssNode{
-			BasicNode: base.BasicNode{
-				Host: nodeName,
-			},
-			Neighbors: make(map[string]*base.NodeInfo),
-			LocalNode: &base.NodeInfo{nodeName, config.Val.NodeCpu, config.Val.NodeMemory, 0, 0},
-		}
-		newNode.setup()
-		nodes = append(nodes, &newNode)
-		taskgen0.Receivers = append(taskgen0.Receivers, newNode.GetHostName())
+		actorName := fmt.Sprintf("simds-node%d", i)
+		actor := NewDcssNode(actorName)
+		actor.setup()
+		cluster.Join(base.NewNode(actor))
+		taskgen0.Receivers = append(taskgen0.Receivers, actorName)
 	}
-	nodes = append(nodes, taskgen0)
-	return base.Cluster{Nodes: nodes}
 
+	cluster.Join(base.NewNode(taskgen0))
+	return cluster
 }
 func (node *DcssNode) setup() {
 	// init local node info
-	node.LocalNode = &base.NodeInfo{node.GetHostName(), config.Val.NodeCpu, config.Val.NodeMemory, 0, 0}
+	node.LocalNode = &base.NodeInfo{Addr: node.GetHostName(), Cpu: config.Val.NodeCpu, Memory: config.Val.NodeMemory, CpuAllocted: 0, MemoryAllocted: 0}
 	node.TaskMap = make(map[string]*base.TaskInfo)
 	node.RunningTask = make(map[string]*base.TaskInfo)
 
@@ -56,7 +50,7 @@ func (node *DcssNode) setup() {
 	}
 
 	for _, n := range neibors {
-		nodeInfo := &base.NodeInfo{n, config.Val.NodeCpu, config.Val.NodeMemory, 0, 0}
+		nodeInfo := &base.NodeInfo{Addr: n, Cpu: config.Val.NodeCpu, Memory: config.Val.NodeMemory, CpuAllocted: 0, MemoryAllocted: 0}
 		node.Neighbors[n] = nodeInfo.Clone()
 	}
 

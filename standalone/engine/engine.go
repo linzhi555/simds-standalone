@@ -37,10 +37,6 @@ func (o *EngineOs) Run(f func()) {
 
 }
 
-// func (o *EngineOs) HasMessage() bool {
-// 	return !o.engine.Network.Outs[o.host].Empty()
-// }
-
 func (o *EngineOs) Send(m base.Message) error {
 	o.engine.Network.Ins[o.host].InQueue(m)
 	return nil
@@ -111,20 +107,7 @@ func (engine *Engine) updateNodes() {
 	for i := 0; i < RenderThreadNum; i++ {
 		go func(s, e int) {
 			for j := s; j < e; j++ {
-				hostname := engine.Nodes[j].GetHostName()
-				nextUpdateTime := engine.Nodes[j].GetNextUpdateTime()
-
-				if engine.GetWorldTime().Sub(nextUpdateTime) >= 0 {
-					if msg, err := engine.Network.Outs[hostname].Dequeue(); err == nil {
-						t := time.Now()
-						engine.Nodes[j].Update(msg) // 事件循环处理。
-						costTime := time.Since(t)
-						engine.Nodes[j].SetNextUpdateTime(engine.GetWorldTime().Add(costTime)) // 设置下一次更新的时间
-						//engine.Nodes[j].SetNextUpdateTime(engine.GetWorldTime().Add(time.Millisecond)) // 设置下一次更新的时间
-
-					}
-				}
-				engine.Nodes[j].SimulateTasksUpdate() // 模拟任务进度更新。
+				engine._updateNode(&engine.Nodes[j])
 			}
 			finishChan <- true
 		}(start, end)
@@ -139,7 +122,25 @@ func (engine *Engine) updateNodes() {
 	for i := 0; i < RenderThreadNum; i++ {
 		<-finishChan
 	}
+}
 
+func (engine *Engine) _updateNode(node *base.Node) {
+	for _, actor := range node.Actors {
+		addr := actor.GetHostName()
+		nextUpdateTime := actor.GetNextUpdateTime()
+
+		if engine.GetWorldTime().Sub(nextUpdateTime) >= 0 {
+			if msg, err := engine.Network.Outs[addr].Dequeue(); err == nil {
+				t := time.Now()
+				actor.Update(msg) // 事件循环处理。
+				costTime := time.Since(t)
+				actor.SetNextUpdateTime(engine.GetWorldTime().Add(costTime)) // 设置下一次更新的时间
+				//engine.Nodes[j].SetNextUpdateTime(engine.GetWorldTime().Add(time.Millisecond)) // 设置下一次更新的时间
+
+			}
+		}
+		actor.SimulateTasksUpdate() // 模拟任务进度更新。
+	}
 }
 
 // 对集群引擎的虚拟网络进行更新
@@ -214,24 +215,29 @@ func InitEngine(cluster base.Cluster) *Engine {
 	e.Network.Os = &EngineOs{host: "network", engine: &e}
 	e.UpdateGap = time.Second / time.Duration(config.Val.FPS)
 	for _, node := range e.Nodes {
-		e.Network.Ins[node.GetHostName()] = &base.Vec[base.Message]{}
-		e.Network.Outs[node.GetHostName()] = &base.Vec[base.Message]{}
+		for _, actor := range node.Actors {
+			e.Network.Ins[actor.GetHostName()] = &base.Vec[base.Message]{}
+			e.Network.Outs[actor.GetHostName()] = &base.Vec[base.Message]{}
+		}
 	}
 
 	for i := range e.Nodes {
-		os := EngineOs{}
-		os.host = e.Nodes[i].GetHostName()
-		os.engine = &e
+		for j := range e.Nodes[i].Actors {
+			curActor := e.Nodes[i].Actors[j]
+			os := EngineOs{}
+			os.host = curActor.GetHostName()
+			os.engine = &e
 
-		os.Send(base.Message{
-			From:    os.host,
-			To:      os.host,
-			Content: "SignalBoot",
-			Body:    base.Signal("SignalBoot"),
-		})
+			os.Send(base.Message{
+				From:    os.host,
+				To:      os.host,
+				Content: "SignalBoot",
+				Body:    base.Signal("SignalBoot"),
+			})
 
-		e.Nodes[i].SetNextUpdateTime(e.GetWorldTime())
-		e.Nodes[i].SetOsApi(&os)
+			curActor.SetNextUpdateTime(e.GetWorldTime())
+			curActor.SetOsApi(&os)
+		}
 	}
 
 	return &e

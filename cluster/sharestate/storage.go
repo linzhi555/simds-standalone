@@ -10,7 +10,7 @@ import (
 
 // StateStorage 节点，用于共享状态的存储
 type StateStorage struct {
-	base.BasicNode
+	base.BasicActor
 	LastSendTime time.Time
 	Started      bool
 	Schedulers   []string
@@ -20,7 +20,7 @@ type StateStorage struct {
 // NewStateStorage 创建新的StateStorage
 func NewStateStorage(hostname string) *StateStorage {
 	return &StateStorage{
-		BasicNode: base.BasicNode{Host: hostname},
+		BasicActor: base.BasicActor{Host: hostname},
 		Workers:   make(map[string]*base.NodeInfo),
 	}
 }
