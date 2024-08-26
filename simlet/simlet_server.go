@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"path"
-	"sync"
 	"time"
 
 	"google.golang.org/grpc"
@@ -27,25 +26,24 @@ type simletCli struct {
 	cli      svc.SimletServerClient
 }
 
-type initFlag struct {
-	inited bool
-	sync.RWMutex
-}
-
-func (flag *initFlag) setTrue() {
-	flag.Lock()
-	defer flag.Unlock()
-	flag.inited = true
-}
-
-func (flag *initFlag) isTrue() bool {
-	flag.RLock()
-	defer flag.RUnlock()
-	return flag.inited
-}
+//type initFlag struct {
+//	inited bool
+//	sync.RWMutex
+//}
+//
+//func (flag *initFlag) setTrue() {
+//	flag.Lock()
+//	defer flag.Unlock()
+//	flag.inited = true
+//}
+//
+//func (flag *initFlag) isTrue() bool {
+//	flag.RLock()
+//	defer flag.RUnlock()
+//	return flag.inited
+//}
 
 type SimletServer struct {
-	inited      initFlag
 	routerTable *common.ConcurrentMap[string, simletCli]
 	actorIns    *common.ConcurrentMap[string, chan base.Message]
 	actorOut    chan base.Message
@@ -53,10 +51,27 @@ type SimletServer struct {
 
 func NewServer() *SimletServer {
 	return &SimletServer{
-		inited:      initFlag{inited: false},
 		routerTable: common.NewConcurrentMap[string, simletCli](),
 		actorIns:    common.NewConcurrentMap[string, chan base.Message](),
 		actorOut:    make(chan base.Message, 100000),
+	}
+}
+
+// NewServer with initil routerTable
+func NewServerWithRouterTable(table *svc.RouterTable) *SimletServer {
+	server := NewServer()
+	server._updateRouterTable(table)
+	return server
+}
+
+func (s *SimletServer) _updateRouterTable(table *svc.RouterTable) {
+	for _, newPair := range table.Columns {
+		old, ok := s.routerTable.Load(newPair.ActorAddr)
+		if ok && old.addr == newPair.SimletAddr {
+			continue
+		}
+		s.routerTable.Store(newPair.ActorAddr, simletCli{addr: newPair.SimletAddr, cliAlive: false})
+		log.Println("routerTable updated", newPair.ActorAddr, newPair.SimletAddr)
 	}
 }
 
@@ -126,9 +141,9 @@ func (s *SimletServer) doRouting(m base.Message) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	resp, err := client.cli.SendMessage(ctx, &svc.Message{From: m.From, To: m.To, Content: m.Content, Body: base.ToJson(m.Body)})
+	_, err := client.cli.SendMessage(ctx, &svc.Message{From: m.From, To: m.To, Content: m.Content, Body: base.ToJson(m.Body)})
 	if err != nil {
-		log.Println("could not get result: ", err, m, resp.ErrMsg)
+		log.Println("could not get result: ", err, m)
 	}
 }
 
@@ -161,15 +176,8 @@ func (s *SimletServer) SendMessage(ctx context.Context, msg *svc.Message) (*svc.
 }
 
 func (s *SimletServer) UpdateRouterTable(ctx context.Context, table *svc.RouterTable) (*svc.Response, error) {
-	for _, newPair := range table.Columns {
-		old, ok := s.routerTable.Load(newPair.ActorAddr)
-		if ok && old.addr == newPair.SimletAddr {
-			continue
-		}
-		s.routerTable.Store(newPair.ActorAddr, simletCli{addr: newPair.SimletAddr, cliAlive: false})
-		log.Println("routerTable updated", newPair.ActorAddr, newPair.SimletAddr)
-	}
-	s.inited.setTrue()
+
+	s._updateRouterTable(table)
 	return &svc.Response{OK: true, ErrMsg: "null"}, nil
 }
 

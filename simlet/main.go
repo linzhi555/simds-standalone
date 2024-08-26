@@ -3,11 +3,14 @@ package main
 import (
 	"log"
 	"path"
+	"time"
+
 	"simds-standalone/cluster"
 	"simds-standalone/cluster/base"
 	"simds-standalone/common"
 	"simds-standalone/config"
-	"time"
+	"simds-standalone/simctl/k8s"
+	"simds-standalone/simlet/svc"
 )
 
 func startSimletActor(node base.Node, s *SimletServer) {
@@ -30,7 +33,40 @@ func startSimletActor(node base.Node, s *SimletServer) {
 	}()
 }
 
+func waitUitlClusterFullyStart() *svc.RouterTable {
+	cli, err := k8s.CreateReadonlyInContainerClient()
+	if err != nil {
+		panic(cli)
+	}
+
+	log.Println(cli.GetNamespace())
+	pods := cli.GetPodsWithPrefix("simds-")
+	log.Println(pods)
+
+	for {
+		err := cli.WaitUtilAllRunning([]string{"simds-taskgen0"})
+		if err != nil {
+			log.Println(err)
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
+	}
+
+	pods = cli.GetPodsWithPrefix("simds-")
+
+	var rtable svc.RouterTable
+	for _, pod := range pods {
+		ip, _ := cli.GetPodIP(pod)
+		log.Println("get pod ip:", pod, ip)
+		rtable.Columns = append(rtable.Columns, &svc.AddrPair{ActorAddr: pod, SimletAddr: ip + ":8888"})
+	}
+
+	return &rtable
+}
+
 func main() {
+
 	log.Println("simlet started as", config.Val.NodeName)
 
 	// Init log file
@@ -60,16 +96,12 @@ func main() {
 		}
 	}
 
-	simletServer := NewServer()
+	routerTable := waitUitlClusterFullyStart()
+	simletServer := NewServerWithRouterTable(routerTable)
 
 	// start serving
 	go simletServer.RunInputServer()
 	go simletServer.RunOutputThread()
-
-	// only after the simlet server net is ready,then init the actor
-	for !simletServer.inited.isTrue() {
-		time.Sleep(time.Second)
-	}
 
 	startSimletActor(initActor, simletServer)
 	for {

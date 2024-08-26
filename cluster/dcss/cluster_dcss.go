@@ -13,10 +13,10 @@ import (
 func BuildDcssCluster() base.Cluster {
 
 	var nodes []base.Node
-	taskgen0 := base.NewTaskGen("taskgen0")
+	taskgen0 := base.NewTaskGen("simds-taskgen0")
 
 	for i := 0; i < int(config.Val.NodeNum); i++ {
-		nodeName := fmt.Sprintf("node%d", i)
+		nodeName := fmt.Sprintf("simds-node%d", i)
 		newNode := DcssNode{
 			BasicNode: base.BasicNode{
 				Host: nodeName,
@@ -45,13 +45,13 @@ func (node *DcssNode) setup() {
 
 	var neibors []string = make([]string, 0, neiborNum)
 
-	selfIndex, err := strconv.Atoi(strings.TrimLeft(node.Host, "node"))
+	selfIndex, err := strconv.Atoi(strings.TrimLeft(node.Host, "simds-node"))
 	if err != nil {
 		panic(err)
 	}
 
 	for _, neiborIndex := range getNeigbor(allNodeNum, selfIndex, neiborNum, neiborRandom) {
-		newNeibor := fmt.Sprintf("node%d", neiborIndex)
+		newNeibor := fmt.Sprintf("simds-node%d", neiborIndex)
 		neibors = append(neibors, newNeibor)
 	}
 

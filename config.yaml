@@ -1,5 +1,5 @@
 FPS:  10000            #hom many frame per second
-GoProcs: 12
+GoProcs: 10
 NodeNum:        10  # how many large the cluster
 NetLatency:     1         # the average network latency, unit: milisecond 
 NodeCpu:        1000         # the node cpu capacity
@@ -35,6 +35,7 @@ K8STemplatePath: "./simctl/template"
 #K8SConfig: "/home/lin/dev/admin.conf"
 #K8SConfig: "./kubeconfig/config"
 K8SConfig: "/home/lin/.kube/config"
+
 
 PushImageRepo: "registry.cn-beijing.aliyuncs.com/lin2631/simlet:latest" # where the simlet image push to
 #PullImageRepo: "registry-vpc.cn-beijing.aliyuncs.com/lin2631/simlet:latest" # where the kubelet pull the image to start container

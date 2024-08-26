@@ -51,7 +51,8 @@ var Val struct {
 	StateUpdatePeriod int32
 
 	// in deploy mode
-	CleanMode       bool
+	CleanMode bool
+	//K8sServicePort  int
 	K8SConfig       string
 	K8STemplatePath string
 	NodeName        string
@@ -60,35 +61,34 @@ var Val struct {
 }
 
 func init() {
+	// default config
+	viper.SetDefault("FPS", 10000)
+	viper.SetDefault("GoProcs", runtime.NumCPU())
+	//viper.SetDefault("K8sServicePort", 31000)
+
+	// import the command line argumet
 	configFile := pflag.StringP("configFile", "c", "./config.yaml", "the config file path")
 	pflag.String("Cluster", "", "which type cluster to run,for example Dcss,Center,ShareState...")
 	pflag.Bool("Debug", false, "run the cluster in debug mode")
 	pflag.String("OutputDir", ".", "where to output the result files")
 	pflag.String("NodeName", "", "the node name")
-	pflag.Int("GoProcs", -1, "how many CPU used for the simulation")
 	pflag.Bool("CleanMode", false, "clean the containers")
 	pflag.Parse()
-
-	Val.ConfigPath = *configFile
 
 	err := viper.BindPFlags(pflag.CommandLine)
 	if err != nil {
 		panic(err)
 	}
 
-	viper.SetDefault("FPS", 10000)
-
+	// import config from file
+	Val.ConfigPath = *configFile
 	viper.SetConfigFile(*configFile)
 	if err := viper.ReadInConfig(); err != nil {
 		panic("config file read fail: " + err.Error())
 	}
 
+	// get the final result
 	err = viper.Unmarshal(&Val)
-	if Val.GoProcs == -1 {
-		Val.GoProcs = int32(runtime.NumCPU()) / 2
-		//panic(Val.GoProcs)
-	}
-
 	if err != nil {
 		panic(err)
 	}

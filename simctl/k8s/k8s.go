@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
@@ -30,11 +31,40 @@ type K8sClient struct {
 	configFile      string
 	clientset       *kubernetes.Clientset
 	config          *restclient.Config
+	namespace       string
 	PodTemplate     *apiv1.Pod
 	ServiceTemplate *apiv1.Service
 }
 
-// connecting to the k8s cluster
+// for simlet
+// create readonly in container pod // for simlet
+func CreateReadonlyInContainerClient() (*K8sClient, error) {
+	var cli K8sClient
+	// 使用InClusterConfig从默认位置获取配置
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// 创建客户端
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, errors.New("can not connect to the k8s in the container")
+	}
+
+	cli.clientset = clientset
+
+	namespace, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		return nil, errors.New("can not get namespace of this pod from path:  /var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	}
+	cli.namespace = string(namespace)
+
+	return &cli, nil
+}
+
+// for simctl
+// connecting to the k8s cluster with config, this client can read and write to k8s.
 func ConnectToK8s(cfgFile string, podTemplate string, serviceTemplate string) (*K8sClient, error) {
 	var cli K8sClient
 
@@ -59,7 +89,22 @@ func ConnectToK8s(cfgFile string, podTemplate string, serviceTemplate string) (*
 
 	// initialize the PodTemplate ,and ServiceTemplate
 	cli.initTemplate(podTemplate, serviceTemplate)
+
+	cli.namespace = cli.PodTemplate.Namespace
 	return &cli, nil
+}
+
+func (cli *K8sClient) GetNamespace() string {
+	return cli.namespace
+
+}
+
+func (cli *K8sClient) GetApiServerIP() string {
+	u, err := url.Parse(cli.config.Host)
+	if err != nil {
+		panic(err)
+	}
+	return u.Hostname()
 }
 
 func (cli *K8sClient) initTemplate(podTemplate, serviceTemplate string) {
@@ -288,7 +333,7 @@ func (cli *K8sClient) Download(podName, containerName, pathToCopy string, writer
 
 // delete all the pods which has the prefix
 func (cli *K8sClient) DeletePodsWithPrefix(prefix string) {
-	pods, err := cli.clientset.CoreV1().Pods(cli.PodTemplate.Namespace).List(context.TODO(), metav1.ListOptions{})
+	pods, err := cli.clientset.CoreV1().Pods(cli.namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		panic(err.Error())
 	}
@@ -302,18 +347,18 @@ func (cli *K8sClient) DeletePodsWithPrefix(prefix string) {
 }
 
 func (cli *K8sClient) GetPodIP(podname string) (string, error) {
-	pod, err := cli.clientset.CoreV1().Pods(cli.PodTemplate.Namespace).Get(context.TODO(), podname, metav1.GetOptions{})
+	pod, err := cli.clientset.CoreV1().Pods(cli.namespace).Get(context.TODO(), podname, metav1.GetOptions{})
 	return pod.Status.PodIP, err
 }
 
 func (cli *K8sClient) GetPodHostIP(podname string) (string, error) {
-	pod, err := cli.clientset.CoreV1().Pods(cli.PodTemplate.Namespace).Get(context.TODO(), podname, metav1.GetOptions{})
+	pod, err := cli.clientset.CoreV1().Pods(cli.namespace).Get(context.TODO(), podname, metav1.GetOptions{})
 	return pod.Status.HostIP, err
 }
 
 // Get all the pods which has the prefix
 func (cli *K8sClient) GetPodsWithPrefix(prefix string) []string {
-	pods, err := cli.clientset.CoreV1().Pods(cli.PodTemplate.Namespace).List(context.TODO(), metav1.ListOptions{})
+	pods, err := cli.clientset.CoreV1().Pods(cli.namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		panic(err.Error())
 	}
@@ -329,7 +374,7 @@ func (cli *K8sClient) GetPodsWithPrefix(prefix string) []string {
 
 // delete all service by name with the prefix
 func (cli *K8sClient) DeleteServiceWithPrefix(prefix string) {
-	svcs, err := cli.clientset.CoreV1().Services(cli.PodTemplate.Namespace).List(context.TODO(), metav1.ListOptions{})
+	svcs, err := cli.clientset.CoreV1().Services(cli.namespace).List(context.TODO(), metav1.ListOptions{})
 
 	if err != nil {
 		panic(err.Error())
@@ -346,7 +391,7 @@ func (cli *K8sClient) DeleteServiceWithPrefix(prefix string) {
 
 // wait until util pods running,used after create pods if needed
 func (cli *K8sClient) WaitUtilAllRunning(waitPods []string) error {
-	pods := cli.clientset.CoreV1().Pods(cli.PodTemplate.Namespace)
+	pods := cli.clientset.CoreV1().Pods(cli.namespace)
 
 	// scan the waitPods 's status , according the result to scan again, wait finished or  return error
 	for _, waitPod := range waitPods {
@@ -354,7 +399,7 @@ func (cli *K8sClient) WaitUtilAllRunning(waitPods []string) error {
 		for !thisPodRunning {
 			res, err := pods.Get(context.TODO(), waitPod, metav1.GetOptions{})
 			if err != nil {
-				return err
+				return errors.New("can get pods info: " + waitPod)
 			}
 
 			switch res.Status.Phase {

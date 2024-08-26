@@ -2,15 +2,11 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"log"
 	"os/exec"
 	"path"
 	"time"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 
 	"simds-standalone/cluster"
 	"simds-standalone/cluster/base"
@@ -64,9 +60,10 @@ func test(cli *k8s.K8sClient) {
 	var cluster base.Cluster = clusterBuilder()
 
 	// create pod
-	for i, node := range cluster.Nodes {
+	for _, node := range cluster.Nodes {
 		fmt.Println("deploy", node.GetHostName())
-		name := fmt.Sprintf("simds-%s", node.GetHostName())
+		name := node.GetHostName()
+
 		cli.CreatePod(name, name, config.Val.PullImageRepo,
 			[]string{"sh",
 				"-c",
@@ -85,34 +82,25 @@ func test(cli *k8s.K8sClient) {
 		podAddr := ip + ":8888"
 		log.Println(name, podAddr)
 
-		cli.CreateNodePortService(name+"-svc", name, 8888, 32000+i)
 		table.Columns = append(table.Columns, &svc.AddrPair{ActorAddr: node.GetHostName(), SimletAddr: podAddr})
 	}
-
-	for i, addrPair := range table.Columns {
-		host, _ := cli.GetPodHostIP("simds-" + addrPair.ActorAddr)
-		err := updateRouterTable(host+":"+fmt.Sprint(32000+i), &table)
-		if err != nil {
-			panic(err)
-		}
-	}
 }
 
-func updateRouterTable(addr string, table *svc.RouterTable) error {
-	log.Println("update router table for ", addr)
-	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return err
-	}
-	cli := svc.NewSimletServerClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	_, err = cli.UpdateRouterTable(ctx, table)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+//func updateRouterTable(addr string, table *svc.RouterTable) error {
+//	log.Println("update router table for ", addr)
+//	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+//	if err != nil {
+//		return err
+//	}
+//	cli := svc.NewSimletServerClient(conn)
+//	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+//	defer cancel()
+//	_, err = cli.UpdateRouterTable(ctx, table)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
 
 func collectResult(cli *k8s.K8sClient) {
 	mergeCsvOfMultiplePods(cli, cli.GetPodsWithPrefix("simds-taskgen"), "tasks_event.log", path.Join(config.Val.OutputDir, "tasks_event.log"))
