@@ -2,19 +2,14 @@ package engine
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"path"
 
-	"strings"
 	"time"
 
 	"simds-standalone/cluster/base"
 	"simds-standalone/common"
 	"simds-standalone/config"
-
-	"github.com/chzyer/readline"
-	lua "github.com/yuin/gopher-lua"
 )
 
 const NETWORK_EVENT_LOG_NAME = "network_event.log"
@@ -22,9 +17,95 @@ const NETWORK_EVENT_LOG_NAME = "network_event.log"
 // ZEROTIME 模拟开始的现实时间，以此作为模拟器的零点时间
 var ZEROTIME time.Time = time.Now()
 
+type Progress uint32
+
+const FullProgress Progress = 1000000
+
+func (p *Progress) toFloat() float32 {
+	return float32(*p) / float32(FullProgress)
+}
+
+func (p *Progress) Add(percent float32) {
+	*p += Progress(percent * float32(FullProgress))
+}
+
+func (p *Progress) IsFinished() bool {
+	return *p >= FullProgress
+}
+
+type ActorHideStatus struct {
+	IsBusy        bool
+	Progress      Progress
+	MsgHandleType string
+	Difficulty    time.Duration
+}
+
+func (hide *ActorHideStatus) UpdateProgress(percent float32) {
+	hide.Progress.Add(percent)
+	if hide.Progress.IsFinished() {
+		hide.Progress = 0
+		hide.IsBusy = false
+		hide.MsgHandleType = ""
+		hide.Difficulty = 0
+	}
+}
+
+func (hide *ActorHideStatus) ToBusy(MsgType string, difficulty time.Duration) {
+	hide.IsBusy = true
+	hide.Progress = 0
+	hide.Difficulty = difficulty
+	hide.MsgHandleType = MsgType
+}
+
+type EngineActor struct {
+	model base.Actor
+	hide  ActorHideStatus
+}
+
+type VirtualNode struct {
+	engine     *Engine
+	updatefunc func([]ActorHideStatus, ActorHideStatus) float32
+	actors     map[string]*EngineActor
+}
+
+func _defaultUpdateFunc(_ []ActorHideStatus, self ActorHideStatus) float32 {
+	delta := time.Second / time.Duration(config.Val.FPS)
+	return float32(delta) / float32(self.Difficulty)
+}
+
+func NewVirtualNode(engine *Engine, actors ...base.Actor) *VirtualNode {
+	var vnode VirtualNode
+	vnode.engine = engine
+	vnode.updatefunc = _defaultUpdateFunc
+	vnode.actors = make(map[string]*EngineActor)
+	for _, actor := range actors {
+		vnode.actors[actor.GetHostName()] = &EngineActor{actor, ActorHideStatus{}}
+	}
+	return &vnode
+}
+
+func (vnode *VirtualNode) Update() {
+	var lastState []ActorHideStatus
+	for _, actor := range vnode.actors {
+		lastState = append(lastState, actor.hide)
+	}
+
+	for _, actor := range vnode.actors {
+		if actor.hide.IsBusy {
+			actor.hide.UpdateProgress(vnode.updatefunc(lastState, actor.hide))
+		} else if msg, err := vnode.engine.Network.Outs[actor.model.GetHostName()].Dequeue(); err == nil {
+			t := time.Now()
+			actor.model.Update(msg) // 事件循环处理。
+			costTime := time.Since(t)
+			actor.hide.ToBusy(msg.Content, costTime)
+		}
+		actor.model.SimulateTasksUpdate() // 模拟任务进度更新。
+	}
+}
+
 // MockOs 为组件提供模拟的系统调用
 type EngineOs struct {
-	host   string
+	addr   string
 	engine *Engine
 }
 
@@ -38,7 +119,7 @@ func (o *EngineOs) Run(f func()) {
 }
 
 func (o *EngineOs) Send(m base.Message) error {
-	o.engine.Network.Ins[o.host].InQueue(m)
+	o.engine.Network.Ins[o.addr].InQueue(m)
 	return nil
 }
 
@@ -82,7 +163,7 @@ func newVirtualNetwork() VirtualNetwork {
 type Engine struct {
 	UpdateCount uint64
 	UpdateGap   time.Duration // 每次更新推进的时间
-	Nodes       []base.Node
+	Nodes       []VirtualNode
 	Network     VirtualNetwork
 }
 
@@ -90,7 +171,7 @@ func (engine *Engine) GetWorldTime() time.Time {
 	return ZEROTIME.Add(time.Duration(engine.UpdateCount) * engine.UpdateGap)
 }
 
-// / 对所有节点更新一次
+// 并行地对所有节点更新一次
 func (engine *Engine) updateNodes() {
 	allNum := len(engine.Nodes)
 
@@ -107,7 +188,7 @@ func (engine *Engine) updateNodes() {
 	for i := 0; i < RenderThreadNum; i++ {
 		go func(s, e int) {
 			for j := s; j < e; j++ {
-				engine._updateNode(&engine.Nodes[j])
+				engine.Nodes[j].Update()
 			}
 			finishChan <- true
 		}(start, end)
@@ -124,24 +205,25 @@ func (engine *Engine) updateNodes() {
 	}
 }
 
-func (engine *Engine) _updateNode(node *base.Node) {
-	for _, actor := range node.Actors {
-		addr := actor.GetHostName()
-		nextUpdateTime := actor.GetNextUpdateTime()
-
-		if engine.GetWorldTime().Sub(nextUpdateTime) >= 0 {
-			if msg, err := engine.Network.Outs[addr].Dequeue(); err == nil {
-				t := time.Now()
-				actor.Update(msg) // 事件循环处理。
-				costTime := time.Since(t)
-				actor.SetNextUpdateTime(engine.GetWorldTime().Add(costTime)) // 设置下一次更新的时间
-				//engine.Nodes[j].SetNextUpdateTime(engine.GetWorldTime().Add(time.Millisecond)) // 设置下一次更新的时间
-
-			}
-		}
-		actor.SimulateTasksUpdate() // 模拟任务进度更新。
-	}
-}
+// 对单个节点运行节点更新函数
+//func (engine *Engine) _updateNode(node *base.Node) {
+//	for _, actor := range node.Actors {
+//		addr := actor.GetHostName()
+//		nextUpdateTime := actor.GetNextUpdateTime()
+//
+//		if engine.GetWorldTime().Sub(nextUpdateTime) >= 0 {
+//			if msg, err := engine.Network.Outs[addr].Dequeue(); err == nil {
+//				t := time.Now()
+//				actor.Update(msg) // 事件循环处理。
+//				costTime := time.Since(t)
+//				actor.SetNextUpdateTime(engine.GetWorldTime().Add(costTime)) // 设置下一次更新的时间
+//				//engine.Nodes[j].SetNextUpdateTime(engine.GetWorldTime().Add(time.Millisecond)) // 设置下一次更新的时间
+//
+//			}
+//		}
+//		actor.SimulateTasksUpdate() // 模拟任务进度更新。
+//	}
+//}
 
 // 对集群引擎的虚拟网络进行更新
 func (engine *Engine) updateNetwork() {
@@ -210,36 +292,35 @@ func InitEngine(cluster base.Cluster) *Engine {
 	common.AppendLineCsvFile(path.Join(config.Val.OutputDir, base.TASKS_EVENT_LOG_NAME), []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
 
 	var e Engine
-	e.Nodes = cluster.Nodes
+	for _, node := range cluster.Nodes {
+		e.Nodes = append(e.Nodes, *NewVirtualNode(&e, node.Actors...))
+	}
+
 	e.Network = newVirtualNetwork()
-	e.Network.Os = &EngineOs{host: "network", engine: &e}
+	e.Network.Os = &EngineOs{addr: "network", engine: &e}
 	e.UpdateGap = time.Second / time.Duration(config.Val.FPS)
 	for _, node := range e.Nodes {
-		for _, actor := range node.Actors {
-			e.Network.Ins[actor.GetHostName()] = &base.Vec[base.Message]{}
-			e.Network.Outs[actor.GetHostName()] = &base.Vec[base.Message]{}
+		for _, actor := range node.actors {
+			e.Network.Ins[actor.model.GetHostName()] = &base.Vec[base.Message]{}
+			e.Network.Outs[actor.model.GetHostName()] = &base.Vec[base.Message]{}
 		}
 	}
 
 	for i := range e.Nodes {
-		for j := range e.Nodes[i].Actors {
-			curActor := e.Nodes[i].Actors[j]
+		for _, actor := range e.Nodes[i].actors {
 			os := EngineOs{}
-			os.host = curActor.GetHostName()
+			os.addr = actor.model.GetHostName()
 			os.engine = &e
 
 			os.Send(base.Message{
-				From:    os.host,
-				To:      os.host,
+				From:    os.addr,
+				To:      os.addr,
 				Content: "SignalBoot",
 				Body:    base.Signal("SignalBoot"),
 			})
-
-			curActor.SetNextUpdateTime(e.GetWorldTime())
-			curActor.SetOsApi(&os)
+			actor.model.SetOsApi(&os)
 		}
 	}
-
 	return &e
 }
 
@@ -254,69 +335,4 @@ func (engine *Engine) Run() {
 		log.Println("render", step, "frames", "spend:", time.Since(start))
 	}
 
-}
-
-// Console模式下进行运行集群
-func (engine *Engine) RunInConsole() {
-
-	luaState := simdsLua(engine)
-	defer luaState.Close()
-
-	l, err := readline.NewEx(&readline.Config{
-		Prompt:          fmt.Sprintf("\033[32m>>> \033[0m"),
-		HistoryFile:     "/tmp/readline.tmp",
-		InterruptPrompt: "^C",
-		EOFPrompt:       "exit",
-
-		HistorySearchFold: true,
-	})
-	if err != nil {
-		panic(err)
-	}
-	defer l.Close()
-	//l.CaptureExitSignal()
-
-	log.SetOutput(l.Stderr())
-	for {
-		line, err := l.Readline()
-		if err == readline.ErrInterrupt {
-			if len(line) == 0 {
-				break
-			} else {
-				continue
-			}
-		} else if err == io.EOF {
-			break
-		}
-
-		line = strings.TrimSpace(line)
-		if err := luaState.DoString(line); err != nil {
-			log.Println(err)
-		}
-	}
-}
-
-func simdsLua(simulator *Engine) *lua.LState {
-	l := lua.NewState()
-	step := func(L *lua.LState) int {
-		lv := L.ToInt(1) /* get argument */
-		simulator.UpdateNtimes(uint64(lv))
-		return 1 /* number of results */
-	}
-
-	to := func(L *lua.LState) int {
-		lv := L.ToInt(1) /* get argument */
-		simulator.UpdateNtimes(uint64(lv) - simulator.UpdateCount)
-		return 1 /* number of results */
-	}
-
-	time := func(L *lua.LState) int {
-		fmt.Printf("Simulator Time: %f s, UpdateFrames: %d, FPS: %d \n", float32(simulator.UpdateCount)/float32(config.Val.FPS), simulator.UpdateCount, config.Val.FPS)
-		return 1
-	}
-
-	l.SetGlobal("step", l.NewFunction(step))
-	l.SetGlobal("to", l.NewFunction(to))
-	l.SetGlobal("time", l.NewFunction(time))
-	return l
 }
