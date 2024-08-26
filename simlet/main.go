@@ -33,7 +33,7 @@ func startSimletActor(node base.Node, s *SimletServer) {
 	}()
 }
 
-func waitUitlClusterFullyStart() *svc.RouterTable {
+func waitUitlClusterFullyStart(cluster *base.Cluster) *svc.RouterTable {
 	cli, err := k8s.CreateReadonlyInContainerClient()
 	if err != nil {
 		panic(cli)
@@ -43,10 +43,11 @@ func waitUitlClusterFullyStart() *svc.RouterTable {
 	pods := cli.GetPodsWithPrefix("simds-")
 	log.Println(pods)
 
+	lastNodesName := cluster.Nodes[len(cluster.Nodes)-1].GetHostName()
 	for {
-		err := cli.WaitUtilAllRunning([]string{"simds-taskgen0"})
+		err := cli.WaitUtilAllRunning([]string{lastNodesName})
 		if err != nil {
-			log.Println(err)
+			log.Println("waitting for ",lastNodesName," run:", err)
 			time.Sleep(time.Second)
 		} else {
 			break
@@ -96,7 +97,7 @@ func main() {
 		}
 	}
 
-	routerTable := waitUitlClusterFullyStart()
+	routerTable := waitUitlClusterFullyStart(&cluster)
 	simletServer := NewServerWithRouterTable(routerTable)
 
 	// start serving
