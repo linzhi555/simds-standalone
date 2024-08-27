@@ -13,14 +13,14 @@ import (
 	"simds-standalone/simlet/svc"
 )
 
-func startSimletActor(node base.Node, s *SimletServer) {
+func startSimletActor(actor base.Actor, s *SimletServer) {
 	os := NewActorOs(config.Val.NodeName)
 	s.RegisterNewActor(os)
-	node.SetOsApi(os)
+	actor.SetOsApi(os)
 
 	os.Send(base.Message{
-		From:    node.GetHostName(),
-		To:      node.GetHostName(),
+		From:    actor.GetHostName(),
+		To:      actor.GetHostName(),
 		Content: "SignalBoot",
 		Body:    base.Signal("SignalBoot"),
 	})
@@ -28,7 +28,7 @@ func startSimletActor(node base.Node, s *SimletServer) {
 	go func() {
 		for {
 			m := <-os.input
-			node.Update(m)
+			actor.Update(m)
 		}
 	}()
 }
@@ -43,7 +43,7 @@ func waitUitlClusterFullyStart(cluster *base.Cluster) *svc.RouterTable {
 	pods := cli.GetPodsWithPrefix("simds-")
 	log.Println(pods)
 
-	lastNodesName := cluster.Nodes[len(cluster.Nodes)-1].GetHostName()
+	lastNodesName := cluster.Nodes[len(cluster.Nodes)-1].Actors[0].GetHostName()
 	for {
 		err := cli.WaitUtilAllRunning([]string{lastNodesName})
 		if err != nil {
@@ -88,11 +88,11 @@ func main() {
 	}
 
 	var cluster base.Cluster = clusterBuilder()
-	var initActor base.Node
+	var initActor base.Actor
 
 	for _, n := range cluster.Nodes {
-		if n.GetHostName() == config.Val.NodeName {
-			initActor = n
+		if n.Actors[0].GetHostName() == config.Val.NodeName {
+			initActor = n.Actors[0]
 			break
 		}
 	}
@@ -107,5 +107,4 @@ func main() {
 	startSimletActor(initActor, simletServer)
 	for {
 	}
-
 }

@@ -13,7 +13,6 @@ import (
 	"simds-standalone/common"
 	"simds-standalone/config"
 	"simds-standalone/simctl/k8s"
-	"simds-standalone/simlet/svc"
 )
 
 func PushImage() {
@@ -40,12 +39,12 @@ func PushImage() {
 	log.Println("Image Push Succssed")
 }
 
-func clean(cli *k8s.K8sClient) {
+func Clean(cli *k8s.K8sClient) {
 	cli.DeletePodsWithPrefix("simds")
 	cli.DeleteServiceWithPrefix("simds")
 }
 
-func test(cli *k8s.K8sClient) {
+func Deploy(cli *k8s.K8sClient) {
 	// Initialize self as a specified node of cluster
 	clusterBuilder, ok := cluster.ClusterMarket[config.Val.Cluster]
 	if !ok {
@@ -56,20 +55,19 @@ func test(cli *k8s.K8sClient) {
 		log.Panicln("wrong type of cluster,registed cluster is", keys)
 	}
 
-	var table svc.RouterTable
 	var cluster base.Cluster = clusterBuilder()
 
 	// create pod
 	for _, node := range cluster.Nodes {
-		fmt.Println("deploy", node.GetHostName())
-		name := node.GetHostName()
+		name := node.Actors[0].GetHostName()
+		fmt.Println("deploy", name)
 
 		cli.CreatePod(name, name, config.Val.PullImageRepo,
 			[]string{"sh",
 				"-c",
 				fmt.Sprintf(
 					"/simlet --Cluster %s --NodeName %s  >simlet.log 2>simlet_err.log; sleep 20000",
-					config.Val.Cluster, node.GetHostName(),
+					config.Val.Cluster, name,
 				),
 			},
 		)
@@ -81,28 +79,11 @@ func test(cli *k8s.K8sClient) {
 		}
 		podAddr := ip + ":8888"
 		log.Println(name, podAddr)
-
-		table.Columns = append(table.Columns, &svc.AddrPair{ActorAddr: node.GetHostName(), SimletAddr: podAddr})
 	}
 }
 
-//func updateRouterTable(addr string, table *svc.RouterTable) error {
-//	log.Println("update router table for ", addr)
-//	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-//	if err != nil {
-//		return err
-//	}
-//	cli := svc.NewSimletServerClient(conn)
-//	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-//	defer cancel()
-//	_, err = cli.UpdateRouterTable(ctx, table)
-//	if err != nil {
-//		return err
-//	}
-//	return nil
-//}
-
-func collectResult(cli *k8s.K8sClient) {
+const threadNum = 1
+func CollectResult(cli *k8s.K8sClient) {
 	mergeCsvOfMultiplePods(cli, cli.GetPodsWithPrefix("simds-taskgen"), "tasks_event.log", path.Join(config.Val.OutputDir, "tasks_event.log"))
 	mergeCsvOfMultiplePods(cli, cli.GetPodsWithPrefix("simds"), "network_event.log", path.Join(config.Val.OutputDir, "network_event.log"))
 }
@@ -111,8 +92,6 @@ func mergeCsvOfMultiplePods(cli *k8s.K8sClient, pods []string, logfile string, o
 	var num = len(pods)
 	var bufferCh = make(chan *bytes.Buffer, num)
 
-	// use 4 thread to download file
-	threadNum := 4
 	for i := 0; i < threadNum; i++ {
 		go func(threadId int) {
 			for j := 0; j < num; j++ {
@@ -163,14 +142,14 @@ func main() {
 	}
 
 	if config.Val.CleanMode {
-		clean(cli)
+		Clean(cli)
 		return
 	}
 
 	fmt.Println(cli.GetPodsWithPrefix("simds"))
-	clean(cli)
+	Clean(cli)
 	PushImage()
-	test(cli)
-	time.Sleep(100 * time.Second)
-	collectResult(cli)
+	Deploy(cli)
+	time.Sleep(2 * time.Duration(config.Val.SimulateDuration) * time.Millisecond)
+	CollectResult(cli)
 }
