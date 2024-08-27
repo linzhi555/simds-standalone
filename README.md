@@ -1,34 +1,49 @@
-# Distributed cluster simulator stand-alone version
+# 分布式集群模拟器单机版
 
 simds-standalone(simulator of distribute cluster - standalone edition)
-It can be used to simulate the task scheduling, task running, task information communication and other behaviors of a distributed cluster. Supports both centralized clustering and
-Compared.
+可用于模拟分布式集群的任务调度，任务运行，任务信息通信等行为。同时支持与集中式集群
+对比。
 
-## Instructions
+## 依赖
 
-- Install Go >= 1.19, make
-- ``` go get ``` install dependencies
-- Modify the config.yaml content as needed
-- Run a certain test
-    - Centralized cluster testing ``` make centerTest ```
-    - Run state sharing cluster test ```make shareTest ```
-    - Distributed cluster test ```make dcssTest ```
-- The log information of all components during the simulation process is in ./components.log
-- Simulation logs of all tasks (including submission, start, end) are saved in ./tasks_event.log
-- The analysis results are in ./target/{experiment completion time}/
+- Go >= 1.21 
+- docker  (only 实际测试)
+- k8s cluster config file (only 实际测试)
+- GNU/make
+- python3
+- ``` go get ```  安装依赖
 
-## Introduction to simulator principles
-Time model: The simulator uses the tick mechanism to update the cluster status. The simulation time increases by 0.1ms after each tick. Execute all components of the cluster every tick
-Update function to complete a status update of the cluster. Each update updates all components of the cluster in parallel (no locks), improving simulation efficiency.
 
-Node model: Each node in the cluster is an entity, and each entity has one or more components. The visual understanding is that there can be multiple APPs on a node, each
-Components have input and output pipes that symbolize network interfaces. There are multiple types of components, namely Scheduler, Taskgen, ResourceManager, StateStorage,
-These components store information that may be used by corresponding functions. There are two methods for each type of component in the cluster, Setup and Update. Setup is used for cluster initialization, and
-Update is the update function called each tick mentioned earlier. You can change the Setup and Update methods registered to each component to achieve changes in cluster behavior.
+##   运行离散时间驱动的单机模拟器 
+- 根据需要修改config.yaml 内容
 
-Network model: The cluster has a virtual entity named networker1, which has the MockNetworke component. This component is network-connected to all other node components in the cluster.
-That is, this component is the receiving end of all component output pipes and the sending end of all input pipes. When a component is sent to another node within an update function, this
-After the information is stuffed into the pipeline, the next time the MockNetworke component executes the update function, the information will be retrieved, stuffed into the cache, and the sender and receiver of the information will be checked to determine this
-The information is cached for how many ticks to simulate network delay, and then inserted into the corresponding receiver pipeline according to the receiver address. If the receiver and sender belong to the same entity,
-The person sends directly without waiting (local communication).
+- ``` make test Cluster=XXX ``` XXX = Center | ShareState | Dcss
+- 分析结果在 ./target/{实验完成时刻}/ 
+
+## 运行K8S实际模拟器
+config.yaml 修改 k8s config path
+config.yaml 修改 镜像上传以及拉取地址
+可选：修改pod_template 的namespace 为使用的namespace (默认是default)
+
+确保部署的容器能够访问k8s api, [创建权限说明](https://kubernetes.io/zh-cn/docs/tasks/run-application/access-api-from-pod/)
+命名空间为default的pod 的示例：
+
+```
+kubectl create clusterrolebinding default-view --clusterrole=view --serviceaccount=default:default
+```
+
+最终运行
+``` make k8sTest Cluster=XXX ``` XXX = Center | ShareState | Dcss 
+
+## 运行组合型测试
+
+```
+{$your_python_bin} ./test/test.py 
+```
+如果缺少包，请用你的包管理工具(pip or conda)安装
+
+结果在./test/target
+
+
+## 模拟器原理介绍
 
