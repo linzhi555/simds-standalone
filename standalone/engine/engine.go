@@ -325,7 +325,9 @@ func InitEngine(cluster base.Cluster) *Engine {
 }
 
 func (engine *Engine) Run() {
-	frameNum := (time.Duration(config.Val.SimulateDuration) * (time.Millisecond)).Seconds() * float64(config.Val.FPS)
+	testDuration := (time.Duration(config.Val.SimulateDuration) * (time.Millisecond)).Seconds()
+	
+	frameNum :=  (testDuration+15.0) * float64(config.Val.FPS)
 
 	step := uint64(config.Val.FPS)
 	for engine.UpdateCount < uint64(frameNum) {

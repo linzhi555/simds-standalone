@@ -25,30 +25,64 @@ type SrcNode struct {
 	task TaskInfo
 }
 
+func ConcateStream(a, b []SrcNode, gap time.Duration) []SrcNode {
+	var res []SrcNode = make([]SrcNode, 0, len(a)+len(b))
+	res = append(res, a...)
+	res = append(res, b...)
+
+	lastATime := a[len(a)-1].time
+	for i := len(a); i < len(a)+len(b); i++ {
+		res[i].time += (gap + lastATime)
+	}
+	return res
+}
+
+func CutStream(old []SrcNode, until time.Duration) []SrcNode {
+	var res []SrcNode
+	for i := range old {
+		if old[i].time > until {
+			break
+		}
+		res = append(res, old[i])
+	}
+	return res
+}
+
 // NewTaskGen 创造空的TaskGen
 func NewTaskGen(hostname string) *TaskGen {
 
 	taskgen := &TaskGen{
 		BasicActor: BasicActor{Host: hostname},
-		CurTaskId: 0,
+		CurTaskId:  0,
 	}
 
 	return taskgen
 }
 
-func (taskgen *TaskGen) InitTaskSrc() {
+func (taskgen *TaskGen) InitTaskSrc(src []SrcNode) {
+	taskgen.Src = src
+}
+
+func testTaskStream() []SrcNode {
 	switch config.Val.TaskMode {
 	case "onePeak":
-		taskgen.Src = onePeakTaskStream()
+		return onePeakTaskStream()
 	case "noWave":
-		taskgen.Src = noWaveTaskStream()
+		return noWaveTaskStream()
 	case "trace":
 		src := readTraceTaskStream(config.Val.TraceFile, 1.0, config.Val.SimulateDuration-10000)
 		src = applyLoadRate(src, float64(config.Val.NodeNum)/float64(1000)*float64(config.Val.TaskNumFactor)/7.0)
-		taskgen.Src = src
-	default:
-		panic("this mod is not implented")
+		return src
 	}
+	panic("error task stream type")
+}
+
+func preheatTaskStream() []SrcNode {
+	src := noWaveTaskStream()
+	for i := range src {
+		src[i].task.Id += "_preheat"
+	}
+	return CutStream(src, 4*time.Second)
 }
 
 // 负载没有波动的连续任务流
@@ -117,13 +151,18 @@ func (n *TaskGen) Debug() {}
 func (taskgen *TaskGen) Update(msg Message) {
 	switch msg.Content {
 	case "SignalBoot":
-		taskgen.InitTaskSrc()
+		formal := testTaskStream()
+		preheat := preheatTaskStream()  // before formal test, there is a preheat stream to warm up the system.
+		all := ConcateStream(preheat, formal, 5*time.Second)
+
+		taskgen.InitTaskSrc(all)
 		taskgen.StartTime = taskgen.Os.GetTime()
-		taskgen.Status = "start"
+		taskgen.Status = "preheat"
 		taskgen.Os.Run(func() { taskgen._sendingTask() })
 	case "TaskStart":
 		newtask := msg.Body.(TaskInfo)
 		if !strings.HasSuffix(newtask.Id, "preheat") {
+			taskgen.Status = "formalTest"
 			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "start", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
 		}
 
@@ -171,7 +210,11 @@ func (taskgen *TaskGen) _sendingTask() {
 		if err != nil {
 			panic(err)
 		}
-		taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+
+		if !strings.HasSuffix(newtask.Id, "preheat") {
+			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+		}
+
 		taskgen.CurTaskId++
 	}
 }
@@ -198,7 +241,10 @@ func (taskgen *TaskGen) SimulateTasksUpdate() {
 		if err != nil {
 			panic(err)
 		}
-		taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+
+		if !strings.HasSuffix(newtask.Id, "preheat") {
+			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+		}
 		taskgen.CurTaskId++
 	}
 }
