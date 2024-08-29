@@ -21,7 +21,7 @@ type StateStorage struct {
 func NewStateStorage(hostname string) *StateStorage {
 	return &StateStorage{
 		BasicActor: base.BasicActor{Host: hostname},
-		Workers:   make(map[string]*base.NodeInfo),
+		Workers:    make(map[string]*base.NodeInfo),
 	}
 }
 

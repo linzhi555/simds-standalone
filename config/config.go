@@ -16,6 +16,10 @@ import (
 
 // Config 全局的配置,在main开始前初始化
 var Val struct {
+	//output
+	TaskEventsLogName string
+	NetEventsLogName  string
+
 	FPS        int32
 	GoProcs    int32
 	ConfigPath string
@@ -61,7 +65,10 @@ var Val struct {
 }
 
 func init() {
+
 	// default config
+	viper.SetDefault("TaskEventsLogName", "tasks_event.log")
+	viper.SetDefault("NetEventsLogName", "network_event.log")
 	viper.SetDefault("FPS", 10000)
 	viper.SetDefault("GoProcs", runtime.NumCPU())
 	//viper.SetDefault("K8sServicePort", 31000)

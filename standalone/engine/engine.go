@@ -12,8 +12,6 @@ import (
 	"simds-standalone/config"
 )
 
-const NETWORK_EVENT_LOG_NAME = "network_event.log"
-
 // ZEROTIME 模拟开始的现实时间，以此作为模拟器的零点时间
 var ZEROTIME time.Time = time.Now()
 
@@ -259,7 +257,7 @@ func (engine *Engine) updateNetwork() {
 			if len(bodystring) > 100 {
 				bodystring = bodystring[0:97] + "..."
 			}
-			network.Os.LogInfo(NETWORK_EVENT_LOG_NAME, m.Content, m.From, m.To, bodystring)
+			network.Os.LogInfo(config.Val.NetEventsLogName, m.Content, m.From, m.To, bodystring)
 
 			out.InQueue(m)
 		} else {
@@ -288,8 +286,8 @@ func (engine *Engine) UpdateNtimes(n uint64) {
 }
 
 func InitEngine(cluster base.Cluster) *Engine {
-	common.AppendLineCsvFile(path.Join(config.Val.OutputDir, NETWORK_EVENT_LOG_NAME), []string{"time", "type", "from", "to", "body"})
-	common.AppendLineCsvFile(path.Join(config.Val.OutputDir, base.TASKS_EVENT_LOG_NAME), []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
+	common.AppendLineCsvFile(path.Join(config.Val.OutputDir, config.Val.NetEventsLogName), []string{"time", "type", "from", "to", "body"})
+	common.AppendLineCsvFile(path.Join(config.Val.OutputDir, config.Val.TaskEventsLogName), []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
 
 	var e Engine
 	for _, node := range cluster.Nodes {
@@ -326,8 +324,8 @@ func InitEngine(cluster base.Cluster) *Engine {
 
 func (engine *Engine) Run() {
 	testDuration := (time.Duration(config.Val.SimulateDuration) * (time.Millisecond)).Seconds()
-	
-	frameNum :=  (testDuration+15.0) * float64(config.Val.FPS)
+
+	frameNum := (testDuration + 15.0) * float64(config.Val.FPS)
 
 	step := uint64(config.Val.FPS)
 	for engine.UpdateCount < uint64(frameNum) {

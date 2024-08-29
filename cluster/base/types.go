@@ -13,22 +13,21 @@ type Cluster struct {
 	Nodes []Node
 }
 
-func (c *Cluster) Join(node Node){
+func (c *Cluster) Join(node Node) {
 	c.Nodes = append(c.Nodes, node)
 }
 
-type Node struct{
+type Node struct {
 	Actors []Actor
 }
 
-func NewNode(actors ...Actor) Node{
+func NewNode(actors ...Actor) Node {
 	var node Node
-	for _,actor := range actors{
+	for _, actor := range actors {
 		node.Actors = append(node.Actors, actor)
 	}
 	return node
 }
-
 
 type BasicActor struct {
 	Os             OsApi

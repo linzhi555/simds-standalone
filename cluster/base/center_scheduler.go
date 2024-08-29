@@ -17,7 +17,7 @@ type CenterScheduler struct {
 func NewCenterScheduler(hostname string) *CenterScheduler {
 	return &CenterScheduler{
 		BasicActor: BasicActor{Host: hostname},
-		Workers:   make(map[string]*NodeInfo),
+		Workers:    make(map[string]*NodeInfo),
 	}
 }
 

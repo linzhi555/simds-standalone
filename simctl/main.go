@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"path"
 	"time"
@@ -15,28 +16,29 @@ import (
 	"simds-standalone/simctl/k8s"
 )
 
-func PushImage() {
-	cmd := exec.Command("go", "build", "-o", "./target/simlet", "./simlet")
-	if output, err := cmd.CombinedOutput(); err != nil {
-		log.Println("simlet Build Failed")
-		log.Fatal(string(output))
-	}
-	log.Println("simlet Build Succssed")
-
-	cmd = exec.Command("docker", "build", "--build-arg", fmt.Sprintf("Config=%s", config.Val.ConfigPath), "-t", config.Val.PushImageRepo, ".")
-	output, err := cmd.CombinedOutput()
+func _run(cmd *exec.Cmd) {
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
 	if err != nil {
-		log.Println("Image Build Failed")
-		log.Fatal(string(output))
+		log.Fatalln(cmd.Args, "Failed")
+	} else {
+		log.Println(cmd.Args, "Succssed")
 	}
-	log.Println("Image Build Succssed")
+}
 
-	cmd = exec.Command("docker", "push", config.Val.PushImageRepo)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		log.Println("Image Push Failed")
-		log.Fatal(string(output))
-	}
-	log.Println("Image Push Succssed")
+func PushImage() {
+	_run(
+		exec.Command("go", "build", "-o", "./target/simlet", "./simlet"),
+	)
+
+	_run(
+		exec.Command("docker", "build", "--build-arg", fmt.Sprintf("Config=%s", config.Val.ConfigPath), "-t", config.Val.PushImageRepo, "."),
+	)
+
+	_run(
+		exec.Command("docker", "push", config.Val.PushImageRepo),
+	)
 }
 
 func Clean(cli *k8s.K8sClient) {
@@ -83,9 +85,10 @@ func Deploy(cli *k8s.K8sClient) {
 }
 
 const threadNum = 1
+
 func CollectResult(cli *k8s.K8sClient) {
-	mergeCsvOfMultiplePods(cli, cli.GetPodsWithPrefix("simds-taskgen"), "tasks_event.log", path.Join(config.Val.OutputDir, "tasks_event.log"))
-	mergeCsvOfMultiplePods(cli, cli.GetPodsWithPrefix("simds"), "network_event.log", path.Join(config.Val.OutputDir, "network_event.log"))
+	mergeCsvOfMultiplePods(cli, cli.GetPodsWithPrefix("simds-taskgen"), config.Val.TaskEventsLogName, path.Join(config.Val.OutputDir, config.Val.TaskEventsLogName))
+	mergeCsvOfMultiplePods(cli, cli.GetPodsWithPrefix("simds"), config.Val.NetEventsLogName, path.Join(config.Val.OutputDir, config.Val.NetEventsLogName))
 }
 
 func mergeCsvOfMultiplePods(cli *k8s.K8sClient, pods []string, logfile string, outfile string) {

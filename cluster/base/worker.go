@@ -17,9 +17,9 @@ type Worker struct {
 func NewWorker(host string, nodeinfo NodeInfo, manager string) *Worker {
 	return &Worker{
 		BasicActor: BasicActor{Host: host},
-		Manager:   manager,
-		Node:      nodeinfo,
-		TaskMap:   map[string]*TaskInfo{},
+		Manager:    manager,
+		Node:       nodeinfo,
+		TaskMap:    map[string]*TaskInfo{},
 	}
 }
 

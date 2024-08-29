@@ -26,8 +26,8 @@ func BuildShareStateCluster() base.Cluster {
 	for i := 0; i < int(config.Val.NodeNum); i++ {
 		workerName := fmt.Sprintf("simds-worker%d", i)
 		newworker := base.NewWorker(
-			workerName, 
-			base.NodeInfo{Addr: workerName, Cpu: config.Val.NodeCpu, Memory: config.Val.NodeMemory, CpuAllocted: 0, MemoryAllocted: 0}, 
+			workerName,
+			base.NodeInfo{Addr: workerName, Cpu: config.Val.NodeCpu, Memory: config.Val.NodeMemory, CpuAllocted: 0, MemoryAllocted: 0},
 			storage.GetHostName(),
 		)
 		storage.Workers[workerName] = newworker.Node.Clone()

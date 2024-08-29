@@ -18,8 +18,6 @@ import (
 	"simds-standalone/simlet/svc"
 )
 
-const NETWORK_EVENT_LOG_NAME = "network_event.log"
-
 type simletCli struct {
 	addr     string
 	cliAlive bool
@@ -168,7 +166,7 @@ func (s *SimletServer) SendMessage(ctx context.Context, msg *svc.Message) (*svc.
 	if len(bodystring) > 100 {
 		bodystring = bodystring[0:97] + "..."
 	}
-	_logInfo(NETWORK_EVENT_LOG_NAME, msg.Content, msg.From, msg.To, bodystring)
+	_logInfo(config.Val.NetEventsLogName, msg.Content, msg.From, msg.To, bodystring)
 
 	log.Println(msg.Content, msg.From, msg.To, body)
 

@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-const TASKS_EVENT_LOG_NAME = "tasks_event.log"
-
 type TaskGen struct {
 	BasicActor
 	Status    string
@@ -152,7 +150,7 @@ func (taskgen *TaskGen) Update(msg Message) {
 	switch msg.Content {
 	case "SignalBoot":
 		formal := testTaskStream()
-		preheat := preheatTaskStream()  // before formal test, there is a preheat stream to warm up the system.
+		preheat := preheatTaskStream() // before formal test, there is a preheat stream to warm up the system.
 		all := ConcateStream(preheat, formal, 5*time.Second)
 
 		taskgen.InitTaskSrc(all)
@@ -163,13 +161,13 @@ func (taskgen *TaskGen) Update(msg Message) {
 		newtask := msg.Body.(TaskInfo)
 		if !strings.HasSuffix(newtask.Id, "preheat") {
 			taskgen.Status = "formalTest"
-			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "start", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+			taskgen.Os.LogInfo(config.Val.TaskEventsLogName, newtask.Id, "start", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
 		}
 
 	case "TaskFinish":
 		newtask := msg.Body.(TaskInfo)
 		if !strings.HasSuffix(newtask.Id, "preheat") {
-			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "finish", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+			taskgen.Os.LogInfo(config.Val.TaskEventsLogName, newtask.Id, "finish", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
 		}
 	case "TaskCommitFail":
 		task := msg.Body.(TaskInfo)
@@ -212,7 +210,7 @@ func (taskgen *TaskGen) _sendingTask() {
 		}
 
 		if !strings.HasSuffix(newtask.Id, "preheat") {
-			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+			taskgen.Os.LogInfo(config.Val.TaskEventsLogName, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
 		}
 
 		taskgen.CurTaskId++
@@ -243,7 +241,7 @@ func (taskgen *TaskGen) SimulateTasksUpdate() {
 		}
 
 		if !strings.HasSuffix(newtask.Id, "preheat") {
-			taskgen.Os.LogInfo(TASKS_EVENT_LOG_NAME, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
+			taskgen.Os.LogInfo(config.Val.TaskEventsLogName, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
 		}
 		taskgen.CurTaskId++
 	}

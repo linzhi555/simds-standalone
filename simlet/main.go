@@ -47,7 +47,7 @@ func waitUitlClusterFullyStart(cluster *base.Cluster) *svc.RouterTable {
 	for {
 		err := cli.WaitUtilAllRunning([]string{lastNodesName})
 		if err != nil {
-			log.Println("waitting for ",lastNodesName," run:", err)
+			log.Println("waitting for ", lastNodesName, " run:", err)
 			time.Sleep(time.Second)
 		} else {
 			break
@@ -71,8 +71,8 @@ func main() {
 	log.Println("simlet started as", config.Val.NodeName)
 
 	// Init log file
-	common.AppendLineCsvFile(NETWORK_EVENT_LOG_NAME, []string{"time", "type", "from", "to", "body"})
-	common.AppendLineCsvFile(base.TASKS_EVENT_LOG_NAME, []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
+	common.AppendLineCsvFile(config.Val.NetEventsLogName, []string{"time", "type", "from", "to", "body"})
+	common.AppendLineCsvFile(config.Val.TaskEventsLogName, []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
 
 	// base.InitLogs()
 	config.LogConfig(path.Join(config.Val.OutputDir, "config.log"))
@@ -105,6 +105,9 @@ func main() {
 	go simletServer.RunOutputThread()
 
 	startSimletActor(initActor, simletServer)
+
 	for {
+		time.Sleep(time.Hour)
 	}
+
 }

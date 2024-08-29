@@ -22,13 +22,17 @@ func (node *DcssNode) Debug() {
 
 }
 
-func  NewDcssNode(nodeName string)  *DcssNode{
+func NewDcssNode(nodeName string) *DcssNode {
 	newNode := DcssNode{
 		BasicActor: base.BasicActor{
 			Host: nodeName,
 		},
 		Neighbors: make(map[string]*base.NodeInfo),
-		LocalNode: &base.NodeInfo{nodeName, config.Val.NodeCpu, config.Val.NodeMemory, 0, 0},
+		LocalNode: &base.NodeInfo{
+			Addr:   nodeName,
+			Cpu:    config.Val.NodeCpu,
+			Memory: config.Val.NodeMemory,
+		},
 	}
 	return &newNode
 
