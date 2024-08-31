@@ -2,11 +2,8 @@ module simds-standalone
 
 go 1.21
 
-toolchain go1.21.3
-
 require (
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
-	github.com/orcaman/concurrent-map/v2 v2.0.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.16.0
 	github.com/yuin/gopher-lua v1.1.1

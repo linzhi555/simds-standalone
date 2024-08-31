@@ -7,10 +7,10 @@ import (
 
 	"simds-standalone/cluster"
 	"simds-standalone/cluster/base"
-	"simds-standalone/common"
 	"simds-standalone/config"
 	"simds-standalone/simctl/k8s"
 	"simds-standalone/simlet/svc"
+	"simds-standalone/tracing/rules"
 )
 
 func startSimletActor(actor base.Actor, s *SimletServer) {
@@ -27,8 +27,10 @@ func startSimletActor(actor base.Actor, s *SimletServer) {
 
 	go func() {
 		for {
-			m := <-os.input
-			actor.Update(m)
+			msg := <-os.input
+			rules.CheckRulesThenExec(rules.MsgDealRules, time.Now(), &msg)
+			actor.Update(msg)
+			rules.CheckRulesThenExec(rules.MsgFinishRules, time.Now(), &msg)
 		}
 	}()
 }
@@ -70,12 +72,9 @@ func main() {
 
 	log.Println("simlet started as", config.Val.NodeName)
 
-	// Init log file
-	common.AppendLineCsvFile(config.Val.NetEventsLogName, []string{"time", "type", "from", "to", "body"})
-	common.AppendLineCsvFile(config.Val.TaskEventsLogName, []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
-
-	// base.InitLogs()
+	// write some log file first
 	config.LogConfig(path.Join(config.Val.OutputDir, "config.log"))
+	rules.InitTracing()
 
 	// Initialize self as a specified node of cluster
 	clusterBuilder, ok := cluster.ClusterMarket[config.Val.Cluster]

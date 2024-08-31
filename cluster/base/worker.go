@@ -1,7 +1,6 @@
 package base
 
 import (
-	"fmt"
 	"os/exec"
 	"simds-standalone/config"
 	"time"
@@ -80,8 +79,6 @@ func (worker *Worker) Update(msg Message) {
 			informReceiverTaskStatus(worker, &t, "TaskFinish")
 		}
 		delete(worker.TaskMap, id)
-		nodeinfo := _calculateNodeInfo(worker)
-		worker.Os.LogInfo("stdout", worker.GetHostName(), "TaskFinish", fmt.Sprint(nodeinfo))
 		worker.Os.Send(Message{
 			From:    worker.Host,
 			To:      t.User,

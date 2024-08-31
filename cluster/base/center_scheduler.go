@@ -60,7 +60,6 @@ func (s *CenterScheduler) Update(msg Message) {
 			if err != nil {
 				panic(err)
 			}
-			s.Os.LogInfo("stdout", s.GetHostName(), "TaskScheduled", fmt.Sprint(task))
 		} else {
 			newMessage := Message{
 				From:    s.GetHostName(),
@@ -72,7 +71,6 @@ func (s *CenterScheduler) Update(msg Message) {
 			if err != nil {
 				panic(err)
 			}
-			s.Os.LogInfo("stdout", s.GetHostName(), "TaskScheduledFail", fmt.Sprint(task))
 		}
 	case "TaskFinish":
 		taskInfo := msg.Body.(TaskInfo)
@@ -83,7 +81,6 @@ func (s *CenterScheduler) Update(msg Message) {
 		for _, ni := range nodeinfoList {
 			s.Workers[ni.Addr] = ni.Clone()
 		}
-		s.Os.LogInfo("stdout", s.GetHostName(), "NodeInfosUpdate")
 	}
 
 }

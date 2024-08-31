@@ -1,10 +1,11 @@
 .PHONY:centerTest dcssTest analyse fmt testCompose
 
+Cluster=Center
 Config=./config.yaml
 timeNow:=$(shell date '+%m_%d_%H_%M_%S')
 TargetFolder:=./target/$(timeNow)
-
-Cluster=Center
+RootPath=$(CURDIR)
+ 
 test: preDeal
 	@mkdir -p $(TargetFolder)
 	go run ./standalone -c $(Config) --OutputDir $(TargetFolder) --Cluster $(Cluster) > $(TargetFolder)/stdout.log
@@ -24,9 +25,8 @@ preDeal:
 	@mkdir -p $(TargetFolder)
 
 analyse:
-	go run ./analyse  --OutputDir $(TargetFolder) -c $(Config)
-	cp ./test/draw.py $(TargetFolder)
-	cd $(TargetFolder) && python3 draw.py 
+	go run ./tracing/main  --OutputDir $(TargetFolder) -c $(Config)
+	cd $(TargetFolder) && python3 $(RootPath)/test/draw.py
 
 fmt:
 	gofmt -l -w .

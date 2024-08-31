@@ -161,14 +161,10 @@ func (taskgen *TaskGen) Update(msg Message) {
 		newtask := msg.Body.(TaskInfo)
 		if !strings.HasSuffix(newtask.Id, "preheat") {
 			taskgen.Status = "formalTest"
-			taskgen.Os.LogInfo(config.Val.TaskEventsLogName, newtask.Id, "start", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
 		}
 
 	case "TaskFinish":
-		newtask := msg.Body.(TaskInfo)
-		if !strings.HasSuffix(newtask.Id, "preheat") {
-			taskgen.Os.LogInfo(config.Val.TaskEventsLogName, newtask.Id, "finish", msg.From, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
-		}
+
 	case "TaskCommitFail":
 		task := msg.Body.(TaskInfo)
 		newMessage := Message{
@@ -209,10 +205,6 @@ func (taskgen *TaskGen) _sendingTask() {
 			panic(err)
 		}
 
-		if !strings.HasSuffix(newtask.Id, "preheat") {
-			taskgen.Os.LogInfo(config.Val.TaskEventsLogName, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
-		}
-
 		taskgen.CurTaskId++
 	}
 }
@@ -240,9 +232,6 @@ func (taskgen *TaskGen) SimulateTasksUpdate() {
 			panic(err)
 		}
 
-		if !strings.HasSuffix(newtask.Id, "preheat") {
-			taskgen.Os.LogInfo(config.Val.TaskEventsLogName, newtask.Id, "submit", receiverAddr, fmt.Sprint(newtask.CpuRequest), fmt.Sprint(newtask.MemoryRequest))
-		}
 		taskgen.CurTaskId++
 	}
 }

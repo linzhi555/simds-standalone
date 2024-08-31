@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"path"
 	"time"
 
 	"google.golang.org/grpc"
@@ -14,8 +13,8 @@ import (
 
 	"simds-standalone/cluster/base"
 	"simds-standalone/common"
-	"simds-standalone/config"
 	"simds-standalone/simlet/svc"
+	"simds-standalone/tracing/rules"
 )
 
 type simletCli struct {
@@ -23,23 +22,6 @@ type simletCli struct {
 	cliAlive bool
 	cli      svc.SimletServerClient
 }
-
-//type initFlag struct {
-//	inited bool
-//	sync.RWMutex
-//}
-//
-//func (flag *initFlag) setTrue() {
-//	flag.Lock()
-//	defer flag.Unlock()
-//	flag.inited = true
-//}
-//
-//func (flag *initFlag) isTrue() bool {
-//	flag.RLock()
-//	defer flag.RUnlock()
-//	return flag.inited
-//}
 
 type SimletServer struct {
 	routerTable *common.ConcurrentMap[string, simletCli]
@@ -155,20 +137,17 @@ func (s *SimletServer) SendMessage(ctx context.Context, msg *svc.Message) (*svc.
 		return &svc.Response{OK: false, ErrMsg: e}, errors.New(e)
 	}
 
-	ch <- base.Message{
+	newMsg := base.Message{
 		From:    msg.From,
 		To:      msg.To,
 		Content: msg.Content,
 		Body:    body,
 	}
 
-	bodystring := fmt.Sprint(msg.Body)
-	if len(bodystring) > 100 {
-		bodystring = bodystring[0:97] + "..."
-	}
-	_logInfo(config.Val.NetEventsLogName, msg.Content, msg.From, msg.To, bodystring)
+	ch <- newMsg
 
-	log.Println(msg.Content, msg.From, msg.To, body)
+	rules.CheckRulesThenExec(rules.RecvRules, time.Now(), &newMsg)
+	//_logMsg("recv", &newMsg)
 
 	return &svc.Response{OK: true, ErrMsg: "null"}, nil
 }
@@ -201,30 +180,33 @@ func (o *ActorOs) Run(f func()) {
 	go f()
 }
 
-func (o *ActorOs) Send(m base.Message) error {
-	o.output <- m
+func (o *ActorOs) Send(msg base.Message) error {
+	o.output <- msg
+	rules.CheckRulesThenExec(rules.SendRules, time.Now(), &msg)
+	//_logMsg("send", &msg)
+
 	return nil
 }
 
-func (o *ActorOs) LogInfo(out string, items ...string) {
-	_logInfo(out, items...)
-}
-
-func _logInfo(out string, items ...string) {
-	timestr := time.Now().Format(time.RFC3339Nano)
-	s := ""
-	if out == "stdout" {
-		s += fmt.Sprint(timestr)
-		for _, item := range items {
-			s += ","
-			s += fmt.Sprint(item)
-		}
-		fmt.Println(s)
-	} else {
-		line := append([]string{timestr}, items...)
-		err := common.AppendLineCsvFile(path.Join(config.Val.OutputDir, out), line)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
+//func _logMsg(eventType string, msg *base.Message) {
+//	timestr := time.Now().Format(time.RFC3339Nano)
+//	line := []string{timestr}
+//
+//	rawbodystr := fmt.Sprint(msg.Body)
+//	var afterbodystr string
+//	if len(rawbodystr) >= 100 {
+//		afterbodystr = rawbodystr[0:100]
+//	} else {
+//		afterbodystr = rawbodystr
+//	}
+//
+//	line = append(line, "send", msg.Content, msg.From, msg.To, afterbodystr)
+//
+//	err := common.AppendLineCsvFile(
+//		path.Join(config.Val.OutputDir, config.Val.NetEventsLogName),
+//		line,
+//	)
+//	if err != nil {
+//		panic(err)
+//	}
+//}

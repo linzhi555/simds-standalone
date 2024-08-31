@@ -68,7 +68,11 @@ type OsApi interface {
 	NetInterface
 	GetTime() time.Time
 	Run(f func())
-	LogInfo(out string, ins ...string)
+}
+
+// MessageBody Message的Body字段
+type MessageBody interface {
+	MessageBody()
 }
 
 func ToJson[T MessageBody](t T) string {
@@ -99,11 +103,6 @@ func FromJson(contentType string, s string) MessageBody {
 	} else {
 		panic("wrong type contentType")
 	}
-}
-
-// MessageBody Message的Body字段
-type MessageBody interface {
-	MessageBody()
 }
 
 type Signal string
@@ -150,6 +149,14 @@ func (NodeInfo) MessageBody() {}
 func (n *NodeInfo) Clone() *NodeInfo {
 	var NodeInfoCopy = *n
 	return &NodeInfoCopy
+}
+
+func (n *NodeInfo) CpuPercent() float32 {
+	return float32(n.CpuAllocted) / float32(n.Cpu)
+}
+
+func (n *NodeInfo) MemoryPercent() float32 {
+	return float32(n.MemoryAllocted) / float32(n.Memory)
 }
 
 // AddAllocated 更新节点信息-增加已分配

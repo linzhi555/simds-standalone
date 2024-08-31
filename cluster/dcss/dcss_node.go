@@ -67,7 +67,6 @@ func (node *DcssNode) dcssTaskDispenseHandle(newMessage base.Message) {
 	if node.LocalNode.CanAllocateTask(&task) {
 		node.LocalNode.AddAllocated(task.CpuRequest, task.MemoryRequest)
 		node._runTask(task)
-		node.Os.LogInfo("stdout", node.GetHostName(), "TaskRun", fmt.Sprint(task))
 		node.Os.Send(base.Message{
 			From:    node.Host,
 			To:      task.User,
@@ -77,18 +76,14 @@ func (node *DcssNode) dcssTaskDispenseHandle(newMessage base.Message) {
 	} else {
 		switch config.Val.DcssDividePolicy {
 		case "always":
-			node.Os.LogInfo("stdout", node.GetHostName(), "lack of resource, divide process start", fmt.Sprint(task))
 			node._dcssDivideTask(task)
 		case "random":
 			n := rand.Float32()
 			if n < 0.3 {
-				node.Os.LogInfo("stdout", node.GetHostName(), "schedule task later", fmt.Sprint(task))
 				node._delaySchedule(task)
 			} else if n < 0.6 {
-				node.Os.LogInfo("stdout", node.GetHostName(), "divide process start", fmt.Sprint(task))
 				node._dcssDivideTask(task)
 			} else {
-				node.Os.LogInfo("stdout", node.GetHostName(), "dispense task directly", fmt.Sprint(task))
 				node._dispenseTask(task)
 			}
 		default:
@@ -117,7 +112,6 @@ func (node *DcssNode) _delaySchedule(task base.TaskInfo) {
 }
 
 func (node *DcssNode) _dcssDivideTask(task base.TaskInfo) {
-	node.Os.LogInfo("stdout", node.GetHostName(), "TaskDivide", fmt.Sprint(task))
 	task.Status = "DivideStage1"
 	task.ScheduleFailCount = 0 // this is for count how many neibor reject this task
 	keys := make([]string, 0, len(node.Neighbors))
@@ -170,11 +164,9 @@ func (node *DcssNode) dcssTaskDivideHandle(newMessage base.Message) {
 		messageReply.Content = "TaskDivideConfirm"
 		task.Status = "needStart"
 		node.TaskMap[task.Id] = &task
-		node.Os.LogInfo("stdout", node.GetHostName(), "TaskDivideConfirm", fmt.Sprint(task))
 	} else {
 		fmt.Print(node.LocalNode)
 		messageReply.Content = "TaskDivideReject"
-		node.Os.LogInfo("stdout", node.GetHostName(), "TaskDivideReject", fmt.Sprint(task))
 	}
 	err := node.Os.Send(messageReply)
 	if err != nil {
@@ -197,7 +189,6 @@ func (node *DcssNode) dcssTaskDivideConfirmHandle(newMessage base.Message) {
 		if err != nil {
 			panic(err)
 		}
-		node.Os.LogInfo("stdout", node.GetHostName(), "TaskDivideAllocate", fmt.Sprint(t))
 	} else if t.Status == "DivideStage3" {
 		err := node.Os.Send(base.Message{
 			From:    newMessage.To,
@@ -208,7 +199,6 @@ func (node *DcssNode) dcssTaskDivideConfirmHandle(newMessage base.Message) {
 		if err != nil {
 			panic(err)
 		}
-		node.Os.LogInfo("stdout", node.GetHostName(), "TaskDivideCancel", fmt.Sprint(t))
 
 	}
 }
@@ -218,7 +208,6 @@ func (node *DcssNode) dcssTaskDivideAllocateHandle(newMessage base.Message) {
 		if t.Status == "needStart" {
 			node._runTask(*t)
 			delete(node.TaskMap, t.Id)
-			node.Os.LogInfo("stdout", node.GetHostName(), "TaskRun", fmt.Sprint(*t))
 
 			node.Os.Send(base.Message{
 				From:    node.Host,
@@ -262,7 +251,6 @@ func (node *DcssNode) dcssTaskDivideCancelHandle(newMessage base.Message) {
 	if t, ok := node.TaskMap[task.Id]; ok {
 		if t.Status == "needStart" {
 			node.LocalNode.SubAllocated(task.CpuRequest, task.MemoryRequest)
-			node.Os.LogInfo("stdout", node.GetHostName(), "TaskDivideCancel", fmt.Sprint(t))
 			delete(node.TaskMap, task.Id)
 		}
 	}
@@ -278,7 +266,6 @@ func (node *DcssNode) dcssTaskDivideRejectHandle(newMessage base.Message) {
 		var taskCopy base.TaskInfo = *(node.TaskMap[task.Id])
 		node._dispenseTask(taskCopy)
 		delete(node.TaskMap, taskCopy.Id)
-		node.Os.LogInfo("stdout", "TaskDivide finally fail, start a new TaskDispense", fmt.Sprint(newMessage.Body))
 	}
 }
 
@@ -294,7 +281,6 @@ func (node *DcssNode) dcssFinishHandle(newMessage base.Message) {
 		Body:    task,
 	})
 
-	node.Os.LogInfo("stdout", task.Id, "finish", node.GetHostName(), fmt.Sprint(task.CpuRequest), fmt.Sprint(task.MemoryRequest))
 	delete(node.RunningTask, task.Id)
 
 }

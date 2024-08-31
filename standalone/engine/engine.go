@@ -3,13 +3,13 @@ package engine
 import (
 	"fmt"
 	"log"
-	"path"
 
 	"time"
 
 	"simds-standalone/cluster/base"
 	"simds-standalone/common"
 	"simds-standalone/config"
+	"simds-standalone/tracing/rules"
 )
 
 // ZEROTIME 模拟开始的现实时间，以此作为模拟器的零点时间
@@ -32,27 +32,26 @@ func (p *Progress) IsFinished() bool {
 }
 
 type ActorHideStatus struct {
-	IsBusy        bool
-	Progress      Progress
-	MsgHandleType string
-	Difficulty    time.Duration
+	IsBusy     bool
+	Progress   Progress
+	LastMsg    *base.Message
+	Difficulty time.Duration
 }
 
-func (hide *ActorHideStatus) UpdateProgress(percent float32) {
-	hide.Progress.Add(percent)
-	if hide.Progress.IsFinished() {
-		hide.Progress = 0
-		hide.IsBusy = false
-		hide.MsgHandleType = ""
-		hide.Difficulty = 0
+func (actor *EngineActor) UpdateProgress(t time.Time, percent float32) {
+	actor.hide.Progress.Add(percent)
+	if actor.hide.Progress.IsFinished() {
+		rules.CheckRulesThenExec(rules.MsgFinishRules, t, actor.hide.LastMsg)
+		actor.hide.Progress = 0
+		actor.hide.IsBusy = false
 	}
 }
 
-func (hide *ActorHideStatus) ToBusy(MsgType string, difficulty time.Duration) {
+func (hide *ActorHideStatus) ToBusy(msg *base.Message, difficulty time.Duration) {
 	hide.IsBusy = true
 	hide.Progress = 0
 	hide.Difficulty = difficulty
-	hide.MsgHandleType = MsgType
+	hide.LastMsg = msg
 }
 
 type EngineActor struct {
@@ -90,12 +89,14 @@ func (vnode *VirtualNode) Update() {
 
 	for _, actor := range vnode.actors {
 		if actor.hide.IsBusy {
-			actor.hide.UpdateProgress(vnode.updatefunc(lastState, actor.hide))
+			actor.UpdateProgress(vnode.engine.GetWorldTime(), vnode.updatefunc(lastState, actor.hide))
 		} else if msg, err := vnode.engine.Network.Outs[actor.model.GetHostName()].Dequeue(); err == nil {
 			t := time.Now()
-			actor.model.Update(msg) // 事件循环处理。
-			costTime := time.Since(t)
-			actor.hide.ToBusy(msg.Content, costTime)
+			actor.model.Update(msg)   // update the data status of the actor
+			costTime := time.Since(t) // record the time cost, the value is treat as the task's "difficulty"
+			rules.CheckRulesThenExec(rules.MsgDealRules, vnode.engine.GetWorldTime(), &msg)
+
+			actor.hide.ToBusy(&msg, costTime)
 		}
 		actor.model.SimulateTasksUpdate() // 模拟任务进度更新。
 	}
@@ -113,32 +114,34 @@ func (o *EngineOs) GetTime() time.Time {
 }
 
 func (o *EngineOs) Run(f func()) {
-
 }
 
 func (o *EngineOs) Send(m base.Message) error {
 	o.engine.Network.Ins[o.addr].InQueue(m)
+
+	rules.CheckRulesThenExec(rules.SendRules, o.GetTime(), &m)
+
 	return nil
 }
 
-func (o *EngineOs) LogInfo(out string, items ...string) {
-	timestr := o.GetTime().Format(time.RFC3339Nano)
-	s := ""
-	if out == "stdout" {
-		s += fmt.Sprint(timestr)
-		for _, item := range items {
-			s += ","
-			s += fmt.Sprint(item)
-		}
-		fmt.Println(s)
-	} else {
-		line := append([]string{timestr}, items...)
-		err := common.AppendLineCsvFile(path.Join(config.Val.OutputDir, out), line)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
+//func (o *EngineOs) LogInfo(out string, items ...string) {
+//	timestr := o.GetTime().Format(time.RFC3339Nano)
+//	s := ""
+//	if out == "stdout" {
+//		s += fmt.Sprint(timestr)
+//		for _, item := range items {
+//			s += ","
+//			s += fmt.Sprint(item)
+//		}
+//		fmt.Println(s)
+//	} else {
+//		line := append([]string{timestr}, items...)
+//		err := common.AppendLineCsvFile(path.Join(config.Val.OutputDir, out), line)
+//		if err != nil {
+//			panic(err)
+//		}
+//	}
+//}
 
 // MockNetwork 模拟的网络组件
 type VirtualNetwork struct {
@@ -252,14 +255,8 @@ func (engine *Engine) updateNetwork() {
 				panic(fmt.Sprint(m) + ":net can not reach")
 			}
 			needDelete = true
-
-			bodystring := fmt.Sprint(m.Body)
-			if len(bodystring) > 100 {
-				bodystring = bodystring[0:97] + "..."
-			}
-			network.Os.LogInfo(config.Val.NetEventsLogName, m.Content, m.From, m.To, bodystring)
-
 			out.InQueue(m)
+			rules.CheckRulesThenExec(rules.RecvRules, engine.GetWorldTime(), &m)
 		} else {
 			network.Waittings[i].LeftTime -= (time.Second / time.Duration(config.Val.FPS))
 		}
@@ -286,8 +283,7 @@ func (engine *Engine) UpdateNtimes(n uint64) {
 }
 
 func InitEngine(cluster base.Cluster) *Engine {
-	common.AppendLineCsvFile(path.Join(config.Val.OutputDir, config.Val.NetEventsLogName), []string{"time", "type", "from", "to", "body"})
-	common.AppendLineCsvFile(path.Join(config.Val.OutputDir, config.Val.TaskEventsLogName), []string{"time", "taskid", "type", "nodeip", "cpu", "ram"})
+	rules.InitTracing()
 
 	var e Engine
 	for _, node := range cluster.Nodes {

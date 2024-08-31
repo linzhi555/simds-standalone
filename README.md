@@ -7,17 +7,18 @@ simds-standalone(simulator of distribute cluster - standalone edition)
 ## 依赖
 
 - Go >= 1.21 
-- docker  (only 实际测试)
-- k8s cluster config file (only 实际测试)
+- ``` go mod download ```  安装依赖
 - GNU/make
 - python3
-- ``` go get ```  安装依赖
 
+- docker  (only for k8s测试)
+- k8s cluster config file (only for k8s实际测试)
 
 ##   运行离散时间驱动的单机模拟器 
-- 根据需要修改config.yaml 内容
 
 - ``` make test Cluster=XXX ``` XXX = Center | ShareState | Dcss
+
+- 根据需要修改config.yaml 内容
 - 分析结果在 ./target/{实验完成时刻}/ 
 
 ## 运行K8S实际模拟器

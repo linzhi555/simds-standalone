@@ -134,7 +134,6 @@ func (s *StateStorage) SimulateTasksUpdate() {
 			Content: "NeedUpdateNodeInfo",
 		}
 		err := s.Os.Send(newMessage)
-		s.Os.LogInfo("stdout", s.GetHostName(), newMessage.Content)
 		if err != nil {
 			panic(err)
 		}

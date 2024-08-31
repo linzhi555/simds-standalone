@@ -45,7 +45,11 @@ func main() {
 		start := time.Now()
 		simulator.Run()
 		costTime := time.Since(start)
-		simulator.Network.Os.LogInfo("costTime.log", fmt.Sprint(costTime))
+
+		common.AppendLineCsvFile(
+			path.Join(config.Val.OutputDir, "costTime.log"),
+			[]string{fmt.Sprint(costTime)},
+		)
 	}
 
 }
