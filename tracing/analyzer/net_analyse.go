@@ -20,7 +20,7 @@ func AnalyseNet(logfile string, outdir string) {
 	AnalyzeStageDuration(events, "send", "recv").Output(outdir, "netLantency")
 }
 
-var NET_EVENT_LOG_HEAD = []string{"Id", "time", "direction", "type", "from", "to"}
+var NET_EVENT_LOG_HEAD = []string{"time", "Id", "direction", "type", "from", "to"}
 
 type NetEvent struct {
 	Time   time.Time
@@ -79,6 +79,7 @@ func parseNetEventCSV(csvPath string) NetEventLine {
 			}
 			res = append(res, &NetEvent{
 				Time:   t,
+				Id:     row[_Id],
 				Direct: row[_NDirect],
 				Type:   row[_NType],
 				From:   row[_NFrom],
