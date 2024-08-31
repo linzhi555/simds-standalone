@@ -13,13 +13,17 @@ import (
 	"simds-standalone/config"
 )
 
-func AnalyseTasks(taskLogFile string, outputDir string) {
-	taskevents := ReadTaskEventCsv(taskLogFile)
-	taskevents.Output(outputDir, "all_events.log")
-	taskevents.OutputTaskSubmitRate(outputDir)
-	taskevents.AnalyseTaskLifeTime(outputDir)
-	latencies := taskevents.AnalyseSchedulerLatency(outputDir) //TODO: need fix , it's ugly
-	InitCluster(taskevents, latencies).ReplayEvents().Output(outputDir)
+func AnalyseTasks(taskLogFile string, outdir string) {
+	events := ReadTaskEventCsv(taskLogFile)
+	events.Output(outdir, "all_events.log")
+	events.OutputTaskSubmitRate(outdir)
+
+	AnalyzeEventRate(events, SUBMIT, 100).Output(outdir, "taskSubmit")
+	AnalyzeStageDuration(events, START, FINISH).Output(outdir, "lifeTime")
+	latencies := AnalyzeStageDuration(events, SUBMIT, START)
+	latencies.Output(outdir, "latency")
+
+	InitCluster(events, latencies).ReplayEvents().Output(outdir)
 }
 
 var (
@@ -52,11 +56,17 @@ const (
 
 type TaskEventLine []*TaskEvent
 
+// for sort
 func (l TaskEventLine) Len() int      { return len(l) }
 func (l TaskEventLine) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
 func (l TaskEventLine) Less(i, j int) bool {
 	return l[i].Time.Before(l[j].Time)
 }
+
+// for EventLines interface
+func (l TaskEventLine) GetID(i int) string            { return l[i].TaskId }
+func (l TaskEventLine) GetType(i int) string          { return l[i].Type }
+func (l TaskEventLine) GetHappenTime(i int) time.Time { return l[i].Time }
 
 // read the TaskEvent csv file
 func ReadTaskEventCsv(csvfilePath string) TaskEventLine {
@@ -103,115 +113,6 @@ func (l TaskEventLine) OutputTaskSubmitRate(outputDir string) {
 	}
 }
 
-func (l TaskEventLine) analyseStageDuration(stage1 string, stage2 string) TaskStageCostList {
-	eventStage1 := make(map[string]time.Time)
-	eventStage2 := make(map[string]time.Time)
-
-	for _, event := range l {
-		switch event.Type {
-		case stage1:
-			eventStage1[event.TaskId] = event.Time
-		case stage2:
-			eventStage2[event.TaskId] = event.Time
-		default:
-		}
-	}
-
-	var res TaskStageCostList
-	for taskid := range eventStage1 {
-		var temp struct {
-			Taskid string
-			Cost   time.Duration
-		}
-		temp.Taskid = taskid
-		if _, ok := eventStage2[taskid]; ok {
-			temp.Cost = eventStage2[taskid].Sub(eventStage1[taskid])
-		} else {
-			temp.Cost = FAIL
-		}
-		res = append(res, temp)
-
-	}
-	sort.Sort(res)
-	return res
-}
-
-func (l TaskEventLine) AnalyseSchedulerLatency(outPutDir string) TaskStageCostList {
-	costList := l.analyseStageDuration(SUBMIT, START)
-	outPutLogPath := path.Join(outPutDir, "latencyCurve.log")
-	outPutMetricPath := path.Join(outPutDir, "latency_metric.log")
-
-	err := common.AppendLineCsvFile(outPutLogPath, []string{"taskid", "latency"})
-	if err != nil {
-		panic(err)
-	}
-
-	for _, line := range costList {
-		err := common.AppendLineCsvFile(outPutLogPath, []string{fmt.Sprint(line.Taskid), fmt.Sprint(line.Cost)})
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	var sum time.Duration = 0
-	for _, line := range costList {
-		sum += line.Cost
-	}
-	average := time.Duration(int64(sum) / int64(len(costList)))
-	high_90_per := costList[(len(costList)*9)/10].Cost
-	high_99_per := costList[(len(costList)*99)/100].Cost
-	err = common.AppendLineCsvFile(outPutMetricPath, []string{"average", "90%high", "99%high"})
-	if err != nil {
-		panic(err)
-	}
-
-	err = common.AppendLineCsvFile(outPutMetricPath, []string{fmt.Sprint(average), fmt.Sprint(high_90_per), fmt.Sprint(high_99_per)})
-	if err != nil {
-		panic(err)
-	}
-
-	if costList[0].Cost == FAIL {
-		log.Panic("all task fail to schedule")
-	}
-	return costList
-}
-
-func (l TaskEventLine) AnalyseTaskLifeTime(outPutDir string) {
-	costList := l.analyseStageDuration(START, FINISH)
-	outPutLogPath := path.Join(outPutDir, "lifeTimeCurve.log")
-	outPutMetricPath := path.Join(outPutDir, "lifeTime_metric.log")
-
-	err := common.AppendLineCsvFile(outPutLogPath, []string{"taskid", "lifetime"})
-	if err != nil {
-		panic(err)
-	}
-
-	for _, line := range costList {
-		err := common.AppendLineCsvFile(outPutLogPath, []string{fmt.Sprint(line.Taskid), fmt.Sprint(line.Cost)})
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	var sum time.Duration = 0
-	for _, line := range costList {
-		sum += line.Cost
-	}
-	average := time.Duration(int64(sum) / int64(len(costList)))
-	high_90_per := costList[(len(costList)*9)/10].Cost
-	high_99_per := costList[(len(costList)*99)/100].Cost
-
-	err = common.AppendLineCsvFile(outPutMetricPath, []string{"average", "90%high", "99%high"})
-	if err != nil {
-		panic(err)
-	}
-	err = common.AppendLineCsvFile(outPutMetricPath, []string{fmt.Sprint(average), fmt.Sprint(high_90_per), fmt.Sprint(high_99_per)})
-
-	if err != nil {
-		panic(err)
-	}
-}
-
 func strings2TaskEvent(line []string) *TaskEvent {
 	var t TaskEvent
 	time, err := time.Parse(time.RFC3339Nano, line[_TTime])
@@ -242,17 +143,6 @@ func (t *TaskEvent) Strings() (line []string) {
 	line[_TCpu] = fmt.Sprint(t.Cpu)
 	line[_TMemory] = fmt.Sprint(t.Memory)
 	return
-}
-
-type TaskStageCostList []struct {
-	Taskid string
-	Cost   time.Duration
-}
-
-func (l TaskStageCostList) Len() int      { return len(l) }
-func (l TaskStageCostList) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
-func (l TaskStageCostList) Less(i, j int) bool {
-	return l[i].Cost.Nanoseconds() < l[j].Cost.Nanoseconds()
 }
 
 type ClusterMetric struct {
@@ -307,13 +197,13 @@ func (l ClusterStatusLine) Output(outputDir string) {
 
 type Cluster struct {
 	AllEvents       TaskEventLine
-	TaskLatencyList TaskStageCostList
+	TaskLatencyList StageCostList
 	Nodes           map[string]*base.NodeInfo
 }
 
 // create a new cluster according the taskevent logs.
 // if the ip appears in the logs then create this node.
-func InitCluster(events TaskEventLine, latencies TaskStageCostList) *Cluster {
+func InitCluster(events TaskEventLine, latencies StageCostList) *Cluster {
 	var cluster Cluster
 	cluster.AllEvents = events
 	cluster.TaskLatencyList = latencies
@@ -345,7 +235,7 @@ func (c *Cluster) ReplayEvents() (statusLine ClusterStatusLine) {
 
 	taskLatencyMap := map[string]time.Duration{}
 	for _, record := range c.TaskLatencyList {
-		taskLatencyMap[record.Taskid] = record.Cost
+		taskLatencyMap[record.Id] = record.Cost
 	}
 
 	for _, e := range c.AllEvents {

@@ -134,6 +134,7 @@ func _netEventRecord(t time.Time, msg *base.Message, eventype string) {
 		path.Join(config.Val.OutputDir, config.Val.NetEventsLogName),
 		[]string{
 			t.Format(time.RFC3339Nano),
+			msg.Id,
 			eventype,
 			msg.Content,
 			msg.From,

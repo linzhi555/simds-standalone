@@ -117,6 +117,7 @@ func (o *EngineOs) Run(f func()) {
 }
 
 func (o *EngineOs) Send(m base.Message) error {
+	m.Id = fmt.Sprint(o.GetTime().UnixMicro()) + "_" + m.From + "_" + m.To
 	o.engine.Network.Ins[o.addr].InQueue(m)
 
 	rules.CheckRulesThenExec(rules.SendRules, o.GetTime(), &m)

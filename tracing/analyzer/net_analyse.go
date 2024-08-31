@@ -2,26 +2,29 @@ package analyzer
 
 import (
 	"encoding/csv"
-	"fmt"
 	"io"
 	"log"
 	"os"
-	"path"
-	"simds-standalone/common"
 	"sort"
 	"time"
 )
 
-var NET_EVENT_LOG_HEAD = []string{"time", "direction", "type", "from", "to"}
+func AnalyseNet(logfile string, outdir string) {
+	events := parseNetEventCSV(logfile)
+	eventsByHost := separateByReceiver(events)
+	index := mostBusyHost(eventsByHost)
 
-// ooutput
-const (
-	AllCurveLog      = "all_net_curve.log"
-	MostBusyCurveLog = "most_busy_curve.log"
-)
+	AnalyzeEventRate(events, "recv", 100).Output(outdir, "allNet")
+	AnalyzeEventRate(eventsByHost[index], "recv", 100).Output(outdir, "busiestHostNet")
+
+	AnalyzeStageDuration(events, "send", "recv").Output(outdir, "netLantency")
+}
+
+var NET_EVENT_LOG_HEAD = []string{"Id", "time", "direction", "type", "from", "to"}
 
 type NetEvent struct {
-	Time   time.Duration
+	Time   time.Time
+	Id     string
 	Direct string
 	Type   string
 	From   string
@@ -30,6 +33,7 @@ type NetEvent struct {
 
 const (
 	_NTime = iota
+	_Id
 	_NDirect
 	_NType
 	_NFrom
@@ -38,39 +42,19 @@ const (
 
 type NetEventLine []*NetEvent
 
+// for sort
 func (l NetEventLine) Len() int      { return len(l) }
 func (l NetEventLine) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
 func (l NetEventLine) Less(i, j int) bool {
-	return l[i].Time < l[j].Time
+	return l[i].Time.Before(l[j].Time)
 }
 
-type NetSpeedDot struct {
-	TimeMs int
-	Amount int
-}
+// for  TaskLines Interface
+func (l NetEventLine) GetID(i int) string            { return l[i].Id }
+func (l NetEventLine) GetType(i int) string          { return l[i].Direct }
+func (l NetEventLine) GetHappenTime(i int) time.Time { return l[i].Time }
 
-func OutputNetSpeedCurve(outputFile string, curve []NetSpeedDot) {
-	if common.IsFileExist(outputFile) {
-		err := os.Remove(outputFile)
-		if err != nil {
-			panic(err)
-		}
-	}
-	err := common.AppendLineCsvFile(outputFile, []string{"time_ms", "amount"})
-	if err != nil {
-		panic(err)
-	}
-
-	for _, event := range curve {
-		err = common.AppendLineCsvFile(outputFile, []string{fmt.Sprint(event.TimeMs), fmt.Sprint(event.Amount)})
-		if err != nil {
-			panic(err)
-		}
-	}
-
-}
-
-func parseNetEventCSV(csvPath string) []*NetEvent {
+func parseNetEventCSV(csvPath string) NetEventLine {
 	fs, err := os.Open(csvPath)
 	if err != nil {
 		log.Fatal("can not open ", csvPath)
@@ -78,7 +62,6 @@ func parseNetEventCSV(csvPath string) []*NetEvent {
 	defer fs.Close()
 	r := csv.NewReader(fs)
 	var res []*NetEvent
-	var startTime time.Time
 	for i := 0; ; i++ {
 		row, err := r.Read()
 		if err != nil && err != io.EOF {
@@ -94,11 +77,8 @@ func parseNetEventCSV(csvPath string) []*NetEvent {
 			if err != nil {
 				panic(err)
 			}
-			if i == 1 {
-				startTime = t
-			}
 			res = append(res, &NetEvent{
-				Time:   t.Sub(startTime),
+				Time:   t,
 				Direct: row[_NDirect],
 				Type:   row[_NType],
 				From:   row[_NFrom],
@@ -110,19 +90,14 @@ func parseNetEventCSV(csvPath string) []*NetEvent {
 
 	sort.Sort(NetEventLine(res))
 
-	bias := res[0].Time
-	for i := range res {
-		res[i].Time += -1 * bias
-	}
-
 	return res
 }
 
-func mostBusyHost(events [][]*NetEvent) int {
+func mostBusyHost(events []NetEventLine) int {
 	mostBusyIndex := 0
 	mostBusyValue := -1
 	for i, hostEvents := range events {
-		busyValue := highestPeek(hostEvents)
+		busyValue := AnalyzeEventRate(hostEvents, "recv", 100).Highest()
 		if busyValue > mostBusyValue {
 			mostBusyValue = busyValue
 			mostBusyIndex = i
@@ -131,70 +106,16 @@ func mostBusyHost(events [][]*NetEvent) int {
 	return mostBusyIndex
 }
 
-func separateByReceiver(allEvents []*NetEvent) [][]*NetEvent {
+func separateByReceiver(allEvents []*NetEvent) []NetEventLine {
 	table := map[string][]*NetEvent{}
 	for _, event := range allEvents {
 		table[event.To] = append(table[event.To], event)
 	}
 
-	res := [][]*NetEvent{}
+	res := []NetEventLine{}
 	for _, list := range table {
 		res = append(res, list)
 	}
 
 	return res
-}
-
-func netSpeedCurveAnalyse(events []*NetEvent) []NetSpeedDot {
-	lastTime := events[len(events)-1].Time
-	var result []NetSpeedDot = make([]NetSpeedDot, lastTime/(100*time.Millisecond)+1)
-	for i := range result {
-		result[i].TimeMs = i * 100
-		result[i].Amount = 0
-	}
-
-	for _, e := range events {
-		nth100Ms := int64(e.Time / (100 * time.Millisecond))
-		result[nth100Ms].Amount += 1
-	}
-	return result
-
-}
-
-// return the highes peek value of network in whole process
-func highestPeek(events []*NetEvent) int {
-	// records is the map record net message number of n th 10ms key: n th 10ms,value : message number
-	records := map[int64]int{}
-
-	for _, e := range events {
-		nthMs := int64(e.Time / (100 * time.Millisecond))
-		if _, ok := records[nthMs]; ok {
-			records[nthMs] += 1
-		} else {
-			records[nthMs] = 1
-		}
-	}
-
-	max := func(list map[int64]int) int {
-		maxValue := 0
-		for _, value := range list {
-			if value > maxValue {
-				maxValue = value
-			}
-		}
-		return maxValue
-	}
-
-	return max(records)
-}
-
-func AnalyseNet(csvPath string, outputDir string) {
-	allEvents := parseNetEventCSV(csvPath)
-	allEventsByHost := separateByReceiver(allEvents)
-	index := mostBusyHost(allEventsByHost)
-
-	allNetSpeedCurve := netSpeedCurveAnalyse(allEvents)
-	mostBusyNetSpeedCurve := netSpeedCurveAnalyse(allEventsByHost[index])
-	OutputNetSpeedCurve(path.Join(outputDir, AllCurveLog), allNetSpeedCurve)
-	OutputNetSpeedCurve(path.Join(outputDir, MostBusyCurveLog), mostBusyNetSpeedCurve)
 }

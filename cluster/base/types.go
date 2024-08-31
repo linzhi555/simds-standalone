@@ -252,6 +252,7 @@ func (vec *Vec[T]) Clean() {
 
 // Message 用于组件信息传递
 type Message struct {
+	Id       string
 	From     string
 	To       string
 	Content  string

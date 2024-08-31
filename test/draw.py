@@ -139,7 +139,7 @@ def draw_in_current_test_folder():
     ax3.set_xlabel("Time unit: s", fontsize=FONT_SIZE)
     ax3.legend(fontsize=LEGEND_SIZE)
 
-    res = net_commuication_rate_curves("./all_net_curve.log")
+    res = net_commuication_rate_curves("./allNetRate.log")
     ax4 = fig.add_subplot(313)
     ax4.plot(res[0],
              res[1],
@@ -285,7 +285,7 @@ def draw_muilt_net_busy(tests: list,outdir:str):
     plt.clf()
     for t in tests:
         staus = net_commuication_rate_curves(
-            os.path.join(t[0], "most_busy_curve.log"))
+            os.path.join(t[0], "busiestHostNetRate.log"))
         plt.plot(staus[0], staus[1], lw=1.0, label=t[1])
     plt.ylabel("Net Request Rate \n (number/s)", fontsize=FONT_SIZE)
     plt.yscale("log", base=10)

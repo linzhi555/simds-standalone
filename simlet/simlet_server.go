@@ -181,6 +181,7 @@ func (o *ActorOs) Run(f func()) {
 }
 
 func (o *ActorOs) Send(msg base.Message) error {
+	msg.Id = fmt.Sprint(time.Now().UnixMicro()) + "_" + msg.From + "_" + msg.To
 	o.output <- msg
 	rules.CheckRulesThenExec(rules.SendRules, time.Now(), &msg)
 	//_logMsg("send", &msg)
