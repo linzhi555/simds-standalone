@@ -130,6 +130,13 @@ func NetRecvEventRecord(t time.Time, msg *base.Message) {
 }
 
 func _netEventRecord(t time.Time, msg *base.Message, eventype string) {
+	switch v := msg.Body.(type) {
+	case base.TaskInfo:
+		if strings.HasSuffix(v.Id, "preheat") {
+			return
+		}
+	}
+
 	err := common.AppendLineCsvFile(
 		path.Join(config.Val.OutputDir, config.Val.NetEventsLogName),
 		[]string{

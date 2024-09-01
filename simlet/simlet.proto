@@ -20,6 +20,7 @@ message RouterTable{
 
               
 message Message{
+    string Id = 5;
     string From = 10;
     string To = 20;
     string Content = 30;

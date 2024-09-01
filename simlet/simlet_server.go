@@ -86,11 +86,12 @@ func (s *SimletServer) RunInputServer() {
 // make the message in the actor's shared output channel be send parallely.
 func (s *SimletServer) RunOutputThread() {
 	for {
-		message := <-s.actorOut
-		if ch, ok := s.actorIns.Load(message.To); ok {
-			ch <- message
+		msg := <-s.actorOut
+		if ch, ok := s.actorIns.Load(msg.To); ok {
+			ch <- msg
+			rules.CheckRulesThenExec(rules.RecvRules, time.Now(), &msg)
 		} else {
-			go s.doRouting(message) // different simlet' communication
+			go s.doRouting(msg) // different simlet' communication
 		}
 
 	}
@@ -121,7 +122,7 @@ func (s *SimletServer) doRouting(m base.Message) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	_, err := client.cli.SendMessage(ctx, &svc.Message{From: m.From, To: m.To, Content: m.Content, Body: base.ToJson(m.Body)})
+	_, err := client.cli.SendMessage(ctx, &svc.Message{Id: m.Id, From: m.From, To: m.To, Content: m.Content, Body: base.ToJson(m.Body)})
 	if err != nil {
 		log.Println("could not get result: ", err, m)
 	}
@@ -138,6 +139,7 @@ func (s *SimletServer) SendMessage(ctx context.Context, msg *svc.Message) (*svc.
 	}
 
 	newMsg := base.Message{
+		Id:      msg.Id,
 		From:    msg.From,
 		To:      msg.To,
 		Content: msg.Content,
