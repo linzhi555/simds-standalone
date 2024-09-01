@@ -1,3 +1,5 @@
+var lastResponse
+
 function getDataFromSever() {
     var userInput = $("#inputBox").val();
     const url = `http://localhost:8079/run?cmd=${userInput}`;
@@ -19,12 +21,14 @@ function dealResponse(data) {
     if (data.error != "null") {
         $("#outputText").text(data.error);
     } else {
-        let timeinfo = "模拟器迭代次数:" + data.updateCount + "     "+ "模拟器运行时长:" + data.upTime
+        let timeinfo = "模拟器迭代次数:" + data.updateCount + "     " + "模拟器运行时长:" + data.upTime
         $("#timeLabel").text(timeinfo);
     }
 }
 
 $(document).ready(function() {
+    $("#netTable").hide()
+
     $("#filterInput").on("keyup", function() {
         var value = $(this).val().toLowerCase();
         $("#dataTable tr").filter(function() {
@@ -41,8 +45,17 @@ $(document).ready(function() {
     });
     $("#submit").on("click", getDataFromSever);
 
+    $("#toggleDisplay").on("click", toggleDisplay);
+
     $(".inspectActor").click(function() {
         const name = $(this).closest("tr").find("td").eq(0).text();
         alert("data :" + name);
     });
 });
+
+
+function toggleDisplay() {
+    $("#netTable").toggle()
+    $("#nodeTable").toggle()
+}
+
