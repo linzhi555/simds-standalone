@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>simds Debugger</title>
+    <link href="./deps/bootstrap.min.css" rel="stylesheet" />
+  </head>
+
+  <body>
+    <div class="container mt-5">
+
+      <p class="font-weight-bold" id="timeLabel">集群未运行</p>
+
+      <div class="input-group">
+        <input
+          class="form-control"
+          type="text"
+          id="inputBox"
+          placeholder="please input command"
+        />
+
+        <div class="input-group-append">
+          <button id="submit" class="btn btn-primary">执行命令</button>
+        </div>
+      </div>
+      <p id="outputText"></p>
+
+
+
+      <p  class="font-weight-bold" id="tableType">集群当前节点状态:</p>
+      <table class="table table-striped" id="actorTable" placeholder="filter">
+        <thead>
+          <tr>
+            <th>ActorID</th>
+            <th>节点</th>
+            <th>节点资源状态</th>
+            <th>正在处理的消息</th>
+            <th>上一条处理的消息</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>scheduler0</td>
+            <td>node0</td>
+            <td>CPU: 20% Ram: 40%</td>
+            <td>TaskSubmit</td>
+            <td>TaskSubmit</td>
+            <th><button class="inspectActor">data</button></th>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script src="./deps/jquery-3.6.0.min.js"></script>
+    <script src="./index.js"></script>
+  </body>
+</html>

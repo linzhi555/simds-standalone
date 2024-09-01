@@ -169,8 +169,13 @@ type Engine struct {
 	Network     VirtualNetwork
 }
 
+// 集群已经运行的时间
+func (engine *Engine) UpTime() time.Duration {
+	return time.Duration(engine.UpdateCount) * engine.UpdateGap
+}
+
 func (engine *Engine) GetWorldTime() time.Time {
-	return ZEROTIME.Add(time.Duration(engine.UpdateCount) * engine.UpdateGap)
+	return ZEROTIME.Add(engine.UpTime())
 }
 
 // 并行地对所有节点更新一次

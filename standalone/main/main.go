@@ -40,7 +40,8 @@ func main() {
 	simulator := engine.InitEngine(cluster)
 
 	if config.Val.Debug {
-		simulator.RunInConsole()
+		//simulator.RunInConsole()
+		simulator.GuiDebugging()
 	} else {
 		start := time.Now()
 		simulator.Run()
