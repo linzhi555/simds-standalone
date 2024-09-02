@@ -118,31 +118,12 @@ func (o *EngineOs) Run(f func()) {
 
 func (o *EngineOs) Send(m base.Message) error {
 	m.Id = fmt.Sprint(o.GetTime().UnixMicro()) + "_" + m.From + "_" + m.To
-	o.engine.Network.Ins[o.addr].InQueue(m)
+	o.engine.Network.Ins[o.addr].InQueueBack(m)
 
 	rules.CheckRulesThenExec(rules.SendRules, o.GetTime(), &m)
 
 	return nil
 }
-
-//func (o *EngineOs) LogInfo(out string, items ...string) {
-//	timestr := o.GetTime().Format(time.RFC3339Nano)
-//	s := ""
-//	if out == "stdout" {
-//		s += fmt.Sprint(timestr)
-//		for _, item := range items {
-//			s += ","
-//			s += fmt.Sprint(item)
-//		}
-//		fmt.Println(s)
-//	} else {
-//		line := append([]string{timestr}, items...)
-//		err := common.AppendLineCsvFile(path.Join(config.Val.OutputDir, out), line)
-//		if err != nil {
-//			panic(err)
-//		}
-//	}
-//}
 
 // MockNetwork 模拟的网络组件
 type VirtualNetwork struct {
@@ -215,6 +196,8 @@ func (engine *Engine) updateNodes() {
 // 对集群引擎的虚拟网络进行更新
 func (engine *Engine) updateNetwork() {
 	network := &engine.Network
+
+	// 在上次更新中产生的消息要被运输到集中存储区域处理
 	for _, in := range network.Ins {
 		for !in.Empty() {
 			newM, err := in.Pop()
@@ -229,9 +212,11 @@ func (engine *Engine) updateNetwork() {
 				panic(err)
 			}
 
-			network.Waittings.InQueue(newM)
+			network.Waittings.InQueueBack(newM)
 		}
 	}
+
+	// 集中处理message vector比map[ActorId]Messge速度更快
 	for i := 0; i < len(network.Waittings); {
 		m := network.Waittings[i]
 		needDelete := false
@@ -241,7 +226,7 @@ func (engine *Engine) updateNetwork() {
 				panic(fmt.Sprint(m) + ":net can not reach")
 			}
 			needDelete = true
-			out.InQueue(m)
+			out.InQueueBack(m)
 			rules.CheckRulesThenExec(rules.RecvRules, engine.GetWorldTime(), &m)
 		} else {
 			network.Waittings[i].LeftTime -= (time.Second / time.Duration(config.Val.FPS))
@@ -252,7 +237,6 @@ func (engine *Engine) updateNetwork() {
 			i++
 		}
 	}
-
 }
 
 // 对集群更新一次状态，推进一个单位时间
@@ -310,11 +294,20 @@ func (engine *Engine) Run() {
 	frameNum := (testDuration + 15.0) * float64(config.Val.FPS)
 
 	step := uint64(config.Val.FPS)
+
 	for engine.UpdateCount < uint64(frameNum) {
-		log.Println("Simulation Progress", time.Duration(engine.UpdateCount*uint64(time.Second)/uint64(config.Val.FPS)).Milliseconds(), "ms", "/", config.Val.SimulateDuration, "ms")
+
 		start := time.Now()
 		engine.UpdateNtimes(step)
-		log.Println("render", step, "frames", "spend:", time.Since(start))
+
+		log.Printf(
+			"%.4f%% progress:( %d / %d) current speed:%v / %d frame  FPS:%.1f\n",
+			float32(engine.UpdateCount)/float32(frameNum)*100.0,
+			engine.UpdateCount,
+			int64(frameNum),
+			time.Since(start), step,
+			float64(step)/time.Since(start).Seconds(),
+		)
 	}
 }
 
@@ -325,6 +318,7 @@ type ActorDebugInfo struct {
 	Progress   string `json:"progress"`
 	LastMsg    string `json:"lastMsg"`
 	Difficulty string `json:"difficulty"`
+	Data       string `json:"data"`
 }
 
 func (engine *Engine) DebugNodes() []ActorDebugInfo {
@@ -335,7 +329,7 @@ func (engine *Engine) DebugNodes() []ActorDebugInfo {
 				Name:     actor.model.GetHostName(),
 				Node:     actor.model.GetHostName(),
 				IsBusy:   fmt.Sprint(actor.hide.IsBusy),
-				Progress: fmt.Sprint(actor.hide.Progress),
+				Progress: fmt.Sprint(actor.hide.Progress.toFloat()),
 
 				LastMsg: func() string {
 					if actor.hide.LastMsg == nil {
@@ -348,5 +342,46 @@ func (engine *Engine) DebugNodes() []ActorDebugInfo {
 			})
 		}
 	}
+	return res
+}
+
+type MessageDebugInfo struct {
+	From     string `json:"from"`
+	To       string `json:"to"`
+	Head     string `json:"head"`
+	Body     string `json:"body"`
+	LeftTime string `json:"leftTime"`
+}
+
+type NetDebugInfo struct {
+	Waitings []MessageDebugInfo `json:"waittings"`
+	Sended   []MessageDebugInfo `json:"sended"`
+}
+
+func (engine *Engine) DebugNet() NetDebugInfo {
+	var res NetDebugInfo
+
+	addMsg := func(target *[]MessageDebugInfo, msg *base.Message) {
+		*target = append(*target, MessageDebugInfo{
+			From:     msg.From,
+			To:       msg.To,
+			Head:     msg.Content,
+			Body:     "",
+			LeftTime: fmt.Sprint(msg.LeftTime),
+		})
+	}
+
+	for i := range engine.Network.Waittings {
+		addMsg(&res.Waitings, &engine.Network.Waittings[i])
+	}
+
+	for _, ins := range engine.Network.Ins {
+		for i := range *ins {
+			addMsg(&res.Sended, &(*ins)[i])
+		}
+	}
+
+	log.Println(len(res.Sended), len(res.Waitings))
+
 	return res
 }

@@ -204,7 +204,7 @@ func (vec *Vec[T]) Clone() *Vec[T] {
 }
 
 // InQueue 在Vector尾部入队
-func (vec *Vec[T]) InQueue(data T) {
+func (vec *Vec[T]) InQueueBack(data T) {
 	*vec = append(*vec, data)
 }
 
@@ -256,8 +256,8 @@ type Message struct {
 	From     string
 	To       string
 	Content  string
-	LeftTime time.Duration
 	Body     MessageBody
+	LeftTime time.Duration
 }
 
 // NetInterface 用于处理 Message

@@ -1,7 +1,6 @@
 package dcss
 
 import (
-	"fmt"
 	"math/rand"
 	"os/exec"
 	"simds-standalone/cluster/base"
@@ -165,7 +164,6 @@ func (node *DcssNode) dcssTaskDivideHandle(newMessage base.Message) {
 		task.Status = "needStart"
 		node.TaskMap[task.Id] = &task
 	} else {
-		fmt.Print(node.LocalNode)
 		messageReply.Content = "TaskDivideReject"
 	}
 	err := node.Os.Send(messageReply)

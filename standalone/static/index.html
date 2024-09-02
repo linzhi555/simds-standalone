@@ -11,7 +11,12 @@
 <body>
     <div class="container mt-5">
 
-        <p class="font-weight-bold" id="timeLabel">集群未运行</p>
+        <p class="font-weight-bold">
+            <span> 模拟器迭代次数:</span>
+            <span id="updateCount" class="text-success"></span>
+            <span>模拟器运行时长:</span>
+            <span id="upTime" class="text-success"></span>
+        </p>
 
         <div class="input-group">
             <input class="form-control" type="text" id="inputBox" placeholder="please input command" />
@@ -25,9 +30,9 @@
 
         <button id="toggleDisplay" class="btn btn-primary">切换节点状态/网络状态</button>
 
-        <div id="nodeTable">
-            <p class="font-weight-bold" id="tableType">节点状态</p>
-            <table class="table table-striped" id="actorTable" placeholder="filter">
+        <div id="nodesTable">
+            <p class="font-weight-bold">节点状态</p>
+            <table class="table table-striped" id="actorTable">
                 <thead>
                     <tr>
                         <th>ActorID</th>
@@ -45,18 +50,20 @@
         </div>
 
         <div id="netTable">
-            <p class="font-weight-bold" id="tableType">网络状态</p>
-            <table class="table table-striped" id="netTable" placeholder="filter">
+            <p class="font-weight-bold">网络状态</p>
+            <table class="table table-striped" id="netTable">
                 <thead>
                     <tr>
-                        <th>发送时间</th>
-                        <th>剩余时间</th>
+                        <th>状态</th>
                         <th>From</th>
                         <th>To</th>
-                        <th>消息内容类型</th>
-                        <th>Data</th>
+                        <th>Head</th>
+                        <th>Body</th>
+                        <th>剩余时间</th>
                     </tr>
                 </thead>
+                <tbody>
+                </tbody>
             </table>
         </div>
     </div>

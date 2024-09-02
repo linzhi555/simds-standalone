@@ -21,9 +21,10 @@ function dealResponse(data) {
     if (data.error != "null") {
         $("#outputText").text(data.error);
     } else {
-        let timeinfo = "模拟器迭代次数:" + data.updateCount + "     " + "模拟器运行时长:" + data.upTime
-        $("#timeLabel").text(timeinfo);
+        $("#updateCount").text(data.updateCount)
+        $("#upTime").text(data.upTime)
         updateNodesTable(data.nodesState)
+        updateNetTable(data.netState)
     }
 }
 
@@ -33,7 +34,7 @@ function updateNodesTable(data) {
     console.log(data.length)
     console.log(Array.isArray(data))
 
-    $("#nodeTable tbody").empty()
+    $("#nodesTable tbody").empty()
     data.forEach(actor => {
         let newrow = `
         <tr>
@@ -45,8 +46,32 @@ function updateNodesTable(data) {
             <td>  ${actor.lastMsg} </td>
         </tr>
         `
-        $("#nodeTable tbody").append(newrow)
+        $("#nodesTable tbody").append(newrow)
     })
+}
+
+function updateNetTable(data) {
+    console.log(data.waittings)
+
+    $("#netTable tbody").empty()
+
+    if (Array.isArray(data.waittings)) {
+        data.waittings.forEach(msg => {
+            let newrow = `
+        <tr>
+            <td>  waitting </td>
+            <td>  ${msg.from} </td>
+            <td>  ${msg.to} </td>
+            <td>  ${msg.head} </td>
+            <td>  ${msg.body} </td>
+            <td>  ${msg.leftTime} </td>
+        </tr>
+        `
+            console.log("!!!!!!q")
+            $("#netTable tbody").append(newrow)
+        })
+    }
+
 }
 
 $(document).ready(function() {
@@ -79,6 +104,6 @@ $(document).ready(function() {
 
 function toggleDisplay() {
     $("#netTable").toggle()
-    $("#nodeTable").toggle()
+    $("#nodesTable").toggle()
 }
 

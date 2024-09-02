@@ -37,6 +37,7 @@ type Response struct {
 	UpdateCount string           `json:"updateCount"`
 	UpTime      string           `json:"upTime"`
 	NodesState  []ActorDebugInfo `json:"nodesState"`
+	NetState    NetDebugInfo     `json:"netState"`
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -52,6 +53,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		res.UpdateCount = fmt.Sprint(engine.UpdateCount)
 		res.UpTime = fmt.Sprint(engine.UpTime().Milliseconds()) + "ms"
 		res.NodesState = engine.DebugNodes()
+		res.NetState = engine.DebugNet()
 	}
 
 	w.Header().Set("Content-Type", "application/json")
