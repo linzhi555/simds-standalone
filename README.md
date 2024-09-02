@@ -1,18 +1,16 @@
-# 分布式集群模拟器单机版
+# 分布式集群模拟器 Simds 
 
-simds-standalone(simulator of distribute cluster - standalone edition)
-可用于模拟分布式集群的任务调度，任务运行，任务信息通信等行为。同时支持与集中式集群
-对比。
+simds (simlulator of distributed system)
+采用单机模拟与实际部署结合的方式模拟分析分布式集群的运行情况。
 
 ## 依赖
-
 - Go >= 1.21 
 - ``` go mod download ```  安装依赖
 - GNU/make
 - python3
 
-- docker  (only for k8s测试)
-- k8s cluster config file (only for k8s实际测试)
+- docker  (only for k8s测试,用于打包simlet镜像)
+- k8s cluster config file (only for k8s实际测试，用于运行simlet集群)
 
 ##   运行离散时间驱动的单机模拟器 
 
@@ -20,6 +18,12 @@ simds-standalone(simulator of distribute cluster - standalone edition)
 
 - 根据需要修改config.yaml 内容
 - 分析结果在 ./target/{实验完成时刻}/ 
+
+- Debugger模式
+
+- ``` make debug Cluster=XXX ``` XXX = Center | ShareState | Dcss
+浏览器会自动打开调试控制台，如果没有请手动打开 ```127.0.0.1:8079```
+
 
 ## 运行K8S实际模拟器
 config.yaml 修改 k8s config path
@@ -39,7 +43,7 @@ kubectl create clusterrolebinding default-view --clusterrole=view --serviceaccou
 ## 运行组合型测试
 
 ```
-{$your_python_bin} ./test/test.py 
+${your_python_bin} ./test/test.py 
 ```
 如果缺少包，请用你的包管理工具(pip or conda)安装
 
@@ -47,4 +51,16 @@ kubectl create clusterrolebinding default-view --clusterrole=view --serviceaccou
 
 
 ## 模拟器原理介绍
+1. 抽象层
+本模拟器基于actor模型(./cluster中定义), 每个actor在消息处理的时候改变自身状态并在结束消息处理后向外发出消息（异步非阻塞）
+定义集群所有的actor的消息处理方式即完成集群的定义。
+
+2. 模拟器1: 单机运行
+离散时间的系统动态模拟器 stand-alone
+
+3. 模拟器2: 集群运行
+基于k8s 将actor转换成容器部署形成容器集群 simctl 负责模拟流程，管理simlet容器， simlet 负责实例化单个actor模型。
+
+
+
 
