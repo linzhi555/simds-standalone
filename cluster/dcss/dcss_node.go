@@ -43,6 +43,8 @@ func NewDcssNode(nodeName string) *DcssNode {
 func (node *DcssNode) Update(msg base.Message) {
 
 	switch msg.Content {
+	case "SignalBoot":
+		time.Sleep(time.Millisecond*1)
 	case "TaskDispense":
 		node.dcssTaskDispenseHandle(msg)
 	case "TaskDivide":

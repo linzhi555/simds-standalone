@@ -43,6 +43,7 @@ func (actor *EngineActor) UpdateProgress(t time.Time, percent float32) {
 	if actor.hide.Progress.IsFinished() {
 		rules.CheckRulesThenExec(rules.MsgFinishRules, t, actor.hide.LastMsg)
 		actor.hide.Progress = 0
+		actor.hide.Difficulty = 0
 		actor.hide.IsBusy = false
 	}
 }
@@ -316,7 +317,7 @@ type ActorDebugInfo struct {
 	Node       string `json:"node"`
 	IsBusy     string `json:"isBusy"`
 	Progress   string `json:"progress"`
-	LastMsg    string `json:"lastMsg"`
+	Msg        string `json:"msg"`
 	Difficulty string `json:"difficulty"`
 	Data       string `json:"data"`
 }
@@ -331,7 +332,7 @@ func (engine *Engine) DebugNodes() []ActorDebugInfo {
 				IsBusy:   fmt.Sprint(actor.hide.IsBusy),
 				Progress: fmt.Sprint(actor.hide.Progress.toFloat()),
 
-				LastMsg: func() string {
+				Msg: func() string {
 					if actor.hide.LastMsg == nil {
 						return "null"
 					}

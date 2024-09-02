@@ -51,7 +51,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		res.Error = "null"
 		res.UpdateCount = fmt.Sprint(engine.UpdateCount)
-		res.UpTime = fmt.Sprint(engine.UpTime().Milliseconds()) + "ms"
+		res.UpTime = fmt.Sprint(engine.UpTime())
 		res.NodesState = engine.DebugNodes()
 		res.NetState = engine.DebugNet()
 	}

@@ -25,9 +25,9 @@ function dealResponse(data) {
         $("#upTime").text(data.upTime)
         updateNodesTable(data.nodesState)
         updateNetTable(data.netState)
+        doFilter()
     }
 }
-
 
 function updateNodesTable(data) {
     console.log(data)
@@ -36,14 +36,24 @@ function updateNodesTable(data) {
 
     $("#nodesTable tbody").empty()
     data.forEach(actor => {
+        let lastmsg = "null"
+        let curmsg = "null"
+        if (actor.isBusy == "true") {
+            lastmsg = actor.msg
+        } else {
+            curmsg = actor.msg
+        }
+
+
         let newrow = `
         <tr>
             <td>  ${actor.name} </td>
             <td>  ${actor.node} </td>
             <td>  ${actor.isBusy} </td>
+            <td>  ${actor.difficulty} </td>
             <td>  ${actor.progress} </td>
-            <td>  ${actor.lastMsg} </td>
-            <td>  ${actor.lastMsg} </td>
+            <td>  ${lastmsg} </td>
+            <td>  ${curmsg} </td>
         </tr>
         `
         $("#nodesTable tbody").append(newrow)
@@ -52,9 +62,7 @@ function updateNodesTable(data) {
 
 function updateNetTable(data) {
     console.log(data.waittings)
-
     $("#netTable tbody").empty()
-
     if (Array.isArray(data.waittings)) {
         data.waittings.forEach(msg => {
             let newrow = `
@@ -77,15 +85,6 @@ function updateNetTable(data) {
 $(document).ready(function() {
     $("#netTable").hide()
 
-    $("#filterInput").on("keyup", function() {
-        var value = $(this).val().toLowerCase();
-        $("#dataTable tr").filter(function() {
-            $(this).toggle(
-                $(this).children("td").eq(1).text().toLowerCase().indexOf(value) > -1,
-            );
-        });
-    });
-
     $("#inputBox").on("keydown", function(event) {
         if (event.key === "Enter") {
             getDataFromSever();
@@ -95,15 +94,30 @@ $(document).ready(function() {
 
     $("#toggleDisplay").on("click", toggleDisplay);
 
-    $(".inspectActor").click(function() {
-        const name = $(this).closest("tr").find("td").eq(0).text();
-        alert("data :" + name);
-    });
+    $('#filter').on('keyup', doFilter);
+
 });
+
+function doFilter() {
+    const filterValue = $("#filter").val().toLowerCase();
+    let _dofilt = function(tablename) {
+        $(`#${tablename} tbody tr`).filter(function() {
+            let rowVisible = false;
+            $(this).find('td').each(function() {
+                if ($(this).text().toLowerCase().indexOf(filterValue) > -1) {
+                    rowVisible = true;
+                }
+            });
+            $(this).toggle(rowVisible);
+        });
+    }
+
+    _dofilt("nodesTable")
+    _dofilt("netTable")
+}
 
 
 function toggleDisplay() {
     $("#netTable").toggle()
     $("#nodesTable").toggle()
 }
-
