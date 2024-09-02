@@ -212,26 +212,6 @@ func (engine *Engine) updateNodes() {
 	}
 }
 
-// 对单个节点运行节点更新函数
-//func (engine *Engine) _updateNode(node *base.Node) {
-//	for _, actor := range node.Actors {
-//		addr := actor.GetHostName()
-//		nextUpdateTime := actor.GetNextUpdateTime()
-//
-//		if engine.GetWorldTime().Sub(nextUpdateTime) >= 0 {
-//			if msg, err := engine.Network.Outs[addr].Dequeue(); err == nil {
-//				t := time.Now()
-//				actor.Update(msg) // 事件循环处理。
-//				costTime := time.Since(t)
-//				actor.SetNextUpdateTime(engine.GetWorldTime().Add(costTime)) // 设置下一次更新的时间
-//				//engine.Nodes[j].SetNextUpdateTime(engine.GetWorldTime().Add(time.Millisecond)) // 设置下一次更新的时间
-//
-//			}
-//		}
-//		actor.SimulateTasksUpdate() // 模拟任务进度更新。
-//	}
-//}
-
 // 对集群引擎的虚拟网络进行更新
 func (engine *Engine) updateNetwork() {
 	network := &engine.Network
@@ -336,5 +316,37 @@ func (engine *Engine) Run() {
 		engine.UpdateNtimes(step)
 		log.Println("render", step, "frames", "spend:", time.Since(start))
 	}
+}
 
+type ActorDebugInfo struct {
+	Name       string `json:"name"`
+	Node       string `json:"node"`
+	IsBusy     string `json:"isBusy"`
+	Progress   string `json:"progress"`
+	LastMsg    string `json:"lastMsg"`
+	Difficulty string `json:"difficulty"`
+}
+
+func (engine *Engine) DebugNodes() []ActorDebugInfo {
+	var res []ActorDebugInfo
+	for _, node := range engine.Nodes {
+		for _, actor := range node.actors {
+			res = append(res, ActorDebugInfo{
+				Name:     actor.model.GetHostName(),
+				Node:     actor.model.GetHostName(),
+				IsBusy:   fmt.Sprint(actor.hide.IsBusy),
+				Progress: fmt.Sprint(actor.hide.Progress),
+
+				LastMsg: func() string {
+					if actor.hide.LastMsg == nil {
+						return "null"
+					}
+					return actor.hide.LastMsg.Content
+				}(),
+
+				Difficulty: fmt.Sprint(actor.hide.Difficulty),
+			})
+		}
+	}
+	return res
 }

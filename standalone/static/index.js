@@ -23,7 +23,30 @@ function dealResponse(data) {
     } else {
         let timeinfo = "模拟器迭代次数:" + data.updateCount + "     " + "模拟器运行时长:" + data.upTime
         $("#timeLabel").text(timeinfo);
+        updateNodesTable(data.nodesState)
     }
+}
+
+
+function updateNodesTable(data) {
+    console.log(data)
+    console.log(data.length)
+    console.log(Array.isArray(data))
+
+    $("#nodeTable tbody").empty()
+    data.forEach(actor => {
+        let newrow = `
+        <tr>
+            <td>  ${actor.name} </td>
+            <td>  ${actor.node} </td>
+            <td>  ${actor.isBusy} </td>
+            <td>  ${actor.progress} </td>
+            <td>  ${actor.lastMsg} </td>
+            <td>  ${actor.lastMsg} </td>
+        </tr>
+        `
+        $("#nodeTable tbody").append(newrow)
+    })
 }
 
 $(document).ready(function() {

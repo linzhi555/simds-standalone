@@ -31,21 +31,34 @@ func openBrowser(url string) {
 	}
 }
 
+type Response struct {
+	ReplyForCmd string           `json:"replyForCmd"`
+	Error       string           `json:"error"`
+	UpdateCount string           `json:"updateCount"`
+	UpTime      string           `json:"upTime"`
+	NodesState  []ActorDebugInfo `json:"nodesState"`
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
 	cmd := r.URL.Query().Get("cmd")
 	log.Println("start exectute", cmd, "command by lua interrpter")
 
-	response := map[string]string{"replyForCmd": cmd, "error": "null"}
+	var res Response
 	if err := interpreter.DoString(cmd); err != nil {
 		log.Println(err)
-		response["error"] = err.Error()
+		res.Error = err.Error()
 	} else {
-		response["updateCount"] = fmt.Sprint(engine.UpdateCount)
-		response["upTime"] = fmt.Sprint(engine.UpTime().Milliseconds()) + "ms"
+		res.Error = "null"
+		res.UpdateCount = fmt.Sprint(engine.UpdateCount)
+		res.UpTime = fmt.Sprint(engine.UpTime().Milliseconds()) + "ms"
+		res.NodesState = engine.DebugNodes()
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	err := json.NewEncoder(w).Encode(res)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func (e *Engine) GuiDebugging() {
