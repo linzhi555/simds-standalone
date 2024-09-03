@@ -107,7 +107,7 @@ func TaskEventRecord(t time.Time, msg *base.Message) {
 	err := common.AppendLineCsvFile(
 		path.Join(config.Val.OutputDir, config.Val.TaskEventsLogName),
 		[]string{
-			t.Format(time.RFC3339Nano),
+			common.FormatTime(t),
 			msg.Content,
 			task.Id,
 			msg.From,
@@ -140,7 +140,7 @@ func _netEventRecord(t time.Time, msg *base.Message, eventype string) {
 	err := common.AppendLineCsvFile(
 		path.Join(config.Val.OutputDir, config.Val.NetEventsLogName),
 		[]string{
-			t.Format(time.RFC3339Nano),
+			common.FormatTime(t),
 			msg.Id,
 			eventype,
 			msg.Content,

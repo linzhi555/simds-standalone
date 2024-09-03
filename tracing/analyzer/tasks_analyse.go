@@ -115,7 +115,7 @@ func (l TaskEventLine) OutputTaskSubmitRate(outputDir string) {
 
 func strings2TaskEvent(line []string) *TaskEvent {
 	var t TaskEvent
-	time, err := time.Parse(time.RFC3339Nano, line[_TTime])
+	time, err := common.ParseTime(line[_TTime])
 	if err != nil {
 		panic(err)
 	}

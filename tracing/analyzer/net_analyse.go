@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"simds-standalone/common"
 	"sort"
 	"time"
 )
@@ -73,7 +74,7 @@ func parseNetEventCSV(csvPath string) NetEventLine {
 		if i == 0 {
 			continue
 		} else {
-			t, err := time.Parse(time.RFC3339Nano, row[_NTime])
+			t, err := common.ParseTime(row[_NTime])
 			if err != nil {
 				panic(err)
 			}

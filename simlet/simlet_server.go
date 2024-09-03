@@ -183,33 +183,10 @@ func (o *ActorOs) Run(f func()) {
 }
 
 func (o *ActorOs) Send(msg base.Message) error {
-	msg.Id = fmt.Sprint(time.Now().UnixMicro()) + "_" + msg.From + "_" + msg.To
+	msg.Id = common.GenerateUID()
 	o.output <- msg
 	rules.CheckRulesThenExec(rules.SendRules, time.Now(), &msg)
 	//_logMsg("send", &msg)
 
 	return nil
 }
-
-//func _logMsg(eventType string, msg *base.Message) {
-//	timestr := time.Now().Format(time.RFC3339Nano)
-//	line := []string{timestr}
-//
-//	rawbodystr := fmt.Sprint(msg.Body)
-//	var afterbodystr string
-//	if len(rawbodystr) >= 100 {
-//		afterbodystr = rawbodystr[0:100]
-//	} else {
-//		afterbodystr = rawbodystr
-//	}
-//
-//	line = append(line, "send", msg.Content, msg.From, msg.To, afterbodystr)
-//
-//	err := common.AppendLineCsvFile(
-//		path.Join(config.Val.OutputDir, config.Val.NetEventsLogName),
-//		line,
-//	)
-//	if err != nil {
-//		panic(err)
-//	}
-//}
