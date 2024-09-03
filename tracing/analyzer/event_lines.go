@@ -63,32 +63,29 @@ func (l StageCostList) Output(outdir string, name string) {
 
 func AnalyzeStageDuration(events EventLines, event1, event2 string) StageCostList {
 	events1map := make(map[string]time.Time)
-	events2map := make(map[string]time.Time)
 
+	var res StageCostList
 	for i := 0; i < events.Len(); i++ {
 		switch events.GetType(i) {
 		case event1:
 			events1map[events.GetID(i)] = events.GetHappenTime(i)
 		case event2:
-			events2map[events.GetID(i)] = events.GetHappenTime(i)
+			var temp struct {
+				Id   string
+				Cost time.Duration
+			}
+
+			id := events.GetID(i)
+			t2 := events.GetHappenTime(i)
+			temp.Id = id
+
+			if t1, ok := events1map[id]; ok {
+				temp.Cost = t2.Sub(t1)
+				res = append(res, temp)
+				delete(events1map, id)
+			}
 		default:
 		}
-	}
-
-	var res StageCostList
-	for id := range events1map {
-		var temp struct {
-			Id   string
-			Cost time.Duration
-		}
-		temp.Id = id
-		if _, ok := events2map[id]; ok {
-			temp.Cost = events2map[id].Sub(events1map[id])
-		} else {
-			temp.Cost = FAIL
-		}
-		res = append(res, temp)
-
 	}
 
 	sort.Sort(res)

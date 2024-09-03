@@ -10,11 +10,11 @@ if __name__ == "__main__":
         [simtest.centerCluster, simtest.shareCluster, simtest.dcssCluster,],
         "NodeNum",
         "NodeNum",
-        [1000, 2000, 4000],
+        [100, 200, 400],
         [
-            "1k",
-            "2k",
-            "4k",
+            "100",
+            "200",
+            "400",
         ],
         drawOnly=args.drawOnly,
     )

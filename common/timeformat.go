@@ -9,5 +9,12 @@ func FormatTime(t time.Time) string {
 }
 
 func ParseTime(timeStr string) (time.Time, error) {
-	return time.Parse(layout, timeStr)
+	res, err := time.Parse(layout, timeStr)
+	if err == nil {
+		return res, err
+	}
+
+	// backward compatible
+	return time.Parse(time.RFC3339Nano, timeStr)
+
 }

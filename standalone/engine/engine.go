@@ -118,7 +118,7 @@ func (o *EngineOs) Run(f func()) {
 }
 
 func (o *EngineOs) Send(m base.Message) error {
-	m.Id = common.GenerateUID()
+	m.Id = string(common.GenerateUID())
 	o.engine.Network.Ins[o.addr].InQueueBack(m)
 
 	rules.CheckRulesThenExec(rules.SendRules, o.GetTime(), &m)

@@ -2,26 +2,27 @@ package common
 
 import (
 	"crypto/rand"
-	"fmt"
-	"strconv"
-	"time"
 )
+
+type UID [10]byte
 
 func GenerateUID() string {
 
-	timestamp := time.Now().UnixNano() / int64(time.Millisecond)
-
 	// Generate a random number
-	randomBytes := make([]byte, 4)
+	randomBytes := make([]byte, 10)
 	_, err := rand.Read(randomBytes)
 	if err != nil {
 		panic(err)
 	}
 
-	randomPart := fmt.Sprintf("%x", randomBytes)
+	return string(randomBytes)
+}
 
-	uid := strconv.FormatInt(timestamp, 10) + randomPart
-
-	return uid
-
+func ReadUID(uidstr string) UID {
+	uidbytes := []byte(uidstr)
+	var res [10]byte
+	for i := 0; i < 10; i++ {
+		res[i] = uidbytes[i]
+	}
+	return res
 }
