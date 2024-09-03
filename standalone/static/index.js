@@ -54,10 +54,19 @@ function updateNodesTable(data) {
             <td>  ${actor.progress} </td>
             <td>  ${lastmsg} </td>
             <td>  ${curmsg} </td>
+            <td><button class="btn">查看</button></td>
         </tr>
         `
         $("#nodesTable tbody").append(newrow)
     })
+
+    $('#nodesTable').on('click', '.btn', function() {
+        const row = $(this).closest('tr');
+        const id = row.find('td').eq(0).text(); // 获取姓名
+        alert(`actor id ${id}\n data: asdf`);
+    });
+
+
 }
 
 function updateNetTable(data) {
