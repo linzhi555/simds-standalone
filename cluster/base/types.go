@@ -242,7 +242,14 @@ func (vec *Vec[T]) Pop() (T, error) {
 
 // Delete 删除Vector的某个元素
 func (vec *Vec[T]) Delete(index int) {
-	*vec = append((*vec)[0:index], (*vec)[index+1:vec.Len()]...)
+	if index >= vec.Len() || index < 0 {
+		panic("index out of range")
+	} else if index == vec.Len()-1 {
+		*vec = (*vec)[:vec.Len()-1]
+	} else {
+		copy((*vec)[index:], (*vec)[index+1:])
+		*vec = (*vec)[:vec.Len()-1]
+	}
 }
 
 // 清空Vector
