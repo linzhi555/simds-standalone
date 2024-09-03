@@ -309,6 +309,11 @@ func (engine *Engine) Run() {
 			time.Since(start), step,
 			float64(step)/time.Since(start).Seconds(),
 		)
+
+		if engine.UpdateCount == 25*step{
+			common.MemProf()
+		}
+
 	}
 }
 

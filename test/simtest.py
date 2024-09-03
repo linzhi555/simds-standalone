@@ -2,9 +2,6 @@ import os
 from typing import List
 import yaml
 import sys
-import argparse
-
-sys.path.append("py")
 import draw
 
 pyFileDir = os.path.dirname(os.path.realpath(__file__))
@@ -29,6 +26,21 @@ class Cluster:
         self.specialConfig = specialConfig
 
 
+centerCluster = Cluster("center", "Centralized",
+                        "make test Cluster=Center")
+
+shareCluster = Cluster("share", "Shared State",
+                       "make test Cluster=ShareState")
+
+dcssCluster = Cluster("dcss", "dcss ", "make test Cluster=Dcss")
+
+dcssK7sCluster = Cluster("dcssk8s", "dcssk8s ",
+                         "make k7sTest Cluster=Dcss")
+
+shareK7sCluster = Cluster("sharek8s", "sharek8s",
+                          "make k7sTest Cluster=ShareState")
+
+
 def test_compose(
     config,
     clusters: List[Cluster],
@@ -39,12 +51,12 @@ def test_compose(
     drawOnly: bool = False,
 ):
     if not drawOnly:
-        run_compose(config, clusters, testname, paramsName, params,
-                    parmsLables)
-    draw_compose(clusters, testname, params, parmsLables)
+        _run_compose(config, clusters, testname, paramsName, params,
+                     parmsLables)
+    _draw_compose(clusters, testname, params, parmsLables)
 
 
-def run_compose(
+def _run_compose(
     config,
     clusters: List[Cluster],
     testname: str,
@@ -59,7 +71,7 @@ def run_compose(
             configOut = os.path.join(pyFileDir, "config.yaml")
             targetOut = os.path.join(pyFileDir, "target", testname,
                                      "{}_{}".format(cluster.name, label))
-            if cluster.specialConfig != None:
+            if cluster.specialConfig is not None:
                 for k, v in cluster.specialConfig.items():
                     configCopy[k] = v
             with open(configOut, "w") as output:
@@ -74,14 +86,17 @@ def run_compose(
                 sys.exit(0)
 
 
-def draw_compose(
+def _draw_compose(
     clusters: List[Cluster],
     testname: str,
     params: List,
     parmsLables: List[str],
 ):
+
+    prefix = os.path.join(pyFileDir, "target", "all", testname,)
+
     for _, label in zip(params, parmsLables):
-        outfolder = os.path.join(pyFileDir, "target", "all", testname, label)
+        outfolder = os.path.join(prefix, label)
         os.system("mkdir -p {outfolder}".format(outfolder=outfolder))
 
         tests = []
@@ -97,8 +112,7 @@ def draw_compose(
         draw.draw_task_latency_CDF(tests, outfolder)
 
     for cluster in clusters:
-        outfolder = os.path.join(pyFileDir, "target", "all", testname,
-                                 cluster.name)
+        outfolder = os.path.join(prefix, cluster.name)
         os.system("mkdir -p {outfolder}".format(outfolder=outfolder))
 
         tests = []
@@ -113,78 +127,5 @@ def draw_compose(
         draw.draw_muilt_net_busy(tests, outfolder)
         draw.draw_task_latency_CDF(tests, outfolder)
 
-
-parser = argparse.ArgumentParser(description="run net shape test")
-parser.add_argument("--draw_only",
-                    dest="drawOnly",
-                    help="only draw the result")
-parser.set_defaults(drawOnly=False)
-args = parser.parse_args()
-
-if __name__ == "__main__":
-    centerCluster = Cluster("center", "Centralized",
-                            "make test Cluster=Center")
-    shareCluster = Cluster("share", "Shared State",
-                           "make test Cluster=ShareState")
-    dcssCluster = Cluster("dcss", "dcss ", "make test Cluster=Dcss")
-
-    dcssK8sCluster = Cluster("dcssk8s", "dcssk8s ",
-                             "make k8sTest Cluster=Dcss")
-    shareK8sCluster = Cluster("sharek8s", "sharek8s",
-                              "make k8sTest Cluster=ShareState")
-
-    config_template = load_config()
-
-    # test the influence of net latency
-
-    config = config_template.copy()
-    config["TaskMode"] = "onePeak"
-    test_compose(
-        config,
-        #[dcssCluster],
-        [dcssCluster, dcssK8sCluster],
-        "NetLatency",
-        "NetLatency",
-        [1, 2, 4],
-        [
-            "1ms",
-            "2ms",
-            "4ms",
-        ],
-        drawOnly=args.drawOnly,
-    )
-
-    # test the state update period
-    config = config_template.copy()
-    config["TaskMode"] = "onePeak"
-    test_compose(
-        config,
-        [shareCluster, shareK8sCluster],
-        "StateUpdatePeriod",
-        "StateUpdatePeriod",
-        [100, 150, 300],
-        [
-            "100ms",
-            "150ms",
-            "300ms",
-        ],
-        drawOnly=args.drawOnly,
-    )
-
-    # test the go procs
-    config = config_template.copy()
-    config["TaskMode"] = "onePeak"
-    config["NodeNum"] = 10000
-    test_compose(
-        config,
-        [dcssCluster],
-        "GoProcs",
-        "GoProcs",
-        [1, 2, 4],
-        [
-            "1thread",
-            "2thread",
-            "4thread",
-        ],
-        drawOnly=args.drawOnly,
-    )
+    print("draw finished:", testname, params)
+    print("result dir:", prefix)
