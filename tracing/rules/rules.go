@@ -29,7 +29,7 @@ type Rule struct {
 
 func CheckRulesThenExec(rules []Rule, t time.Time, msg *base.Message) {
 	for i := range rules {
-		if isRuleMatch(&rules[i], msg.Content, msg.From, msg.To) {
+		if isRuleMatch(&rules[i], msg.Head, msg.From, msg.To) {
 			rules[i].Handle(t, msg)
 		}
 	}
@@ -108,7 +108,7 @@ func TaskEventRecord(t time.Time, msg *base.Message) {
 		path.Join(config.Val.OutputDir, config.Val.TaskEventsLogName),
 		[]string{
 			common.FormatTime(t),
-			msg.Content,
+			msg.Head,
 			task.Id,
 			msg.From,
 			fmt.Sprint(task.CpuRequest),
@@ -143,7 +143,7 @@ func _netEventRecord(t time.Time, msg *base.Message, eventype string) {
 			common.FormatTime(t),
 			msg.Id,
 			eventype,
-			msg.Content,
+			msg.Head,
 			msg.From,
 			msg.To,
 		},

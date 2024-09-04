@@ -100,7 +100,7 @@ func (s *SimletServer) RunOutputThread() {
 func (s *SimletServer) doRouting(m base.Message) {
 	client, ok := s.routerTable.Load(m.To)
 	if !ok {
-		log.Println("can not find the target router for", m.To, "messge Type is", m.Content)
+		log.Println("can not find the target router for", m.To, "messge Type is", m.Head)
 		return
 	}
 
@@ -122,7 +122,7 @@ func (s *SimletServer) doRouting(m base.Message) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	_, err := client.cli.SendMessage(ctx, &svc.Message{Id: m.Id, From: m.From, To: m.To, Content: m.Content, Body: base.ToJson(m.Body)})
+	_, err := client.cli.SendMessage(ctx, &svc.Message{Id: m.Id, From: m.From, To: m.To, Content: m.Head, Body: base.ToJson(m.Body)})
 	if err != nil {
 		log.Println("could not get result: ", err, m)
 	}
@@ -139,11 +139,11 @@ func (s *SimletServer) SendMessage(ctx context.Context, msg *svc.Message) (*svc.
 	}
 
 	newMsg := base.Message{
-		Id:      msg.Id,
-		From:    msg.From,
-		To:      msg.To,
-		Content: msg.Content,
-		Body:    body,
+		Id:   msg.Id,
+		From: msg.From,
+		To:   msg.To,
+		Head: msg.Content,
+		Body: body,
 	}
 
 	ch <- newMsg

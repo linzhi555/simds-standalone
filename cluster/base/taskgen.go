@@ -147,7 +147,7 @@ func onePeakTaskStream() []SrcNode {
 func (n *TaskGen) Debug() {}
 
 func (taskgen *TaskGen) Update(msg Message) {
-	switch msg.Content {
+	switch msg.Head {
 	case "SignalBoot":
 		formal := testTaskStream()
 		preheat := preheatTaskStream() // before formal test, there is a preheat stream to warm up the system.
@@ -170,7 +170,7 @@ func (taskgen *TaskGen) Update(msg Message) {
 		newMessage := Message{
 			From:    taskgen.GetHostName(),
 			To:      msg.From,
-			Content: "TaskDispense",
+			Head: "TaskDispense",
 			Body:    task,
 		}
 		err := taskgen.Os.Send(newMessage)
@@ -197,7 +197,7 @@ func (taskgen *TaskGen) _sendingTask() {
 		newMessage := Message{
 			From:    taskgenAddr,
 			To:      receiverAddr,
-			Content: "TaskDispense",
+			Head: "TaskDispense",
 			Body:    newtask,
 		}
 		err := taskgen.Os.Send(newMessage)
@@ -224,7 +224,7 @@ func (taskgen *TaskGen) SimulateTasksUpdate() {
 		newMessage := Message{
 			From:    taskgenAddr,
 			To:      receiverAddr,
-			Content: "TaskDispense",
+			Head: "TaskDispense",
 			Body:    newtask,
 		}
 		err := taskgen.Os.Send(newMessage)

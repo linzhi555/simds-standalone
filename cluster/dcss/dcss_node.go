@@ -42,7 +42,7 @@ func NewDcssNode(nodeName string) *DcssNode {
 // 息，同时也要处理其他同类节点转发请求
 func (node *DcssNode) Update(msg base.Message) {
 
-	switch msg.Content {
+	switch msg.Head {
 	case "SignalBoot":
 		time.Sleep(time.Millisecond * 1)
 	case "TaskDispense":
@@ -71,7 +71,7 @@ func (node *DcssNode) dcssTaskDispenseHandle(newMessage base.Message) {
 		node.Os.Send(base.Message{
 			From:    node.Host,
 			To:      task.User,
-			Content: "TaskStart",
+			Head: "TaskStart",
 			Body:    task,
 		})
 	} else {
@@ -102,7 +102,7 @@ func (node *DcssNode) _delaySchedule(task base.TaskInfo) {
 		newMessage := base.Message{
 			From:    node.GetHostName(),
 			To:      node.GetHostName(),
-			Content: "TaskDispense",
+			Head: "TaskDispense",
 			Body:    task,
 		}
 		err := node.Os.Send(newMessage)
@@ -124,7 +124,7 @@ func (node *DcssNode) _dcssDivideTask(task base.TaskInfo) {
 		newMessage := base.Message{
 			From:    node.GetHostName(),
 			To:      neibor,
-			Content: "TaskDivide",
+			Head: "TaskDivide",
 			Body:    task,
 		}
 		err := node.Os.Send(newMessage)
@@ -146,7 +146,7 @@ func (node *DcssNode) _dispenseTask(task base.TaskInfo) {
 	newMessage := base.Message{
 		From:    node.GetHostName(),
 		To:      dstNeibor,
-		Content: "TaskDispense",
+		Head: "TaskDispense",
 		Body:    task,
 	}
 	err := node.Os.Send(newMessage)
@@ -162,11 +162,11 @@ func (node *DcssNode) dcssTaskDivideHandle(newMessage base.Message) {
 	messageReply.From = newMessage.To
 	if node.LocalNode.CanAllocateTask(&task) {
 		node.LocalNode.AddAllocated(task.CpuRequest, task.MemoryRequest)
-		messageReply.Content = "TaskDivideConfirm"
+		messageReply.Head = "TaskDivideConfirm"
 		task.Status = "needStart"
 		node.TaskMap[task.Id] = &task
 	} else {
-		messageReply.Content = "TaskDivideReject"
+		messageReply.Head = "TaskDivideReject"
 	}
 	err := node.Os.Send(messageReply)
 	if err != nil {
@@ -183,7 +183,7 @@ func (node *DcssNode) dcssTaskDivideConfirmHandle(newMessage base.Message) {
 		err := node.Os.Send(base.Message{
 			From:    newMessage.To,
 			To:      newMessage.From,
-			Content: "TaskDivideAllocate",
+			Head: "TaskDivideAllocate",
 			Body:    *node.TaskMap[task.Id],
 		})
 		if err != nil {
@@ -193,7 +193,7 @@ func (node *DcssNode) dcssTaskDivideConfirmHandle(newMessage base.Message) {
 		err := node.Os.Send(base.Message{
 			From:    newMessage.To,
 			To:      newMessage.From,
-			Content: "TaskDivideCancel",
+			Head: "TaskDivideCancel",
 			Body:    *node.TaskMap[task.Id],
 		})
 		if err != nil {
@@ -212,7 +212,7 @@ func (node *DcssNode) dcssTaskDivideAllocateHandle(newMessage base.Message) {
 			node.Os.Send(base.Message{
 				From:    node.Host,
 				To:      task.User,
-				Content: "TaskStart",
+				Head: "TaskStart",
 				Body:    task,
 			})
 
@@ -234,7 +234,7 @@ func (node *DcssNode) _runTask(t base.TaskInfo) {
 		newMessage := base.Message{
 			From:    node.GetHostName(),
 			To:      node.GetHostName(),
-			Content: "TaskFinish",
+			Head: "TaskFinish",
 			Body:    t,
 		}
 		err = node.Os.Send(newMessage)
@@ -277,7 +277,7 @@ func (node *DcssNode) dcssFinishHandle(newMessage base.Message) {
 	node.Os.Send(base.Message{
 		From:    node.Host,
 		To:      task.User,
-		Content: "TaskFinish",
+		Head: "TaskFinish",
 		Body:    task,
 	})
 
@@ -298,7 +298,7 @@ func (node *DcssNode) SimulateTasksUpdate() {
 				newMessage := base.Message{
 					From:    node.GetHostName(),
 					To:      node.GetHostName(),
-					Content: messageType,
+					Head: messageType,
 					Body:    *t,
 				}
 				err := node.Os.Send(newMessage)

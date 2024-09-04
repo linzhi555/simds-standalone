@@ -38,7 +38,7 @@ func (s *StateStorage) Debug() { log.Println(s.Workers) }
 
 func (s *StateStorage) Update(msg base.Message) {
 
-	switch msg.Content {
+	switch msg.Head {
 
 	case "SignalBoot":
 		s.LastSendTime = s.Os.GetTime()
@@ -48,7 +48,7 @@ func (s *StateStorage) Update(msg base.Message) {
 				newMessage := base.Message{
 					From:    s.GetHostName(),
 					To:      s.GetHostName(),
-					Content: "NeedUpdateNodeInfo",
+					Head: "NeedUpdateNodeInfo",
 				}
 				err := s.Os.Send(newMessage)
 				if err != nil {
@@ -64,7 +64,7 @@ func (s *StateStorage) Update(msg base.Message) {
 			err := s.Os.Send(base.Message{
 				From:    s.GetHostName(),
 				To:      task.Worker,
-				Content: "TaskRun",
+				Head: "TaskRun",
 				Body:    task,
 			})
 			if err != nil {
@@ -75,7 +75,7 @@ func (s *StateStorage) Update(msg base.Message) {
 			err := s.Os.Send(base.Message{
 				From:    s.GetHostName(),
 				To:      msg.From,
-				Content: "TaskCommitFail",
+				Head: "TaskCommitFail",
 				Body:    task,
 			})
 			if err != nil {
@@ -84,7 +84,7 @@ func (s *StateStorage) Update(msg base.Message) {
 			err = s.Os.Send(base.Message{
 				From:    s.GetHostName(),
 				To:      msg.From,
-				Content: "NodeInfosUpdate",
+				Head: "NodeInfosUpdate",
 				Body:    base.Vec[base.NodeInfo]{*s.Workers[task.Worker]},
 			})
 			if err != nil {
@@ -101,7 +101,7 @@ func (s *StateStorage) Update(msg base.Message) {
 			err := s.Os.Send(base.Message{
 				From:    s.GetHostName(),
 				To:      scheduler,
-				Content: "NodeInfosUpdate",
+				Head: "NodeInfosUpdate",
 				Body:    *stateCopy.Clone(),
 			})
 			if err != nil {
@@ -114,7 +114,7 @@ func (s *StateStorage) Update(msg base.Message) {
 		newMessage := base.Message{
 			From:    s.GetHostName(),
 			To:      msg.From,
-			Content: "TaskDispense",
+			Head: "TaskDispense",
 			Body:    task,
 		}
 		err := s.Os.Send(newMessage)
@@ -131,7 +131,7 @@ func (s *StateStorage) SimulateTasksUpdate() {
 		newMessage := base.Message{
 			From:    s.GetHostName(),
 			To:      s.GetHostName(),
-			Content: "NeedUpdateNodeInfo",
+			Head: "NeedUpdateNodeInfo",
 		}
 		err := s.Os.Send(newMessage)
 		if err != nil {

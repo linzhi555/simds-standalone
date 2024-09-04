@@ -21,7 +21,7 @@ func startSimletActor(actor base.Actor, s *SimletServer) {
 	os.Send(base.Message{
 		From:    actor.GetHostName(),
 		To:      actor.GetHostName(),
-		Content: "SignalBoot",
+		Head: "SignalBoot",
 		Body:    base.Signal("SignalBoot"),
 	})
 

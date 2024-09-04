@@ -280,7 +280,7 @@ func InitEngine(cluster base.Cluster) *Engine {
 			os.Send(base.Message{
 				From:    os.addr,
 				To:      os.addr,
-				Content: "SignalBoot",
+				Head: "SignalBoot",
 				Body:    base.Signal("SignalBoot"),
 			})
 			actor.model.SetOsApi(&os)
@@ -341,7 +341,7 @@ func (engine *Engine) DebugNodes() []ActorDebugInfo {
 					if actor.hide.LastMsg == nil {
 						return "null"
 					}
-					return actor.hide.LastMsg.Content
+					return actor.hide.LastMsg.Head
 				}(),
 
 				Difficulty: fmt.Sprint(actor.hide.Difficulty),
@@ -371,7 +371,7 @@ func (engine *Engine) DebugNet() NetDebugInfo {
 		*target = append(*target, MessageDebugInfo{
 			From:     msg.From,
 			To:       msg.To,
-			Head:     msg.Content,
+			Head:     msg.Head,
 			Body:     "",
 			LeftTime: fmt.Sprint(msg.LeftTime),
 		})

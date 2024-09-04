@@ -42,7 +42,7 @@ func (n *Worker) Debug() {
 
 func (worker *Worker) Update(msg Message) {
 
-	switch msg.Content {
+	switch msg.Head {
 
 	case "TaskStart":
 
@@ -82,7 +82,7 @@ func (worker *Worker) Update(msg Message) {
 		worker.Os.Send(Message{
 			From:    worker.Host,
 			To:      t.User,
-			Content: "TaskFinish",
+			Head: "TaskFinish",
 			Body:    t,
 		})
 	}
@@ -98,7 +98,7 @@ func (worker *Worker) deakRunTask(t TaskInfo) {
 	worker.Os.Send(Message{
 		From:    worker.Host,
 		To:      t.User,
-		Content: "TaskStart",
+		Head: "TaskStart",
 		Body:    t,
 	})
 }
@@ -113,7 +113,7 @@ func (node *Worker) _runTask(t TaskInfo) {
 		newMessage := Message{
 			From:    node.GetHostName(),
 			To:      node.GetHostName(),
-			Content: "TaskFinish",
+			Head: "TaskFinish",
 			Body:    t,
 		}
 		err = node.Os.Send(newMessage)
@@ -132,7 +132,7 @@ func (worker *Worker) SimulateTasksUpdate() {
 				newMessage := Message{
 					From:    worker.GetHostName(),
 					To:      worker.GetHostName(),
-					Content: "TaskFinish",
+					Head: "TaskFinish",
 					Body:    *t,
 				}
 				err := worker.Os.Send(newMessage)
@@ -149,7 +149,7 @@ func informReceiverTaskStatus(worker *Worker, t *TaskInfo, content string) {
 	newMessage := Message{
 		From:    worker.GetHostName(),
 		To:      worker.Manager,
-		Content: content,
+		Head: content,
 		Body:    *t,
 	}
 	err := worker.Os.Send(newMessage)

@@ -37,7 +37,7 @@ func (s *CenterScheduler) Debug() {
 // }
 
 func (s *CenterScheduler) Update(msg Message) {
-	switch msg.Content {
+	switch msg.Head {
 
 	case "TaskDispense", "TaskCommitFail":
 		task := msg.Body.(TaskInfo)
@@ -53,7 +53,7 @@ func (s *CenterScheduler) Update(msg Message) {
 			newMessage := Message{
 				From:    s.GetHostName(),
 				To:      receiver,
-				Content: "TaskRun",
+				Head: "TaskRun",
 				Body:    task,
 			}
 			err := s.Os.Send(newMessage)
@@ -64,7 +64,7 @@ func (s *CenterScheduler) Update(msg Message) {
 			newMessage := Message{
 				From:    s.GetHostName(),
 				To:      msg.From,
-				Content: "TaskCommitFail",
+				Head: "TaskCommitFail",
 				Body:    task,
 			}
 			err := s.Os.Send(newMessage)

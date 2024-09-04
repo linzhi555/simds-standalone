@@ -130,7 +130,6 @@ func (l RateList) Output(outdir string, name string) {
 }
 
 func AnalyzeEventRate(events EventLines, evntype string, interval_ms int) RateList {
-
 	if events.Len() == 0 {
 		return RateList{}
 	}
