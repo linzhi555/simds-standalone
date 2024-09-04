@@ -1,18 +1,20 @@
 package common
 
 import (
-	"crypto/rand"
+	"math/rand"
 )
 
 type UID [10]byte
 
+const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const charsetLen = len(charset)
+
 func GenerateUID() string {
 
-	// Generate a random number
 	randomBytes := make([]byte, 10)
-	_, err := rand.Read(randomBytes)
-	if err != nil {
-		panic(err)
+
+	for i := 0; i < 10; i++ {
+		randomBytes[i] = charset[rand.Intn(charsetLen)]
 	}
 
 	return string(randomBytes)

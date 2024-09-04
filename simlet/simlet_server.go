@@ -183,7 +183,7 @@ func (o *ActorOs) Run(f func()) {
 }
 
 func (o *ActorOs) Send(msg base.Message) error {
-	msg.Id = common.GenerateUID()
+	msg.Id = string(common.GenerateUID())
 	o.output <- msg
 	rules.CheckRulesThenExec(rules.SendRules, time.Now(), &msg)
 	//_logMsg("send", &msg)
