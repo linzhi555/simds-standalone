@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"simds-standalone/common"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -26,8 +27,9 @@ func AnalyseNet(logfile string, outdir string) {
 	AnalyzeStageDuration(events, "send", "recv").Output(outdir, "netLantency")
 	log.Println("	 analyze net message latency finished")
 
-	//host := mostBusyHost(events)
-	//AnalyzeEventRate(eventsByHost[index], "recv", 100).Output(outdir, "busiestHostNet")
+	busiestHost, busiestHostEvents := busiestHost(events)
+	log.Println("the most busiest host is ", hostTable[busiestHost])
+	AnalyzeEventRate(busiestHostEvents, "recv", 100).Output(outdir, "busiestHostNet")
 }
 
 var NET_EVENT_LOG_HEAD = []string{"time", "Id", "direction", "type", "from", "to"}
@@ -36,18 +38,18 @@ type NetEvent struct {
 	Time   time.Time
 	Id     common.UID
 	IsSend bool
-	//Head   string
-	//From   string
-	//To     string
+	Head   uint16
+	From   uint16
+	To     uint16
 }
 
 const (
 	_NTime = iota
 	_NId
 	_NDirect
-	//_NType
-	//_NFrom
-	//_NTo
+	_NType
+	_NFrom
+	_NTo
 )
 
 type NetEventLine []NetEvent
@@ -99,39 +101,102 @@ func parseNetEventCSV(csvPath string) NetEventLine {
 		if i == 0 {
 			continue
 		} else {
-			t, err := common.ParseTime(row[_NTime])
-			if err != nil {
-				panic(err)
-			}
-			res = append(res, NetEvent{
-				Time: t,
-				Id:   common.ReadUID(row[_NTime]),
-				IsSend: func(direct string) bool {
-					if direct == "send" {
-						return true
-					} else if direct == "recv" {
-						return false
-					} else {
-						panic("wrong direction")
-					}
-				}(row[_NDirect]),
-				//Head:   row[_NType],
-				//From:   row[_NFrom],
-				//To:     row[_NTo],
-			})
-
+			_append(&res, row)
 		}
 	}
 	sort.Sort(NetEventLine(res))
+
+	reverseTable(hostCache, hostTable)
+	reverseTable(headCache, headTable)
+
 	return res
 }
 
-func mostBusyHost(events NetEventLine) string {
-	var res string
+var hostCache = map[string]uint16{}
+var hostTable = map[uint16]string{}
+var hostNum uint16 = 0
 
-	//for i := range events{
+func hostname2uint(name string) uint16 {
+	i, ok := hostCache[name]
+	if ok {
+		return i
+	} else {
+		hostNum++
+		hostCache[name] = hostNum
+		return hostNum
+	}
+}
 
-	//}
+var headCache = map[string]uint16{}
+var headTable = map[uint16]string{}
+var HeadNum uint16 = 0
 
-	return res
+func reverseTable(from map[string]uint16, to map[uint16]string) {
+	for k, v := range from {
+		to[v] = k
+	}
+}
+
+func head2uint(name string) uint16 {
+	i, ok := headCache[name]
+	if ok {
+		return i
+	} else {
+		hostNum++
+		hostCache[name] = hostNum
+		return hostNum
+	}
+}
+
+func _append(l *[]NetEvent, row []string) {
+	t, err := common.ParseTime(row[_NTime])
+	if err != nil {
+		panic(err)
+	}
+
+	*l = append(*l, NetEvent{
+		Time: t,
+		Id:   common.ReadUID(row[_NTime]),
+		IsSend: func(direct string) bool {
+			if direct == "send" {
+				return true
+			} else if direct == "recv" {
+				return false
+			} else {
+				panic("wrong direction")
+			}
+		}(row[_NDirect]),
+		Head: head2uint(row[_NType]),
+		From: hostname2uint(row[_NFrom]),
+		To:   hostname2uint(row[_NTo]),
+	})
+
+}
+
+func busiestHost(events NetEventLine) (uint16, NetEventLine) {
+	var mostBusiestScore int = 0
+	var mostBusiestIndex uint16 = 0
+	var mostBusiestEvents NetEventLine
+
+	for curIndex, name := range hostTable {
+		if strings.HasPrefix(name, "simds-taskgen") {
+			continue
+		}
+
+		var curEvents NetEventLine
+		for _, e := range events {
+			if e.From == curIndex || e.To == curIndex {
+				curEvents = append(curEvents, e)
+			}
+		}
+
+		curScore := AnalyzeEventRate(curEvents, "recv", 100).Highest()
+		if curScore > mostBusiestScore {
+			mostBusiestScore = curScore
+			mostBusiestIndex = curIndex
+			mostBusiestEvents = curEvents
+		}
+	}
+
+	return mostBusiestIndex, mostBusiestEvents
 }

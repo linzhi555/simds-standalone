@@ -7,14 +7,14 @@ if __name__ == "__main__":
     config["TaskMode"] = "onePeak"
     simtest.test_compose(
         config,
-        [simtest.dcssCluster, simtest.dcssK8sCluster],
+        [simtest.centerCluster, simtest.dcssCluster, simtest.shareCluster],
         "NetLatency",
         "NetLatency",
-        [1, 2, 4],
+        [1, 4, 16],
         [
             "1ms",
-            "2ms",
             "4ms",
+            "16ms",
         ],
         drawOnly=args.drawOnly,
     )

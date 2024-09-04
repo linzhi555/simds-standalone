@@ -31,6 +31,15 @@ func CountLines(filename string) (int, error) {
 	return lineCount, nil
 }
 
+func RemoveIfExisted(file string) {
+	if IsFileExist(file) {
+		err := os.Remove(file)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
 func IsFileExist(filename string) bool {
 	var exist = true
 	if res, err := os.Stat(filename); os.IsNotExist(err) {

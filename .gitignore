@@ -6,3 +6,4 @@ py/__pycache__
 */__pycache__
 simds-standalone
 kubeconfig/*
+_test.sh

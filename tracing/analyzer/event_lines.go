@@ -30,6 +30,9 @@ func (l StageCostList) Output(outdir string, name string) {
 	outPutLogPath := path.Join(outdir, name+"Curve.log")
 	outPutMetricPath := path.Join(outdir, name+"Metric.log")
 
+	common.RemoveIfExisted(outPutLogPath)
+	common.RemoveIfExisted(outPutMetricPath)
+
 	err := common.AppendLineCsvFile(outPutLogPath, []string{"id", name})
 	if err != nil {
 		panic(err)
@@ -111,6 +114,7 @@ func (l RateList) Highest() int {
 func (l RateList) Output(outdir string, name string) {
 	outfile := path.Join(outdir, name+"Rate.log")
 
+	common.RemoveIfExisted(outfile)
 	err := common.AppendLineCsvFile(outfile, []string{"time_ms", "amout"})
 	if err != nil {
 		panic(err)
@@ -125,14 +129,19 @@ func (l RateList) Output(outdir string, name string) {
 
 }
 
-func AnalyzeEventRate(events EventLines, evntype string, interval int) RateList {
+func AnalyzeEventRate(events EventLines, evntype string, interval_ms int) RateList {
+
+	if events.Len() == 0 {
+		return RateList{}
+	}
+
 	start := events.GetHappenTime(0)
 	end := events.GetHappenTime(events.Len() - 1)
-	tointerval := func(t time.Time) int { return int(t.Sub(start) / (time.Duration(interval) * time.Millisecond)) }
+	tointerval := func(t time.Time) int { return int(t.Sub(start) / (time.Duration(interval_ms) * time.Millisecond)) }
 	result := make(RateList, tointerval(end)+1)
 
 	for i := 0; i < len(result); i++ {
-		result[i].Time_ms = i * interval
+		result[i].Time_ms = i * interval_ms
 	}
 
 	for i := 0; i < events.Len(); i++ {
