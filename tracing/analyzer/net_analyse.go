@@ -27,9 +27,11 @@ func AnalyseNet(logfile string, outdir string) {
 	AnalyzeStageDuration(events, "send", "recv").Output(outdir, "netLantency")
 	log.Println("	 analyze net message latency finished")
 
+	log.Println("	 analyze busiesthost net events...")
 	busiestHost, busiestHostEvents := busiestHost(events)
-	log.Println("the most busiest host is ", hostTable[busiestHost])
+	log.Println("    the most busiest host is ", hostTable[busiestHost])
 	AnalyzeEventRate(busiestHostEvents, "recv", 100).Output(outdir, "busiestHostNet")
+	log.Println("	 analyze net message latency finished")
 }
 
 var NET_EVENT_LOG_HEAD = []string{"time", "Id", "direction", "type", "from", "to"}
