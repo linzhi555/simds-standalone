@@ -7,10 +7,10 @@ if __name__ == "__main__":
     config["TaskMode"] = "onePeak"
     simtest.test_compose(
         config,
-        [simtest.centerCluster, simtest.shareCluster, simtest.dcssCluster,],
-        "MultiCluster",
+        [simtest.centerCluster],
+        "centeralizedPerformance",
         "NodeNum",
-        [100, 200, 300],
-        ["100", "200", "300"],
+        [300, 350, 400, 450, 500],
+        ["300", "350", "400", "450", "500",],
         drawOnly=args.drawOnly,
     )

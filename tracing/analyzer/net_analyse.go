@@ -20,17 +20,17 @@ func AnalyseNet(logfile string, outdir string) {
 	log.Println("	 loading message events finished")
 
 	log.Println("	 analyze all cluster message rate...")
-	AnalyzeEventRate(events, "recv", 100).Output(outdir, "allNet")
+	AnalyzeEventRate(events, "recv", 100).Output(outdir, "_allNet")
 	log.Println("	 analyze all cluster message rate finished")
 
 	log.Println("	 analyze net message latency...")
-	AnalyzeStageDuration(events, "send", "recv").Output(outdir, "netLantency")
+	AnalyzeStageDuration(events, "send", "recv").Output(outdir, "_netLantency")
 	log.Println("	 analyze net message latency finished")
 
 	log.Println("	 analyze busiesthost net events...")
 	busiestHost, busiestHostEvents := busiestHost(events)
 	log.Println("    the most busiest host is ", hostTable[busiestHost])
-	AnalyzeEventRate(busiestHostEvents, "recv", 100).Output(outdir, "busiestHostNet")
+	AnalyzeEventRate(busiestHostEvents, "recv", 100).Output(outdir, "_busiestHostNet")
 	log.Println("	 analyze net message latency finished")
 }
 

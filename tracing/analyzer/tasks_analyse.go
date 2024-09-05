@@ -15,15 +15,14 @@ import (
 
 func AnalyseTasks(taskLogFile string, outdir string) {
 	events := ReadTaskEventCsv(taskLogFile)
-	events.Output(outdir, "all_events.log")
-	events.OutputTaskSubmitRate(outdir)
+	//events.Output(outdir, "sorted_events.log")
 
-	AnalyzeEventRate(events, SUBMIT, 100).Output(outdir, "taskSubmit")
-	AnalyzeStageDuration(events, START, FINISH).Output(outdir, "lifeTime")
+	AnalyzeEventRate(events, SUBMIT, 100).Output(outdir, "_taskSubmit")
+	AnalyzeStageDuration(events, START, FINISH).Output(outdir, "_lifeTime")
 	latencies := AnalyzeStageDuration(events, SUBMIT, START)
-	latencies.Output(outdir, "latency")
+	latencies.Output(outdir, "_latency")
 
-	InitCluster(events, latencies).ReplayEvents().Output(outdir)
+	InitCluster(events, latencies).ReplayEvents().Output(outdir, "_clusterStatus")
 }
 
 var (
@@ -98,21 +97,6 @@ func (l TaskEventLine) Output(outputDir string, filename string) {
 	}
 }
 
-func (l TaskEventLine) OutputTaskSubmitRate(outputDir string) {
-	outputfile := path.Join(outputDir, "task_speed.log")
-	startTime := l[0].Time
-	for _, event := range l {
-
-		if event.Type == SUBMIT {
-			err := common.AppendLineCsvFile(outputfile, []string{fmt.Sprint(event.Time.Sub(startTime).Milliseconds()), event.Type})
-			if err != nil {
-				panic(err)
-			}
-		}
-
-	}
-}
-
 func strings2TaskEvent(line []string) *TaskEvent {
 	var t TaskEvent
 	time, err := common.ParseTime(line[_TTime])
@@ -173,8 +157,8 @@ func (status *ClusterStatus) Strings(startTime time.Time) []string {
 
 type ClusterStatusLine []ClusterStatus
 
-func (l ClusterStatusLine) Output(outputDir string) {
-	outputlogfile := path.Join(outputDir, "cluster_status.log")
+func (l ClusterStatusLine) Output(outputDir string, filename string) {
+	outputlogfile := path.Join(outputDir, filename+".log")
 	if common.IsFileExist(outputlogfile) {
 		err := os.Remove(outputlogfile)
 		if err != nil {

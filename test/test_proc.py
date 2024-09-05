@@ -11,12 +11,13 @@ if __name__ == "__main__":
         [simtest.dcssCluster],
         "GoProcs",
         "GoProcs",
-        [1, 2, 4, 6],
+        [1, 2, 3, 4, 5],
         [
             "1thread",
             "2thread",
+            "3thread",
             "4thread",
-            "6thread",
+            "5thread",
         ],
         drawOnly=args.drawOnly,
     )
