@@ -32,7 +32,6 @@ func NewNode(actors ...Actor) Node {
 type BasicActor struct {
 	Os             OsApi
 	Host           string
-	NextUpdateTime time.Time
 }
 
 func (b *BasicActor) GetHostName() string {
@@ -43,13 +42,6 @@ func (b *BasicActor) SetOsApi(os OsApi) {
 	b.Os = os
 }
 
-func (b *BasicActor) GetNextUpdateTime() time.Time {
-	return b.NextUpdateTime
-}
-
-func (b *BasicActor) SetNextUpdateTime(t time.Time) {
-	b.NextUpdateTime = t
-}
 
 type Actor interface {
 	GetHostName() string
@@ -59,8 +51,6 @@ type Actor interface {
 
 	// below is only  for simulation mode not for deploy mode
 	SimulateTasksUpdate()
-	GetNextUpdateTime() time.Time
-	SetNextUpdateTime(t time.Time)
 }
 
 // OsApi 系统调用 抽象接口
