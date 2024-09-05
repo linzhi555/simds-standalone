@@ -34,11 +34,11 @@ shareCluster = Cluster("share", "Shared State",
 
 dcssCluster = Cluster("dcss", "dcss ", "make test Cluster=Dcss")
 
-dcssK7sCluster = Cluster("dcssk8s", "dcssk8s ",
-                         "make k7sTest Cluster=Dcss")
+dcssK8sCluster = Cluster("dcssk8s", "dcssk8s ",
+                         "make k8sTest Cluster=Dcss")
 
-shareK7sCluster = Cluster("sharek8s", "sharek8s",
-                          "make k7sTest Cluster=ShareState")
+shareK8sCluster = Cluster("sharek8s", "sharek8s",
+                          "make k8sTest Cluster=ShareState")
 
 
 def test_compose(
@@ -104,13 +104,7 @@ def _draw_compose(
             targetOut = os.path.join(pyFileDir, "target", testname,
                                      "{}_{}".format(cluster.name, label))
             tests.append([targetOut, "{} {} ".format(cluster.describ, label)])
-        draw.draw_task_submission_rate(tests, outfolder)
-        draw.draw_muilt_lantencyCurve(tests, outfolder)
-        draw.draw_muilt_avg_resource(tests, outfolder)
-        draw.draw_muilt_var_resource(tests, outfolder)
-        draw.draw_muilt_net_busy(tests, outfolder)
-        draw.draw_task_latency_CDF(tests, outfolder)
-
+        _draw_one_folder(tests, outfolder)
     for cluster in clusters:
         outfolder = os.path.join(prefix, cluster.name)
         os.system("mkdir -p {outfolder}".format(outfolder=outfolder))
@@ -120,12 +114,16 @@ def _draw_compose(
             targetOut = os.path.join(pyFileDir, "target", testname,
                                      "{}_{}".format(cluster.name, label))
             tests.append([targetOut, "{} {} ".format(cluster.describ, label)])
-        draw.draw_task_submission_rate(tests, outfolder)
-        draw.draw_muilt_lantencyCurve(tests, outfolder)
-        draw.draw_muilt_avg_resource(tests, outfolder)
-        draw.draw_muilt_var_resource(tests, outfolder)
-        draw.draw_muilt_net_busy(tests, outfolder)
-        draw.draw_task_latency_CDF(tests, outfolder)
+        _draw_one_folder(tests, outfolder)
 
     print("draw finished:", testname, params)
     print("result dir:", prefix)
+
+
+def _draw_one_folder(tests, outfolder):
+    # draw.draw_task_submission_rate(tests, outfolder)
+    draw.draw_muilt_lantencyCurve(tests, outfolder)
+    draw.draw_muilt_avg_resource(tests, outfolder)
+    draw.draw_muilt_var_resource(tests, outfolder)
+    draw.draw_muilt_net_busy(tests, outfolder)
+    draw.draw_task_latency_CDF(tests, outfolder)

@@ -32,7 +32,7 @@ func (s *CenterScheduler) Debug() {
 func (s *CenterScheduler) Update(msg base.Message) {
 	switch msg.Head {
 
-	case "TaskDispense":
+	case "TaskDispense","TaskCommitFail":
 		task := msg.Body.(TaskInfo)
 		dstWorker, ok := schdulingAlgorithm(s, &task)
 		if ok {
@@ -56,7 +56,7 @@ func (s *CenterScheduler) Update(msg base.Message) {
 			err := s.Os.Send(base.Message{
 				From: s.GetHostName(),
 				To:   msg.From,
-				Head: "TaskScheudleFail",
+				Head: "TaskScheduleFail",
 				Body: task,
 			})
 			if err != nil {
@@ -72,6 +72,8 @@ func (s *CenterScheduler) Update(msg base.Message) {
 		for _, ni := range nodeinfoList {
 			s.Workers[ni.Addr] = ni.Clone()
 		}
+	default:
+
 	}
 }
 

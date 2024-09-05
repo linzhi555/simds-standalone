@@ -76,8 +76,8 @@ func (s *StateStorage) Update(msg base.Message) {
 			err := s.Os.Send(base.Message{
 				From: s.GetHostName(),
 				To:   msg.From,
-				Head: "TaskCommitFail",
-				Body: task,
+				Head: "VecNodeInfoUpdate",
+				Body: base.Vec[lib.NodeInfo]{*s.Workers[task.Worker]},
 			})
 			if err != nil {
 				panic(err)
@@ -85,12 +85,13 @@ func (s *StateStorage) Update(msg base.Message) {
 			err = s.Os.Send(base.Message{
 				From: s.GetHostName(),
 				To:   msg.From,
-				Head: "NodeInfosUpdate",
-				Body: base.Vec[lib.NodeInfo]{*s.Workers[task.Worker]},
+				Head: "TaskCommitFail",
+				Body: task,
 			})
 			if err != nil {
 				panic(err)
 			}
+
 		}
 	case "TaskFinish":
 		taskInfo := msg.Body.(lib.TaskInfo)
@@ -109,7 +110,6 @@ func (s *StateStorage) Update(msg base.Message) {
 				panic(err)
 			}
 		}
-
 	case "TaskCommitFail":
 		task := msg.Body.(lib.TaskInfo)
 		newMessage := base.Message{

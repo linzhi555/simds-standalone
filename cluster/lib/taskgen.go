@@ -168,7 +168,7 @@ func (taskgen *TaskGen) Update(msg base.Message) {
 		}
 
 	case "TaskFinish":
-	case "TaskScheudleFail":
+	case "TaskScheduleFail":
 	}
 }
 

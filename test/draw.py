@@ -191,7 +191,7 @@ def draw_muilt_net_busy(tests: list, outdir: str):
     plt.clf()
     for t in tests:
         staus = rate_curves(
-            os.path.join(t[0], "allNetRate.log"))
+            os.path.join(t[0], "_allNetRate.log"))
         plt.plot(staus[0], staus[1], lw=1.0, label=t[1])
     plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("Net Request Rate \n (number/s)", fontsize=FONT_SIZE)
@@ -211,7 +211,7 @@ def draw_muilt_net_busy(tests: list, outdir: str):
     plt.clf()
     for t in tests:
         staus = rate_curves(
-            os.path.join(t[0], "busiestHostNetRate.log"))
+            os.path.join(t[0], "_busiestHostNetRate.log"))
         plt.plot(staus[0], staus[1], lw=1.0, label=t[1])
     plt.ylabel("Net Request Rate \n (number/s)", fontsize=FONT_SIZE)
     plt.yscale("log", base=10)
@@ -283,7 +283,9 @@ def draw_task_latency_CDF(tests: list, outdir: str):
     marker = markerGenerator()
     plt.clf()
     for t in tests:
-        staus = task_latency_CDF_curves(os.path.join(t[0], "latencyCurve.log"))
+        staus = task_latency_CDF_curves(
+            os.path.join(t[0], "_latencyCurve.log"))
+
         plt.plot(staus[0], staus[1], lw=LINE_WIDTH, label=t[1],
                  marker=marker.next(), markevery=0.2, markersize=7)
         # if max(staus[0]) >= FAIL_TASK_LATENCY-1:
