@@ -1,16 +1,18 @@
-package base
+package lib
 
 import (
 	"fmt"
 	"log"
-	"simds-standalone/common"
-	"simds-standalone/config"
 	"strings"
 	"time"
+
+	"simds-standalone/cluster/base"
+	"simds-standalone/common"
+	"simds-standalone/config"
 )
 
 type TaskGen struct {
-	BasicActor
+	base.BasicActor
 	Status    string
 	StartTime time.Time
 	CurTaskId int
@@ -50,7 +52,7 @@ func CutStream(old []SrcNode, until time.Duration) []SrcNode {
 func NewTaskGen(hostname string) *TaskGen {
 
 	taskgen := &TaskGen{
-		BasicActor: BasicActor{Host: hostname},
+		BasicActor: base.BasicActor{Host: hostname},
 		CurTaskId:  0,
 	}
 
@@ -91,12 +93,14 @@ func noWaveTaskStream() []SrcNode {
 	src := make([]SrcNode, 0, allTasksNum)
 
 	for i := 0; i < allTasksNum; i++ {
+		lifeTime := time.Duration(common.RandIntWithRange(config.Val.TaskLifeTime, 0.5)) * time.Millisecond
 		newTask := TaskInfo{
 			Id:            fmt.Sprintf("task%d", i),
 			CpuRequest:    common.RandIntWithRange(config.Val.TaskCpu, 0.5),
 			MemoryRequest: common.RandIntWithRange(config.Val.TaskMemory, 0.5),
-			LifeTime:      time.Duration(common.RandIntWithRange(config.Val.TaskLifeTime, 0.5)) * time.Millisecond,
+			LifeTime:      lifeTime,
 			Status:        "submit",
+			Cmd:           fmt.Sprintf("sleep %f", lifeTime.Seconds()),
 		}
 
 		t := time.Duration(int64(i) * int64(sendDuration) / int64(allTasksNum))
@@ -146,7 +150,7 @@ func onePeakTaskStream() []SrcNode {
 
 func (n *TaskGen) Debug() {}
 
-func (taskgen *TaskGen) Update(msg Message) {
+func (taskgen *TaskGen) Update(msg base.Message) {
 	switch msg.Head {
 	case "SignalBoot":
 		formal := testTaskStream()
@@ -164,19 +168,7 @@ func (taskgen *TaskGen) Update(msg Message) {
 		}
 
 	case "TaskFinish":
-
-	case "TaskCommitFail":
-		task := msg.Body.(TaskInfo)
-		newMessage := Message{
-			From:    taskgen.GetHostName(),
-			To:      msg.From,
-			Head: "TaskDispense",
-			Body:    task,
-		}
-		err := taskgen.Os.Send(newMessage)
-		if err != nil {
-			panic(err)
-		}
+	case "TaskScheudleFail":
 	}
 }
 
@@ -194,11 +186,11 @@ func (taskgen *TaskGen) _sendingTask() {
 
 		newtask.User = taskgen.Host
 		receiverAddr := taskgen.Receivers[taskgen.CurTaskId%receiverNum]
-		newMessage := Message{
-			From:    taskgenAddr,
-			To:      receiverAddr,
+		newMessage := base.Message{
+			From: taskgenAddr,
+			To:   receiverAddr,
 			Head: "TaskDispense",
-			Body:    newtask,
+			Body: newtask,
 		}
 		err := taskgen.Os.Send(newMessage)
 		if err != nil {
@@ -221,11 +213,11 @@ func (taskgen *TaskGen) SimulateTasksUpdate() {
 		newtask := taskgen.Src[taskgen.CurTaskId].task
 		newtask.User = taskgen.Host
 		receiverAddr := taskgen.Receivers[taskgen.CurTaskId%receiverNum]
-		newMessage := Message{
-			From:    taskgenAddr,
-			To:      receiverAddr,
+		newMessage := base.Message{
+			From: taskgenAddr,
+			To:   receiverAddr,
 			Head: "TaskDispense",
-			Body:    newtask,
+			Body: newtask,
 		}
 		err := taskgen.Os.Send(newMessage)
 		if err != nil {

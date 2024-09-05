@@ -8,7 +8,7 @@ import (
 	"sort"
 	"time"
 
-	"simds-standalone/cluster/base"
+	"simds-standalone/cluster/lib"
 	"simds-standalone/common"
 	"simds-standalone/config"
 )
@@ -182,7 +182,7 @@ func (l ClusterStatusLine) Output(outputDir string, filename string) {
 type Cluster struct {
 	AllEvents       TaskEventLine
 	TaskLatencyList StageCostList
-	Nodes           map[string]*base.NodeInfo
+	Nodes           map[string]*lib.NodeInfo
 }
 
 // create a new cluster according the taskevent logs.
@@ -191,7 +191,7 @@ func InitCluster(events TaskEventLine, latencies StageCostList) *Cluster {
 	var cluster Cluster
 	cluster.AllEvents = events
 	cluster.TaskLatencyList = latencies
-	cluster.Nodes = make(map[string]*base.NodeInfo)
+	cluster.Nodes = make(map[string]*lib.NodeInfo)
 
 	for _, event := range events {
 		if event.Type != START {
@@ -202,7 +202,7 @@ func InitCluster(events TaskEventLine, latencies StageCostList) *Cluster {
 			continue
 		}
 
-		cluster.Nodes[event.ActorId] = &base.NodeInfo{
+		cluster.Nodes[event.ActorId] = &lib.NodeInfo{
 			Addr:           event.ActorId,
 			Cpu:            config.Val.NodeCpu,
 			Memory:         config.Val.NodeMemory,

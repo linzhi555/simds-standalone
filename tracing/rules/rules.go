@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"simds-standalone/cluster/base"
+	"simds-standalone/cluster/lib"
 	"simds-standalone/common"
 	"simds-standalone/config"
 	"simds-standalone/tracing/analyzer"
@@ -99,7 +100,7 @@ var MsgDealRules []Rule = []Rule{}
 var MsgFinishRules []Rule = []Rule{}
 
 func TaskEventRecord(t time.Time, msg *base.Message) {
-	task := msg.Body.(base.TaskInfo)
+	task := msg.Body.(lib.TaskInfo)
 	if strings.HasSuffix(task.Id, "preheat") {
 		return
 	}
@@ -131,7 +132,7 @@ func NetRecvEventRecord(t time.Time, msg *base.Message) {
 
 func _netEventRecord(t time.Time, msg *base.Message, eventype string) {
 	switch v := msg.Body.(type) {
-	case base.TaskInfo:
+	case lib.TaskInfo:
 		if strings.HasSuffix(v.Id, "preheat") {
 			return
 		}

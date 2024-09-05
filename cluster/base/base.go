@@ -5,8 +5,9 @@ package base
 import (
 	"encoding/json"
 	"errors"
-	"strings"
 	"time"
+
+	"simds-standalone/common"
 )
 
 type Cluster struct {
@@ -83,105 +84,17 @@ func ToJson[T MessageBody](t T) string {
 	return string(bytes)
 }
 
-func FromJson(contentType string, s string) MessageBody {
-	if strings.HasPrefix(contentType, "Task") {
-		var res TaskInfo
-		err := json.Unmarshal([]byte(s), &res)
-		if err != nil {
-			panic(err)
+var InverseJsonTable map[string]func(string) MessageBody = map[string]func(string) MessageBody{}
+
+func FromJson(head string, body string) MessageBody {
+
+	for pattern, f := range InverseJsonTable {
+		if common.MatchPattern(pattern, head) {
+			return f(body)
 		}
-		return res
-	} else if strings.HasPrefix(contentType, "NodeInfos") {
-		var res Vec[NodeInfo]
-		err := json.Unmarshal([]byte(s), &res)
-		if err != nil {
-			panic(err)
-		}
-		return res
-	} else if strings.HasPrefix(contentType, "Signal") {
-		return Signal(s)
-	} else {
-		panic("wrong type contentType")
 	}
-}
 
-type Signal string
-
-func (s Signal) MessageBody() {}
-
-// TaskInfo 任务的基本信息，还有一些附加的调度器使用的字段
-type TaskInfo struct {
-	Id                string //the task id,it is unique
-	CpuRequest        int32
-	MemoryRequest     int32
-	StartTime         time.Time
-	LifeTime          time.Duration
-	LeftTime          time.Duration
-	Status            string
-	User              string
-	Worker            string
-	ScheduleFailCount int32
-	Cmd               string
-}
-
-// MessageBody TaskInfo 是MessageBody
-func (TaskInfo) MessageBody() {}
-
-// Clone 复制新的TaskInfo
-func (t *TaskInfo) Clone() *TaskInfo {
-	var newT TaskInfo = *t
-	return &newT
-}
-
-// NodeInfo  节点资源信息
-type NodeInfo struct {
-	Addr           string
-	Cpu            int32
-	Memory         int32
-	CpuAllocted    int32
-	MemoryAllocted int32
-}
-
-// MessageBody NodeInfo 是MessageBody
-func (NodeInfo) MessageBody() {}
-
-// Clone 复制新的NodeInfo
-func (n *NodeInfo) Clone() *NodeInfo {
-	var NodeInfoCopy = *n
-	return &NodeInfoCopy
-}
-
-func (n *NodeInfo) CpuPercent() float32 {
-	return float32(n.CpuAllocted) / float32(n.Cpu)
-}
-
-func (n *NodeInfo) MemoryPercent() float32 {
-	return float32(n.MemoryAllocted) / float32(n.Memory)
-}
-
-// AddAllocated 更新节点信息-增加已分配
-func (n *NodeInfo) AddAllocated(taskCpu, taskMemory int32) {
-	n.CpuAllocted += taskCpu
-	n.MemoryAllocted += taskMemory
-}
-
-// SubAllocated 更新节点信息-释放已分配
-func (n *NodeInfo) SubAllocated(taskCpu, taskMemory int32) {
-	n.CpuAllocted -= taskCpu
-	n.MemoryAllocted -= taskMemory
-}
-
-// CanAllocate 判读是否满足分配
-func (n *NodeInfo) CanAllocate(taskCpu, taskMemory int32) bool {
-	if n.Cpu-n.CpuAllocted >= taskCpu && n.Memory-n.MemoryAllocted >= taskMemory {
-		return true
-	}
-	return false
-}
-
-// CanAllocateTask 判读是否满足分配某个任务
-func (n *NodeInfo) CanAllocateTask(task *TaskInfo) bool {
-	return n.CanAllocate(task.CpuRequest, task.MemoryRequest)
+	panic("wrong type contentType")
 }
 
 // Vec 为三种类型定义Vector
@@ -262,7 +175,7 @@ type Message struct {
 	Id       string
 	From     string
 	To       string
-	Head  string
+	Head     string
 	Body     MessageBody
 	LeftTime time.Duration
 }

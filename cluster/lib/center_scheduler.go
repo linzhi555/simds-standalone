@@ -1,13 +1,15 @@
-package base
+package lib
 
 import (
 	"fmt"
+
+	"simds-standalone/cluster/base"
 	"simds-standalone/common"
 )
 
 // Scheduler 组件
 type CenterScheduler struct {
-	BasicActor
+	base.BasicActor
 	TaskMap map[string]*TaskInfo
 	Workers map[string]*NodeInfo
 	Storage string
@@ -16,7 +18,7 @@ type CenterScheduler struct {
 // NewCenterScheduler 创造新的Scheduler
 func NewCenterScheduler(hostname string) *CenterScheduler {
 	return &CenterScheduler{
-		BasicActor: BasicActor{Host: hostname},
+		BasicActor: base.BasicActor{Host: hostname},
 		Workers:    make(map[string]*NodeInfo),
 	}
 }
@@ -27,19 +29,10 @@ func (s *CenterScheduler) Debug() {
 	fmt.Println("task status:")
 }
 
-// // GetAllWokersName 返回worker 名称列表
-// func (s *CenterScheduler) GetAllWokersName() []string {
-// 	keys := make([]string, 0, len(s.Workers))
-// 	for k := range s.Workers {
-// 		keys = append(keys, k)
-// 	}
-// 	return keys
-// }
-
-func (s *CenterScheduler) Update(msg Message) {
+func (s *CenterScheduler) Update(msg base.Message) {
 	switch msg.Head {
 
-	case "TaskDispense", "TaskCommitFail":
+	case "TaskDispense":
 		task := msg.Body.(TaskInfo)
 		dstWorker, ok := schdulingAlgorithm(s, &task)
 		if ok {
@@ -50,24 +43,22 @@ func (s *CenterScheduler) Update(msg Message) {
 				receiver = s.Storage
 			}
 			task.Worker = dstWorker
-			newMessage := Message{
-				From:    s.GetHostName(),
-				To:      receiver,
+			err := s.Os.Send(base.Message{
+				From: s.GetHostName(),
+				To:   receiver,
 				Head: "TaskRun",
-				Body:    task,
-			}
-			err := s.Os.Send(newMessage)
+				Body: task,
+			})
 			if err != nil {
 				panic(err)
 			}
 		} else {
-			newMessage := Message{
-				From:    s.GetHostName(),
-				To:      msg.From,
-				Head: "TaskCommitFail",
-				Body:    task,
-			}
-			err := s.Os.Send(newMessage)
+			err := s.Os.Send(base.Message{
+				From: s.GetHostName(),
+				To:   msg.From,
+				Head: "TaskScheudleFail",
+				Body: task,
+			})
 			if err != nil {
 				panic(err)
 			}
@@ -76,32 +67,17 @@ func (s *CenterScheduler) Update(msg Message) {
 		taskInfo := msg.Body.(TaskInfo)
 		s.Workers[msg.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)
 
-	case "NodeInfosUpdate":
-		nodeinfoList := msg.Body.(Vec[NodeInfo])
+	case "VecNodeInfoUpdate":
+		nodeinfoList := msg.Body.(base.Vec[NodeInfo])
 		for _, ni := range nodeinfoList {
 			s.Workers[ni.Addr] = ni.Clone()
 		}
 	}
-
 }
 
 func (s *CenterScheduler) SimulateTasksUpdate() {
 
 }
-
-// 在一个调度器中，每次更新执行调度算法的次数，该函数的影响参数是
-// performance : 该机器的性能参数 unit tasks / second
-// func schdulingAlgorithmTimes(performance float32) int {
-// 	times_float := performance / float32(config.Val.FPS) // 每次更新相当于时间 1 / config.Val/FPS秒
-// 	:= int(times_float)
-// 	var times_int int
-// 	if rand.Float32() < times_float-float32( {
-// 		times_int = + 1
-// 	} else {
-// 		times_int = core
-// 	}
-// 	return times_int
-// }
 
 // schdulingAlgorithm 简单的首次适应调度算法，找到第一个合适调度的节点,找不到 ok返回false
 func schdulingAlgorithm(scheduler *CenterScheduler, task *TaskInfo) (dstAddr string, ok bool) {

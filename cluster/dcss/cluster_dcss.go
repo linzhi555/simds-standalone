@@ -7,13 +7,14 @@ import (
 	"strings"
 
 	"simds-standalone/cluster/base"
+	"simds-standalone/cluster/lib"
 	"simds-standalone/config"
 )
 
 func BuildDcssCluster() base.Cluster {
 
 	var cluster base.Cluster
-	taskgen0 := base.NewTaskGen("simds-taskgen0")
+	taskgen0 := lib.NewTaskGen("simds-taskgen0")
 
 	for i := 0; i < int(config.Val.NodeNum); i++ {
 		actorName := fmt.Sprintf("simds-node%d", i)
@@ -28,9 +29,9 @@ func BuildDcssCluster() base.Cluster {
 }
 func (node *DcssNode) setup() {
 	// init local node info
-	node.LocalNode = &base.NodeInfo{Addr: node.GetHostName(), Cpu: config.Val.NodeCpu, Memory: config.Val.NodeMemory, CpuAllocted: 0, MemoryAllocted: 0}
-	node.TaskMap = make(map[string]*base.TaskInfo)
-	node.RunningTask = make(map[string]*base.TaskInfo)
+	node.LocalNode = &lib.NodeInfo{Addr: node.GetHostName(), Cpu: config.Val.NodeCpu, Memory: config.Val.NodeMemory, CpuAllocted: 0, MemoryAllocted: 0}
+	node.TaskMap = make(map[string]*lib.TaskInfo)
+	node.RunningTask = make(map[string]*lib.TaskInfo)
 
 	// init neibors
 	neiborNum := int(config.Val.DcssNeibor)
@@ -50,7 +51,7 @@ func (node *DcssNode) setup() {
 	}
 
 	for _, n := range neibors {
-		nodeInfo := &base.NodeInfo{Addr: n, Cpu: config.Val.NodeCpu, Memory: config.Val.NodeMemory, CpuAllocted: 0, MemoryAllocted: 0}
+		nodeInfo := &lib.NodeInfo{Addr: n, Cpu: config.Val.NodeCpu, Memory: config.Val.NodeMemory, CpuAllocted: 0, MemoryAllocted: 0}
 		node.Neighbors[n] = nodeInfo.Clone()
 	}
 

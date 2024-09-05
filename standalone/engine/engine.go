@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"simds-standalone/cluster/base"
+	"simds-standalone/cluster/lib"
 	"simds-standalone/common"
 	"simds-standalone/config"
 	"simds-standalone/tracing/rules"
@@ -278,10 +279,10 @@ func InitEngine(cluster base.Cluster) *Engine {
 			os.engine = &e
 
 			os.Send(base.Message{
-				From:    os.addr,
-				To:      os.addr,
+				From: os.addr,
+				To:   os.addr,
 				Head: "SignalBoot",
-				Body:    base.Signal("SignalBoot"),
+				Body: lib.Signal("SignalBoot"),
 			})
 			actor.model.SetOsApi(&os)
 		}

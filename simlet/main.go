@@ -7,6 +7,7 @@ import (
 
 	"simds-standalone/cluster"
 	"simds-standalone/cluster/base"
+	"simds-standalone/cluster/lib"
 	"simds-standalone/config"
 	"simds-standalone/simctl/k8s"
 	"simds-standalone/simlet/svc"
@@ -18,11 +19,12 @@ func startSimletActor(actor base.Actor, s *SimletServer) {
 	s.RegisterNewActor(os)
 	actor.SetOsApi(os)
 
+	boolSignal := lib.Signal("SignalBoot")
 	os.Send(base.Message{
-		From:    actor.GetHostName(),
-		To:      actor.GetHostName(),
-		Head: "SignalBoot",
-		Body:    base.Signal("SignalBoot"),
+		From: actor.GetHostName(),
+		To:   actor.GetHostName(),
+		Head: string(boolSignal),
+		Body: boolSignal,
 	})
 
 	go func() {

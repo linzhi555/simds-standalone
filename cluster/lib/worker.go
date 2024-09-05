@@ -1,13 +1,15 @@
-package base
+package lib
 
 import (
 	"os/exec"
-	"simds-standalone/config"
 	"time"
+
+	"simds-standalone/cluster/base"
+	"simds-standalone/config"
 )
 
 type Worker struct {
-	BasicActor
+	base.BasicActor
 	Node    NodeInfo // do not store the information , calculate when needed from tasks
 	Manager string   // will nofify the ther worker's Manager if the task state is changed
 	TaskMap map[string]*TaskInfo
@@ -15,7 +17,7 @@ type Worker struct {
 
 func NewWorker(host string, nodeinfo NodeInfo, manager string) *Worker {
 	return &Worker{
-		BasicActor: BasicActor{Host: host},
+		BasicActor: base.BasicActor{Host: host},
 		Manager:    manager,
 		Node:       nodeinfo,
 		TaskMap:    map[string]*TaskInfo{},
@@ -40,7 +42,7 @@ func (n *Worker) Debug() {
 // 收到后台任务管理器的信息
 // 1. 任务介绍信息，则将此消息通知给Manager
 
-func (worker *Worker) Update(msg Message) {
+func (worker *Worker) Update(msg base.Message) {
 
 	switch msg.Head {
 
@@ -79,11 +81,11 @@ func (worker *Worker) Update(msg Message) {
 			informReceiverTaskStatus(worker, &t, "TaskFinish")
 		}
 		delete(worker.TaskMap, id)
-		worker.Os.Send(Message{
-			From:    worker.Host,
-			To:      t.User,
+		worker.Os.Send(base.Message{
+			From: worker.Host,
+			To:   t.User,
 			Head: "TaskFinish",
-			Body:    t,
+			Body: t,
 		})
 	}
 
@@ -95,11 +97,11 @@ func (worker *Worker) deakRunTask(t TaskInfo) {
 	t.LeftTime = t.LifeTime
 	t.Status = "start"
 	worker._runTask(t)
-	worker.Os.Send(Message{
-		From:    worker.Host,
-		To:      t.User,
+	worker.Os.Send(base.Message{
+		From: worker.Host,
+		To:   t.User,
 		Head: "TaskStart",
-		Body:    t,
+		Body: t,
 	})
 }
 
@@ -110,11 +112,11 @@ func (node *Worker) _runTask(t TaskInfo) {
 		if err != nil {
 			panic(err)
 		}
-		newMessage := Message{
-			From:    node.GetHostName(),
-			To:      node.GetHostName(),
+		newMessage := base.Message{
+			From: node.GetHostName(),
+			To:   node.GetHostName(),
 			Head: "TaskFinish",
-			Body:    t,
+			Body: t,
 		}
 		err = node.Os.Send(newMessage)
 		if err != nil {
@@ -129,11 +131,11 @@ func (worker *Worker) SimulateTasksUpdate() {
 		if t.Status == "start" && t.LeftTime > 0 {
 			t.LeftTime -= (time.Second / time.Duration(config.Val.FPS))
 			if t.LeftTime <= 0 {
-				newMessage := Message{
-					From:    worker.GetHostName(),
-					To:      worker.GetHostName(),
+				newMessage := base.Message{
+					From: worker.GetHostName(),
+					To:   worker.GetHostName(),
 					Head: "TaskFinish",
-					Body:    *t,
+					Body: *t,
 				}
 				err := worker.Os.Send(newMessage)
 				if err != nil {
@@ -146,11 +148,11 @@ func (worker *Worker) SimulateTasksUpdate() {
 }
 
 func informReceiverTaskStatus(worker *Worker, t *TaskInfo, content string) {
-	newMessage := Message{
-		From:    worker.GetHostName(),
-		To:      worker.Manager,
+	newMessage := base.Message{
+		From: worker.GetHostName(),
+		To:   worker.Manager,
 		Head: content,
-		Body:    *t,
+		Body: *t,
 	}
 	err := worker.Os.Send(newMessage)
 	if err != nil {

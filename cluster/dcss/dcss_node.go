@@ -3,18 +3,20 @@ package dcss
 import (
 	"math/rand"
 	"os/exec"
-	"simds-standalone/cluster/base"
-	"simds-standalone/config"
 	"time"
+
+	"simds-standalone/cluster/base"
+	"simds-standalone/cluster/lib"
+	"simds-standalone/config"
 )
 
 // Scheduler 组件
 type DcssNode struct {
 	base.BasicActor
-	TaskMap     map[string]*base.TaskInfo
-	RunningTask map[string]*base.TaskInfo
-	Neighbors   map[string]*base.NodeInfo
-	LocalNode   *base.NodeInfo
+	TaskMap     map[string]*lib.TaskInfo
+	RunningTask map[string]*lib.TaskInfo
+	Neighbors   map[string]*lib.NodeInfo
+	LocalNode   *lib.NodeInfo
 }
 
 func (node *DcssNode) Debug() {
@@ -26,8 +28,8 @@ func NewDcssNode(nodeName string) *DcssNode {
 		BasicActor: base.BasicActor{
 			Host: nodeName,
 		},
-		Neighbors: make(map[string]*base.NodeInfo),
-		LocalNode: &base.NodeInfo{
+		Neighbors: make(map[string]*lib.NodeInfo),
+		LocalNode: &lib.NodeInfo{
 			Addr:   nodeName,
 			Cpu:    config.Val.NodeCpu,
 			Memory: config.Val.NodeMemory,
@@ -64,15 +66,15 @@ func (node *DcssNode) Update(msg base.Message) {
 }
 
 func (node *DcssNode) dcssTaskDispenseHandle(newMessage base.Message) {
-	task := newMessage.Body.(base.TaskInfo)
+	task := newMessage.Body.(lib.TaskInfo)
 	if node.LocalNode.CanAllocateTask(&task) {
 		node.LocalNode.AddAllocated(task.CpuRequest, task.MemoryRequest)
 		node._runTask(task)
 		node.Os.Send(base.Message{
-			From:    node.Host,
-			To:      task.User,
+			From: node.Host,
+			To:   task.User,
 			Head: "TaskStart",
-			Body:    task,
+			Body: task,
 		})
 	} else {
 		switch config.Val.DcssDividePolicy {
@@ -93,17 +95,17 @@ func (node *DcssNode) dcssTaskDispenseHandle(newMessage base.Message) {
 		}
 	}
 }
-func (node *DcssNode) _delaySchedule(task base.TaskInfo) {
+func (node *DcssNode) _delaySchedule(task lib.TaskInfo) {
 	task.Status = "delaySchedule"
 	task.LeftTime = time.Millisecond * 10
 	node.RunningTask[task.Id] = &task
 	node.Os.Run(func() {
 		time.Sleep(time.Millisecond * 10)
 		newMessage := base.Message{
-			From:    node.GetHostName(),
-			To:      node.GetHostName(),
+			From: node.GetHostName(),
+			To:   node.GetHostName(),
 			Head: "TaskDispense",
-			Body:    task,
+			Body: task,
 		}
 		err := node.Os.Send(newMessage)
 		if err != nil {
@@ -112,7 +114,7 @@ func (node *DcssNode) _delaySchedule(task base.TaskInfo) {
 	})
 }
 
-func (node *DcssNode) _dcssDivideTask(task base.TaskInfo) {
+func (node *DcssNode) _dcssDivideTask(task lib.TaskInfo) {
 	task.Status = "DivideStage1"
 	task.ScheduleFailCount = 0 // this is for count how many neibor reject this task
 	keys := make([]string, 0, len(node.Neighbors))
@@ -122,10 +124,10 @@ func (node *DcssNode) _dcssDivideTask(task base.TaskInfo) {
 
 	for _, neibor := range keys {
 		newMessage := base.Message{
-			From:    node.GetHostName(),
-			To:      neibor,
+			From: node.GetHostName(),
+			To:   neibor,
 			Head: "TaskDivide",
-			Body:    task,
+			Body: task,
 		}
 		err := node.Os.Send(newMessage)
 		if err != nil {
@@ -136,7 +138,7 @@ func (node *DcssNode) _dcssDivideTask(task base.TaskInfo) {
 	node.TaskMap[task.Id] = &task
 }
 
-func (node *DcssNode) _dispenseTask(task base.TaskInfo) {
+func (node *DcssNode) _dispenseTask(task lib.TaskInfo) {
 	keys := make([]string, 0, len(node.Neighbors))
 	for k := range node.Neighbors {
 		keys = append(keys, k)
@@ -144,10 +146,10 @@ func (node *DcssNode) _dispenseTask(task base.TaskInfo) {
 	neibors := keys
 	dstNeibor := neibors[rand.Intn(len(neibors))]
 	newMessage := base.Message{
-		From:    node.GetHostName(),
-		To:      dstNeibor,
+		From: node.GetHostName(),
+		To:   dstNeibor,
 		Head: "TaskDispense",
-		Body:    task,
+		Body: task,
 	}
 	err := node.Os.Send(newMessage)
 	if err != nil {
@@ -156,7 +158,7 @@ func (node *DcssNode) _dispenseTask(task base.TaskInfo) {
 }
 
 func (node *DcssNode) dcssTaskDivideHandle(newMessage base.Message) {
-	task := newMessage.Body.(base.TaskInfo)
+	task := newMessage.Body.(lib.TaskInfo)
 	messageReply := newMessage
 	messageReply.To = newMessage.From
 	messageReply.From = newMessage.To
@@ -175,26 +177,26 @@ func (node *DcssNode) dcssTaskDivideHandle(newMessage base.Message) {
 }
 
 func (node *DcssNode) dcssTaskDivideConfirmHandle(newMessage base.Message) {
-	task := newMessage.Body.(base.TaskInfo)
+	task := newMessage.Body.(lib.TaskInfo)
 	t := node.TaskMap[task.Id]
 
 	if t.Status == "DivideStage2" {
 		t.Status = "DivideStage3"
 		err := node.Os.Send(base.Message{
-			From:    newMessage.To,
-			To:      newMessage.From,
+			From: newMessage.To,
+			To:   newMessage.From,
 			Head: "TaskDivideAllocate",
-			Body:    *node.TaskMap[task.Id],
+			Body: *node.TaskMap[task.Id],
 		})
 		if err != nil {
 			panic(err)
 		}
 	} else if t.Status == "DivideStage3" {
 		err := node.Os.Send(base.Message{
-			From:    newMessage.To,
-			To:      newMessage.From,
+			From: newMessage.To,
+			To:   newMessage.From,
 			Head: "TaskDivideCancel",
-			Body:    *node.TaskMap[task.Id],
+			Body: *node.TaskMap[task.Id],
 		})
 		if err != nil {
 			panic(err)
@@ -203,24 +205,24 @@ func (node *DcssNode) dcssTaskDivideConfirmHandle(newMessage base.Message) {
 	}
 }
 func (node *DcssNode) dcssTaskDivideAllocateHandle(newMessage base.Message) {
-	task := newMessage.Body.(base.TaskInfo)
+	task := newMessage.Body.(lib.TaskInfo)
 	if t, ok := node.TaskMap[task.Id]; ok {
 		if t.Status == "needStart" {
 			node._runTask(*t)
 			delete(node.TaskMap, t.Id)
 
 			node.Os.Send(base.Message{
-				From:    node.Host,
-				To:      task.User,
+				From: node.Host,
+				To:   task.User,
 				Head: "TaskStart",
-				Body:    task,
+				Body: task,
 			})
 
 		}
 	}
 }
 
-func (node *DcssNode) _runTask(t base.TaskInfo) {
+func (node *DcssNode) _runTask(t lib.TaskInfo) {
 	t.StartTime = node.Os.GetTime()
 	t.LeftTime = t.LifeTime
 	t.Status = "start"
@@ -232,10 +234,10 @@ func (node *DcssNode) _runTask(t base.TaskInfo) {
 			panic(err)
 		}
 		newMessage := base.Message{
-			From:    node.GetHostName(),
-			To:      node.GetHostName(),
+			From: node.GetHostName(),
+			To:   node.GetHostName(),
 			Head: "TaskFinish",
-			Body:    t,
+			Body: t,
 		}
 		err = node.Os.Send(newMessage)
 		if err != nil {
@@ -246,7 +248,7 @@ func (node *DcssNode) _runTask(t base.TaskInfo) {
 }
 
 func (node *DcssNode) dcssTaskDivideCancelHandle(newMessage base.Message) {
-	task := newMessage.Body.(base.TaskInfo)
+	task := newMessage.Body.(lib.TaskInfo)
 
 	if t, ok := node.TaskMap[task.Id]; ok {
 		if t.Status == "needStart" {
@@ -257,28 +259,28 @@ func (node *DcssNode) dcssTaskDivideCancelHandle(newMessage base.Message) {
 }
 
 func (node *DcssNode) dcssTaskDivideRejectHandle(newMessage base.Message) {
-	task := newMessage.Body.(base.TaskInfo)
+	task := newMessage.Body.(lib.TaskInfo)
 	node.TaskMap[task.Id].ScheduleFailCount++
 	neiborNum := config.Val.DcssNeibor
 	// if all neibors reject this task, so we i have to dispense the task to a random neibors,
 	// the distination neibors  may have a valid neibor to execute this task
 	if node.TaskMap[task.Id].ScheduleFailCount == int32(neiborNum) {
-		var taskCopy base.TaskInfo = *(node.TaskMap[task.Id])
+		var taskCopy lib.TaskInfo = *(node.TaskMap[task.Id])
 		node._dispenseTask(taskCopy)
 		delete(node.TaskMap, taskCopy.Id)
 	}
 }
 
 func (node *DcssNode) dcssFinishHandle(newMessage base.Message) {
-	task := newMessage.Body.(base.TaskInfo)
+	task := newMessage.Body.(lib.TaskInfo)
 	task.Status = "finish"
 	node.LocalNode.SubAllocated(task.CpuRequest, task.MemoryRequest)
 
 	node.Os.Send(base.Message{
-		From:    node.Host,
-		To:      task.User,
+		From: node.Host,
+		To:   task.User,
 		Head: "TaskFinish",
-		Body:    task,
+		Body: task,
 	})
 
 	delete(node.RunningTask, task.Id)
@@ -296,10 +298,10 @@ func (node *DcssNode) SimulateTasksUpdate() {
 			}
 			if t.LeftTime <= 0 {
 				newMessage := base.Message{
-					From:    node.GetHostName(),
-					To:      node.GetHostName(),
+					From: node.GetHostName(),
+					To:   node.GetHostName(),
 					Head: messageType,
-					Body:    *t,
+					Body: *t,
 				}
 				err := node.Os.Send(newMessage)
 				if err != nil {
