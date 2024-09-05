@@ -160,7 +160,7 @@ func (taskgen *TaskGen) Update(msg base.Message) {
 		taskgen.InitTaskSrc(all)
 		taskgen.StartTime = taskgen.Os.GetTime()
 		taskgen.Status = "preheat"
-		taskgen.Os.SetInterval(func() { taskgen._sendTasks() }, time.Millisecond)
+		taskgen.Os.SetInterval(func() { taskgen._sendTasks() }, 10 * time.Millisecond)
 
 	case "TaskStart":
 		newtask := msg.Body.(TaskInfo)

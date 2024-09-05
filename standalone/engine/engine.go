@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"time"
 
@@ -15,6 +16,9 @@ import (
 
 // ZEROTIME 模拟开始的现实时间，以此作为模拟器的零点时间
 var ZEROTIME time.Time = time.Now()
+
+// 每次更新代表的时间长度
+var DeltaT time.Duration = time.Second / time.Duration(config.Val.FPS)
 
 type Progress uint32
 
@@ -69,8 +73,7 @@ type VirtualNode struct {
 }
 
 func _defaultUpdateFunc(_ []ActorHideStatus, self ActorHideStatus) float32 {
-	delta := time.Second / time.Duration(config.Val.FPS)
-	return float32(delta) / float32(self.Difficulty)
+	return float32(DeltaT) / float32(self.Difficulty)
 }
 
 func NewVirtualNode(engine *Engine, actors ...base.Actor) *VirtualNode {
@@ -100,8 +103,15 @@ func (vnode *VirtualNode) Update() {
 		switch v := actor.model.(type) {
 		case *timer:
 			simulateTimer(v, &actor.hide)
+			if actor.hide.NeedDestroy {
+				delete(vnode.actors, v.Host)
+			}
 			continue
 		case *cmdExecutor:
+			simulateExecutor(v, &actor.hide)
+			if actor.hide.NeedDestroy {
+				delete(vnode.actors, v.Host)
+			}
 			continue
 		}
 
@@ -118,6 +128,7 @@ func (vnode *VirtualNode) Update() {
 	}
 }
 
+// timer and emd cmdExecutor 是特殊的actor
 type timer struct {
 	base.BasicActor
 	isRepeat bool
@@ -127,16 +138,57 @@ type timer struct {
 
 func (*timer) Update(base.Message) {}
 
-var DeltaT time.Duration
-
 func simulateTimer(t *timer, hide *ActorHideStatus) {
+	if hide.NeedDestroy {
+		return
+	}
+
 	hide.Progress.Add(float32(DeltaT) / float32(t.timeOut))
 	if hide.Progress.IsFinished() {
+		t.callback()
 		if t.isRepeat {
 			hide.Progress = 0
 		} else {
 			hide.NeedDestroy = true
 		}
+	}
+}
+
+type cmdExecutor struct {
+	base.BasicActor
+	cmd      string
+	lifetime time.Duration
+	callback func(error)
+}
+
+func (*cmdExecutor) Update(base.Message) {}
+
+func newCmdExecutor(host string, f func(error), cmd string) *cmdExecutor {
+	c := &cmdExecutor{
+		BasicActor: base.BasicActor{
+			Host: host + "_cmd_" + cmd,
+		},
+		cmd:      cmd,
+		callback: f,
+	}
+
+	if res, ok := strings.CutPrefix(c.cmd, "sleep "); ok {
+		c.lifetime = time.Duration(common.Str_to_float64(res)*1000000) * time.Microsecond
+	}
+	return c
+}
+
+func simulateExecutor(cmd *cmdExecutor, hide *ActorHideStatus) {
+	if hide.NeedDestroy {
+		return
+	}
+
+	hide.Progress.Add(float32(DeltaT) / float32(cmd.lifetime))
+
+	if hide.Progress.IsFinished() {
+		cmd.callback(nil)
+		hide.Progress = 0
+		hide.NeedDestroy = true
 	}
 }
 
@@ -155,7 +207,7 @@ func (o *EngineOs) GetTime() time.Time {
 func (o *EngineOs) SetInterval(callback func(), t time.Duration) {
 	o.node.AddActor(&timer{
 		BasicActor: base.BasicActor{
-			Host: o.addr + "_onecetimer_" + fmt.Sprint(t) + common.GenerateUID(),
+			Host: o.addr + "rt" + fmt.Sprint(t) + common.GenerateUID()[0:4], // ot mean: repeat timer
 		},
 		isRepeat: true,
 		timeOut:  t,
@@ -167,7 +219,7 @@ func (o *EngineOs) SetInterval(callback func(), t time.Duration) {
 func (o *EngineOs) SetTimeOut(callback func(), t time.Duration) {
 	o.node.AddActor(&timer{
 		BasicActor: base.BasicActor{
-			Host: o.addr + "_repeattimer_" + fmt.Sprint(t) + common.GenerateUID(),
+			Host: o.addr + "ot" + fmt.Sprint(t) + common.GenerateUID()[0:4], // ot mean: once timer
 		},
 		isRepeat: false,
 		timeOut:  t,
@@ -175,22 +227,8 @@ func (o *EngineOs) SetTimeOut(callback func(), t time.Duration) {
 	})
 }
 
-type cmdExecutor struct {
-	base.BasicActor
-	cmd      string
-	callback func(error)
-}
-
-func (*cmdExecutor) Update(base.Message) {}
-
 func (o *EngineOs) RunCmd(callback func(err error), cmd string) {
-	o.node.AddActor(&cmdExecutor{
-		BasicActor: base.BasicActor{
-			Host: o.addr + "_cmd_" + cmd,
-		},
-		cmd:      cmd,
-		callback: callback,
-	})
+	o.node.AddActor(newCmdExecutor(o.addr, callback, cmd))
 }
 
 func (o *EngineOs) Send(m base.Message) error {
@@ -221,14 +259,13 @@ func newVirtualNetwork() VirtualNetwork {
 
 type Engine struct {
 	UpdateCount uint64
-	UpdateGap   time.Duration // 每次更新推进的时间
 	Nodes       []VirtualNode
 	Network     VirtualNetwork
 }
 
 // 集群已经运行的时间
 func (engine *Engine) UpTime() time.Duration {
-	return time.Duration(engine.UpdateCount) * engine.UpdateGap
+	return time.Duration(engine.UpdateCount) * DeltaT
 }
 
 func (engine *Engine) GetWorldTime() time.Time {
@@ -305,7 +342,7 @@ func (engine *Engine) updateNetwork() {
 			out.InQueueBack(m)
 			rules.CheckRulesThenExec(rules.RecvRules, engine.GetWorldTime(), &m)
 		} else {
-			network.Waittings[i].LeftTime -= (time.Second / time.Duration(config.Val.FPS))
+			network.Waittings[i].LeftTime -= DeltaT
 		}
 		if needDelete {
 			network.Waittings.Delete(i)
@@ -337,7 +374,6 @@ func InitEngine(cluster base.Cluster) *Engine {
 	}
 
 	e.Network = newVirtualNetwork()
-	e.UpdateGap = time.Second / time.Duration(config.Val.FPS)
 	for _, node := range e.Nodes {
 		for _, actor := range node.actors {
 			e.Network.Ins[actor.model.GetAddress()] = &common.Vec[base.Message]{}

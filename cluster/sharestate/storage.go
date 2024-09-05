@@ -6,6 +6,7 @@ import (
 
 	"simds-standalone/cluster/base"
 	"simds-standalone/cluster/lib"
+	"simds-standalone/config"
 )
 
 // StateStorage 节点，用于共享状态的存储
@@ -41,21 +42,13 @@ func (s *StateStorage) Update(msg base.Message) {
 	switch msg.Head {
 
 	case "SignalBoot":
-		s.LastSendTime = s.Os.GetTime()
-//		s.Os.Run(func() {
-//			for {
-//				time.Sleep(time.Duration(config.Val.StateUpdatePeriod) * time.Millisecond)
-//				newMessage := base.Message{
-//					From: s.GetAddress(),
-//					To:   s.GetAddress(),
-//					Head: "SignalUpdate",
-//				}
-//				err := s.Os.Send(newMessage)
-//				if err != nil {
-//					log.Println(err)
-//				}
-//			}
-//		})
+		s.Os.SetInterval(func() {
+			s.Os.Send(base.Message{
+				From: s.GetAddress(),
+				To:   s.GetAddress(),
+				Head: "SignalUpdate",
+			})
+		}, time.Duration(config.Val.StateUpdatePeriod)*time.Millisecond)
 
 	case "TaskRun":
 		task := msg.Body.(lib.TaskInfo)

@@ -77,7 +77,6 @@ func (s *CenterScheduler) Update(msg base.Message) {
 	}
 }
 
-
 // schdulingAlgorithm 简单的首次适应调度算法，找到第一个合适调度的节点,找不到 ok返回false
 func schdulingAlgorithm(scheduler *CenterScheduler, task *TaskInfo) (dstAddr string, ok bool) {
 	dstAddr = ""
@@ -95,7 +94,9 @@ func schdulingAlgorithm(scheduler *CenterScheduler, task *TaskInfo) (dstAddr str
 	}
 
 	if dstAddr == "" {
+
 		return dstAddr, false
 	}
+
 	return dstAddr, true
 }
