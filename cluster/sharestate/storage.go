@@ -27,8 +27,8 @@ func NewStateStorage(hostname string) *StateStorage {
 }
 
 // StateCopy 复制一份集群状态拷贝
-func (s *StateStorage) StateCopy() base.Vec[lib.NodeInfo] {
-	nodes := make(base.Vec[lib.NodeInfo], 0, len(s.Workers))
+func (s *StateStorage) StateCopy() lib.VecNodeInfo {
+	nodes := make(lib.VecNodeInfo, 0, len(s.Workers))
 	for _, ni := range s.Workers {
 		nodes = append(nodes, *ni)
 	}
@@ -77,7 +77,7 @@ func (s *StateStorage) Update(msg base.Message) {
 				From: s.GetHostName(),
 				To:   msg.From,
 				Head: "VecNodeInfoUpdate",
-				Body: base.Vec[lib.NodeInfo]{*s.Workers[task.Worker]},
+				Body: lib.VecNodeInfo{*s.Workers[task.Worker]},
 			})
 			if err != nil {
 				panic(err)
@@ -98,13 +98,12 @@ func (s *StateStorage) Update(msg base.Message) {
 		s.Workers[msg.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)
 	case "SignalUpdate":
 		s.LastSendTime = s.Os.GetTime()
-		stateCopy := s.StateCopy()
 		for _, scheduler := range s.Schedulers {
 			err := s.Os.Send(base.Message{
 				From: s.GetHostName(),
 				To:   scheduler,
 				Head: "VecNodeInfoUpdate",
-				Body: *stateCopy.Clone(),
+				Body: s.StateCopy(),
 			})
 			if err != nil {
 				panic(err)

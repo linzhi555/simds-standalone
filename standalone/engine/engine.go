@@ -131,17 +131,17 @@ func (o *EngineOs) Send(m base.Message) error {
 type VirtualNetwork struct {
 	Os         base.OsApi
 	NetLatency int32
-	Waittings  base.Vec[base.Message]
-	Ins        map[string]*base.Vec[base.Message]
-	Outs       map[string]*base.Vec[base.Message]
+	Waittings  common.Vec[base.Message]
+	Ins        map[string]*common.Vec[base.Message]
+	Outs       map[string]*common.Vec[base.Message]
 }
 
 func newVirtualNetwork() VirtualNetwork {
 	return VirtualNetwork{
 		NetLatency: config.Val.NetLatency,
-		Waittings:  base.Vec[base.Message]{},
-		Ins:        make(map[string]*base.Vec[base.Message]),
-		Outs:       make(map[string]*base.Vec[base.Message]),
+		Waittings:  common.Vec[base.Message]{},
+		Ins:        make(map[string]*common.Vec[base.Message]),
+		Outs:       make(map[string]*common.Vec[base.Message]),
 	}
 }
 
@@ -267,8 +267,8 @@ func InitEngine(cluster base.Cluster) *Engine {
 	e.UpdateGap = time.Second / time.Duration(config.Val.FPS)
 	for _, node := range e.Nodes {
 		for _, actor := range node.actors {
-			e.Network.Ins[actor.model.GetHostName()] = &base.Vec[base.Message]{}
-			e.Network.Outs[actor.model.GetHostName()] = &base.Vec[base.Message]{}
+			e.Network.Ins[actor.model.GetHostName()] = &common.Vec[base.Message]{}
+			e.Network.Outs[actor.model.GetHostName()] = &common.Vec[base.Message]{}
 		}
 	}
 

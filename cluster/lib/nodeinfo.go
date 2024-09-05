@@ -15,15 +15,6 @@ func init() {
 		return res
 	}
 
-	base.InverseJsonTable["VecNodeInfo*"] = func(s string) base.MessageBody {
-		var res base.Vec[NodeInfo]
-		err := json.Unmarshal([]byte(s), &res)
-		if err != nil {
-			panic(err)
-		}
-		return res
-	}
-
 }
 
 // NodeInfo  节点资源信息

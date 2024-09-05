@@ -32,7 +32,7 @@ func (s *CenterScheduler) Debug() {
 func (s *CenterScheduler) Update(msg base.Message) {
 	switch msg.Head {
 
-	case "TaskDispense","TaskCommitFail":
+	case "TaskDispense", "TaskCommitFail":
 		task := msg.Body.(TaskInfo)
 		dstWorker, ok := schdulingAlgorithm(s, &task)
 		if ok {
@@ -68,7 +68,7 @@ func (s *CenterScheduler) Update(msg base.Message) {
 		s.Workers[msg.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)
 
 	case "VecNodeInfoUpdate":
-		nodeinfoList := msg.Body.(base.Vec[NodeInfo])
+		nodeinfoList := msg.Body.(VecNodeInfo)
 		for _, ni := range nodeinfoList {
 			s.Workers[ni.Addr] = ni.Clone()
 		}
