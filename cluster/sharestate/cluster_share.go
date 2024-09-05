@@ -18,11 +18,11 @@ func BuildShareStateCluster() base.Cluster {
 
 	for i := 0; i < shareSchdulerNum; i++ {
 		scheduler := lib.NewCenterScheduler(fmt.Sprintf("simds-scheduler%d", i))
-		scheduler.Storage = storage.GetHostName()
+		scheduler.Storage = storage.GetAddress()
 
 		cluster.Join(base.NewNode(scheduler))
-		taskgen0.Receivers = append(taskgen0.Receivers, scheduler.GetHostName())
-		storage.Schedulers = append(storage.Schedulers, scheduler.GetHostName())
+		taskgen0.Receivers = append(taskgen0.Receivers, scheduler.GetAddress())
+		storage.Schedulers = append(storage.Schedulers, scheduler.GetAddress())
 	}
 
 	for i := 0; i < int(config.Val.NodeNum); i++ {
@@ -30,7 +30,7 @@ func BuildShareStateCluster() base.Cluster {
 		newworker := lib.NewWorker(
 			workerName,
 			lib.NodeInfo{Addr: workerName, Cpu: config.Val.NodeCpu, Memory: config.Val.NodeMemory, CpuAllocted: 0, MemoryAllocted: 0},
-			storage.GetHostName(),
+			storage.GetAddress(),
 		)
 		storage.Workers[workerName] = newworker.Node.Clone()
 		cluster.Join(base.NewNode(newworker))

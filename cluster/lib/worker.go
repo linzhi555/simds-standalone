@@ -113,8 +113,8 @@ func (node *Worker) _runTask(t TaskInfo) {
 			panic(err)
 		}
 		newMessage := base.Message{
-			From: node.GetHostName(),
-			To:   node.GetHostName(),
+			From: node.GetAddress(),
+			To:   node.GetAddress(),
 			Head: "TaskFinish",
 			Body: t,
 		}
@@ -132,8 +132,8 @@ func (worker *Worker) SimulateTasksUpdate() {
 			t.LeftTime -= (time.Second / time.Duration(config.Val.FPS))
 			if t.LeftTime <= 0 {
 				newMessage := base.Message{
-					From: worker.GetHostName(),
-					To:   worker.GetHostName(),
+					From: worker.GetAddress(),
+					To:   worker.GetAddress(),
 					Head: "TaskFinish",
 					Body: *t,
 				}
@@ -149,7 +149,7 @@ func (worker *Worker) SimulateTasksUpdate() {
 
 func informReceiverTaskStatus(worker *Worker, t *TaskInfo, content string) {
 	newMessage := base.Message{
-		From: worker.GetHostName(),
+		From: worker.GetAddress(),
 		To:   worker.Manager,
 		Head: content,
 		Body: *t,
@@ -170,7 +170,7 @@ func _calculateNodeInfo(worker *Worker) NodeInfo {
 	}
 
 	var nodeinfo NodeInfo = NodeInfo{
-		Addr:           worker.GetHostName(),
+		Addr:           worker.GetAddress(),
 		Cpu:            config.Val.NodeCpu,
 		Memory:         config.Val.NodeMemory,
 		CpuAllocted:    cpu,

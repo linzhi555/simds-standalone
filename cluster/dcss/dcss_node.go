@@ -102,8 +102,8 @@ func (node *DcssNode) _delaySchedule(task lib.TaskInfo) {
 	node.Os.Run(func() {
 		time.Sleep(time.Millisecond * 10)
 		newMessage := base.Message{
-			From: node.GetHostName(),
-			To:   node.GetHostName(),
+			From: node.GetAddress(),
+			To:   node.GetAddress(),
 			Head: "TaskDispense",
 			Body: task,
 		}
@@ -124,7 +124,7 @@ func (node *DcssNode) _dcssDivideTask(task lib.TaskInfo) {
 
 	for _, neibor := range keys {
 		newMessage := base.Message{
-			From: node.GetHostName(),
+			From: node.GetAddress(),
 			To:   neibor,
 			Head: "TaskDivide",
 			Body: task,
@@ -146,7 +146,7 @@ func (node *DcssNode) _dispenseTask(task lib.TaskInfo) {
 	neibors := keys
 	dstNeibor := neibors[rand.Intn(len(neibors))]
 	newMessage := base.Message{
-		From: node.GetHostName(),
+		From: node.GetAddress(),
 		To:   dstNeibor,
 		Head: "TaskDispense",
 		Body: task,
@@ -234,8 +234,8 @@ func (node *DcssNode) _runTask(t lib.TaskInfo) {
 			panic(err)
 		}
 		newMessage := base.Message{
-			From: node.GetHostName(),
-			To:   node.GetHostName(),
+			From: node.GetAddress(),
+			To:   node.GetAddress(),
 			Head: "TaskFinish",
 			Body: t,
 		}
@@ -298,8 +298,8 @@ func (node *DcssNode) SimulateTasksUpdate() {
 			}
 			if t.LeftTime <= 0 {
 				newMessage := base.Message{
-					From: node.GetHostName(),
-					To:   node.GetHostName(),
+					From: node.GetAddress(),
+					To:   node.GetAddress(),
 					Head: messageType,
 					Body: *t,
 				}

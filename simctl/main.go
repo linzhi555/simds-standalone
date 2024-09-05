@@ -61,7 +61,7 @@ func Deploy(cli *k8s.K8sClient) {
 
 	// create pod
 	for _, node := range cluster.Nodes {
-		name := node.Actors[0].GetHostName()
+		name := node.Actors[0].GetAddress()
 		fmt.Println("deploy", name)
 
 		cli.CreatePod(name, name, config.Val.PullImageRepo,

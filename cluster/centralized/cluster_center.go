@@ -12,7 +12,7 @@ func BuildCenterCluster() base.Cluster {
 	var cluster base.Cluster
 	taskgen0 := lib.NewTaskGen("simds-taskgen0")
 	master0 := lib.NewCenterScheduler("simds-master0")
-	taskgen0.Receivers = append(taskgen0.Receivers, master0.GetHostName())
+	taskgen0.Receivers = append(taskgen0.Receivers, master0.GetAddress())
 
 	for i := 0; i < int(config.Val.NodeNum); i++ {
 		workerName := fmt.Sprintf("simds-worker%d", i)

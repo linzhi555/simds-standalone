@@ -29,7 +29,7 @@ func BuildDcssCluster() base.Cluster {
 }
 func (node *DcssNode) setup() {
 	// init local node info
-	node.LocalNode = &lib.NodeInfo{Addr: node.GetHostName(), Cpu: config.Val.NodeCpu, Memory: config.Val.NodeMemory, CpuAllocted: 0, MemoryAllocted: 0}
+	node.LocalNode = &lib.NodeInfo{Addr: node.GetAddress(), Cpu: config.Val.NodeCpu, Memory: config.Val.NodeMemory, CpuAllocted: 0, MemoryAllocted: 0}
 	node.TaskMap = make(map[string]*lib.TaskInfo)
 	node.RunningTask = make(map[string]*lib.TaskInfo)
 

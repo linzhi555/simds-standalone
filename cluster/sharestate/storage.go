@@ -47,8 +47,8 @@ func (s *StateStorage) Update(msg base.Message) {
 			for {
 				time.Sleep(time.Duration(config.Val.StateUpdatePeriod) * time.Millisecond)
 				newMessage := base.Message{
-					From: s.GetHostName(),
-					To:   s.GetHostName(),
+					From: s.GetAddress(),
+					To:   s.GetAddress(),
 					Head: "SignalUpdate",
 				}
 				err := s.Os.Send(newMessage)
@@ -63,7 +63,7 @@ func (s *StateStorage) Update(msg base.Message) {
 		if s.Workers[task.Worker].CanAllocate(task.CpuRequest, task.MemoryRequest) {
 			s.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
 			err := s.Os.Send(base.Message{
-				From: s.GetHostName(),
+				From: s.GetAddress(),
 				To:   task.Worker,
 				Head: "TaskRun",
 				Body: task,
@@ -74,7 +74,7 @@ func (s *StateStorage) Update(msg base.Message) {
 
 		} else {
 			err := s.Os.Send(base.Message{
-				From: s.GetHostName(),
+				From: s.GetAddress(),
 				To:   msg.From,
 				Head: "VecNodeInfoUpdate",
 				Body: lib.VecNodeInfo{*s.Workers[task.Worker]},
@@ -83,7 +83,7 @@ func (s *StateStorage) Update(msg base.Message) {
 				panic(err)
 			}
 			err = s.Os.Send(base.Message{
-				From: s.GetHostName(),
+				From: s.GetAddress(),
 				To:   msg.From,
 				Head: "TaskCommitFail",
 				Body: task,
@@ -100,7 +100,7 @@ func (s *StateStorage) Update(msg base.Message) {
 		s.LastSendTime = s.Os.GetTime()
 		for _, scheduler := range s.Schedulers {
 			err := s.Os.Send(base.Message{
-				From: s.GetHostName(),
+				From: s.GetAddress(),
 				To:   scheduler,
 				Head: "VecNodeInfoUpdate",
 				Body: s.StateCopy(),
@@ -112,7 +112,7 @@ func (s *StateStorage) Update(msg base.Message) {
 	case "TaskCommitFail":
 		task := msg.Body.(lib.TaskInfo)
 		newMessage := base.Message{
-			From: s.GetHostName(),
+			From: s.GetAddress(),
 			To:   msg.From,
 			Head: "TaskDispense",
 			Body: task,
@@ -129,8 +129,8 @@ func (s *StateStorage) Update(msg base.Message) {
 func (s *StateStorage) SimulateTasksUpdate() {
 	if s.Os.GetTime().Sub(s.LastSendTime).Milliseconds() > int64(config.Val.StateUpdatePeriod) {
 		newMessage := base.Message{
-			From: s.GetHostName(),
-			To:   s.GetHostName(),
+			From: s.GetAddress(),
+			To:   s.GetAddress(),
 			Head: "SignalUpdate",
 		}
 		err := s.Os.Send(newMessage)

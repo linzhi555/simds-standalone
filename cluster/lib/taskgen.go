@@ -173,7 +173,7 @@ func (taskgen *TaskGen) Update(msg base.Message) {
 }
 
 func (taskgen *TaskGen) _sendingTask() {
-	taskgenAddr := taskgen.GetHostName()
+	taskgenAddr := taskgen.GetAddress()
 
 	receiverNum := len(taskgen.Receivers)
 	log.Println("start sending task")
@@ -202,7 +202,7 @@ func (taskgen *TaskGen) _sendingTask() {
 }
 
 func (taskgen *TaskGen) SimulateTasksUpdate() {
-	taskgenAddr := taskgen.GetHostName()
+	taskgenAddr := taskgen.GetAddress()
 	receiverNum := len(taskgen.Receivers)
 	timeNow := taskgen.Os.GetTime().Sub(taskgen.StartTime)
 	for taskgen.CurTaskId < len(taskgen.Src) {

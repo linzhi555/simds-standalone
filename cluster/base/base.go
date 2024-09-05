@@ -34,7 +34,7 @@ type BasicActor struct {
 	Host           string
 }
 
-func (b *BasicActor) GetHostName() string {
+func (b *BasicActor) GetAddress() string {
 	return b.Host
 }
 
@@ -44,7 +44,7 @@ func (b *BasicActor) SetOsApi(os OsApi) {
 
 
 type Actor interface {
-	GetHostName() string
+	GetAddress() string
 	Debug()
 	SetOsApi(OsApi)
 	Update(Message)

@@ -21,8 +21,8 @@ func startSimletActor(actor base.Actor, s *SimletServer) {
 
 	boolSignal := lib.Signal("SignalBoot")
 	os.Send(base.Message{
-		From: actor.GetHostName(),
-		To:   actor.GetHostName(),
+		From: actor.GetAddress(),
+		To:   actor.GetAddress(),
 		Head: string(boolSignal),
 		Body: boolSignal,
 	})
@@ -47,7 +47,7 @@ func waitUitlClusterFullyStart(cluster *base.Cluster) *svc.RouterTable {
 	pods := cli.GetPodsWithPrefix("simds-")
 	log.Println(pods)
 
-	lastNodesName := cluster.Nodes[len(cluster.Nodes)-1].Actors[0].GetHostName()
+	lastNodesName := cluster.Nodes[len(cluster.Nodes)-1].Actors[0].GetAddress()
 	for {
 		err := cli.WaitUtilAllRunning([]string{lastNodesName})
 		if err != nil {
@@ -92,7 +92,7 @@ func main() {
 	var initActor base.Actor
 
 	for _, n := range cluster.Nodes {
-		if n.Actors[0].GetHostName() == config.Val.NodeName {
+		if n.Actors[0].GetAddress() == config.Val.NodeName {
 			initActor = n.Actors[0]
 			break
 		}

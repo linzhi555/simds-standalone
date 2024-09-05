@@ -44,7 +44,7 @@ func (s *CenterScheduler) Update(msg base.Message) {
 			}
 			task.Worker = dstWorker
 			err := s.Os.Send(base.Message{
-				From: s.GetHostName(),
+				From: s.GetAddress(),
 				To:   receiver,
 				Head: "TaskRun",
 				Body: task,
@@ -54,7 +54,7 @@ func (s *CenterScheduler) Update(msg base.Message) {
 			}
 		} else {
 			err := s.Os.Send(base.Message{
-				From: s.GetHostName(),
+				From: s.GetAddress(),
 				To:   msg.From,
 				Head: "TaskScheduleFail",
 				Body: task,

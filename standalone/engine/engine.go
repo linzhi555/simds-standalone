@@ -78,7 +78,7 @@ func NewVirtualNode(engine *Engine, actors ...base.Actor) *VirtualNode {
 	vnode.updatefunc = _defaultUpdateFunc
 	vnode.actors = make(map[string]*EngineActor)
 	for _, actor := range actors {
-		vnode.actors[actor.GetHostName()] = &EngineActor{actor, ActorHideStatus{}}
+		vnode.actors[actor.GetAddress()] = &EngineActor{actor, ActorHideStatus{}}
 	}
 	return &vnode
 }
@@ -92,7 +92,7 @@ func (vnode *VirtualNode) Update() {
 	for _, actor := range vnode.actors {
 		if actor.hide.IsBusy {
 			actor.UpdateProgress(vnode.engine.GetWorldTime(), vnode.updatefunc(lastState, actor.hide))
-		} else if msg, err := vnode.engine.Network.Outs[actor.model.GetHostName()].Dequeue(); err == nil {
+		} else if msg, err := vnode.engine.Network.Outs[actor.model.GetAddress()].Dequeue(); err == nil {
 			t := time.Now()
 			actor.model.Update(msg)   // update the data status of the actor
 			costTime := time.Since(t) // record the time cost, the value is treat as the task's "difficulty"
@@ -267,15 +267,15 @@ func InitEngine(cluster base.Cluster) *Engine {
 	e.UpdateGap = time.Second / time.Duration(config.Val.FPS)
 	for _, node := range e.Nodes {
 		for _, actor := range node.actors {
-			e.Network.Ins[actor.model.GetHostName()] = &common.Vec[base.Message]{}
-			e.Network.Outs[actor.model.GetHostName()] = &common.Vec[base.Message]{}
+			e.Network.Ins[actor.model.GetAddress()] = &common.Vec[base.Message]{}
+			e.Network.Outs[actor.model.GetAddress()] = &common.Vec[base.Message]{}
 		}
 	}
 
 	for i := range e.Nodes {
 		for _, actor := range e.Nodes[i].actors {
 			os := EngineOs{}
-			os.addr = actor.model.GetHostName()
+			os.addr = actor.model.GetAddress()
 			os.engine = &e
 
 			os.Send(base.Message{
@@ -333,8 +333,8 @@ func (engine *Engine) DebugNodes() []ActorDebugInfo {
 	for _, node := range engine.Nodes {
 		for _, actor := range node.actors {
 			res = append(res, ActorDebugInfo{
-				Name:     actor.model.GetHostName(),
-				Node:     actor.model.GetHostName(),
+				Name:     actor.model.GetAddress(),
+				Node:     actor.model.GetAddress(),
 				IsBusy:   fmt.Sprint(actor.hide.IsBusy),
 				Progress: fmt.Sprint(actor.hide.Progress.toFloat()),
 
