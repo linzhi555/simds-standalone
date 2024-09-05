@@ -30,9 +30,11 @@ func NewNode(actors ...Actor) Node {
 }
 
 type BasicActor struct {
-	Os             OsApi
-	Host           string
+	Os   OsApi
+	Host string
 }
+
+func (b *BasicActor) Debug() {}
 
 func (b *BasicActor) GetAddress() string {
 	return b.Host
@@ -42,22 +44,20 @@ func (b *BasicActor) SetOsApi(os OsApi) {
 	b.Os = os
 }
 
-
 type Actor interface {
 	GetAddress() string
 	Debug()
 	SetOsApi(OsApi)
 	Update(Message)
-
-	// below is only  for simulation mode not for deploy mode
-	SimulateTasksUpdate()
 }
 
 // OsApi 系统调用 抽象接口
 type OsApi interface {
 	NetInterface
 	GetTime() time.Time
-	Run(f func())
+	SetInterval(callback func(), t time.Duration)
+	SetTimeOut(callback func(), t time.Duration)
+	RunCmd(callback func(err error), cmd string)
 }
 
 // MessageBody Message的Body字段

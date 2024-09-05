@@ -2,7 +2,6 @@ package dcss
 
 import (
 	"math/rand"
-	"os/exec"
 	"time"
 
 	"simds-standalone/cluster/base"
@@ -99,8 +98,7 @@ func (node *DcssNode) _delaySchedule(task lib.TaskInfo) {
 	task.Status = "delaySchedule"
 	task.LeftTime = time.Millisecond * 10
 	node.RunningTask[task.Id] = &task
-	node.Os.Run(func() {
-		time.Sleep(time.Millisecond * 10)
+	node.Os.SetTimeOut(func() {
 		newMessage := base.Message{
 			From: node.GetAddress(),
 			To:   node.GetAddress(),
@@ -111,7 +109,7 @@ func (node *DcssNode) _delaySchedule(task lib.TaskInfo) {
 		if err != nil {
 			panic(err)
 		}
-	})
+	}, time.Millisecond*10)
 }
 
 func (node *DcssNode) _dcssDivideTask(task lib.TaskInfo) {
@@ -227,24 +225,14 @@ func (node *DcssNode) _runTask(t lib.TaskInfo) {
 	t.LeftTime = t.LifeTime
 	t.Status = "start"
 	node.RunningTask[t.Id] = &t
-	node.Os.Run(func() {
-		cmd := exec.Command("bash", "-c", t.Cmd)
-		err := cmd.Run()
-		if err != nil {
-			panic(err)
-		}
-		newMessage := base.Message{
+	node.Os.RunCmd(func(err error) {
+		node.Os.Send(base.Message{
 			From: node.GetAddress(),
 			To:   node.GetAddress(),
 			Head: "TaskFinish",
 			Body: t,
-		}
-		err = node.Os.Send(newMessage)
-		if err != nil {
-			panic(err)
-		}
-
-	})
+		})
+	}, t.Cmd)
 }
 
 func (node *DcssNode) dcssTaskDivideCancelHandle(newMessage base.Message) {
@@ -285,30 +273,4 @@ func (node *DcssNode) dcssFinishHandle(newMessage base.Message) {
 
 	delete(node.RunningTask, task.Id)
 
-}
-func (node *DcssNode) SimulateTasksUpdate() {
-	for _, t := range node.RunningTask {
-		if t.LeftTime > 0 {
-			t.LeftTime -= (time.Second / time.Duration(config.Val.FPS))
-			messageType := ""
-			if t.Status == "start" {
-				messageType = "TaskFinish"
-			} else if t.Status == "delaySchedule" {
-				messageType = "TaskDispense"
-			}
-			if t.LeftTime <= 0 {
-				newMessage := base.Message{
-					From: node.GetAddress(),
-					To:   node.GetAddress(),
-					Head: messageType,
-					Body: *t,
-				}
-				err := node.Os.Send(newMessage)
-				if err != nil {
-					panic(err)
-				}
-
-			}
-		}
-	}
 }

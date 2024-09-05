@@ -1,11 +1,10 @@
 package lib
 
 import (
-	"os/exec"
-	"time"
+	//"os/exec"
+	//"time"
 
 	"simds-standalone/cluster/base"
-	"simds-standalone/config"
 )
 
 type Worker struct {
@@ -51,7 +50,7 @@ func (worker *Worker) Update(msg base.Message) {
 		taskid := msg.Body.(TaskInfo).Id
 		if t, ok := worker.TaskMap[taskid]; ok {
 			if t.Status == "needStart" {
-				worker.deakRunTask(*t)
+				worker.dealRunTask(*t)
 			}
 		}
 	case "TaskPreAllocate":
@@ -60,7 +59,7 @@ func (worker *Worker) Update(msg base.Message) {
 		newTask.Status = "needStart"
 	case "TaskRun":
 		newTask := msg.Body.(TaskInfo)
-		worker.deakRunTask(newTask)
+		worker.dealRunTask(newTask)
 
 	case "TaskCancelAlloc":
 		taskid := msg.Body.(TaskInfo).Id
@@ -68,7 +67,7 @@ func (worker *Worker) Update(msg base.Message) {
 			if t.Status == "needStart" {
 				t.Status = "finish"
 				if worker.Manager != "" {
-					informReceiverTaskStatus(worker, t, "TaskFinish")
+					informReceiverTaskStatus(worker, t, "TaskCancelled")
 				}
 				delete(worker.TaskMap, taskid)
 
@@ -91,60 +90,27 @@ func (worker *Worker) Update(msg base.Message) {
 
 }
 
-func (worker *Worker) deakRunTask(t TaskInfo) {
+func (worker *Worker) dealRunTask(t TaskInfo) {
 	worker.TaskMap[t.Id] = &t
 	t.StartTime = worker.Os.GetTime()
 	t.LeftTime = t.LifeTime
 	t.Status = "start"
-	worker._runTask(t)
+
+	worker.Os.RunCmd(func(err error) {
+		worker.Os.Send(base.Message{
+			From: worker.GetAddress(),
+			To:   worker.GetAddress(),
+			Head: "TaskFinish",
+			Body: t,
+		})
+	}, t.Cmd)
+
 	worker.Os.Send(base.Message{
 		From: worker.Host,
 		To:   t.User,
 		Head: "TaskStart",
 		Body: t,
 	})
-}
-
-func (node *Worker) _runTask(t TaskInfo) {
-	node.Os.Run(func() {
-		cmd := exec.Command("bash", "-c", t.Cmd)
-		err := cmd.Run()
-		if err != nil {
-			panic(err)
-		}
-		newMessage := base.Message{
-			From: node.GetAddress(),
-			To:   node.GetAddress(),
-			Head: "TaskFinish",
-			Body: t,
-		}
-		err = node.Os.Send(newMessage)
-		if err != nil {
-			panic(err)
-		}
-
-	})
-}
-
-func (worker *Worker) SimulateTasksUpdate() {
-	for _, t := range worker.TaskMap {
-		if t.Status == "start" && t.LeftTime > 0 {
-			t.LeftTime -= (time.Second / time.Duration(config.Val.FPS))
-			if t.LeftTime <= 0 {
-				newMessage := base.Message{
-					From: worker.GetAddress(),
-					To:   worker.GetAddress(),
-					Head: "TaskFinish",
-					Body: *t,
-				}
-				err := worker.Os.Send(newMessage)
-				if err != nil {
-					panic(err)
-				}
-
-			}
-		}
-	}
 }
 
 func informReceiverTaskStatus(worker *Worker, t *TaskInfo, content string) {
@@ -158,23 +124,4 @@ func informReceiverTaskStatus(worker *Worker, t *TaskInfo, content string) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func _calculateNodeInfo(worker *Worker) NodeInfo {
-	var cpu int32 = 0
-	var memory int32 = 0
-
-	for _, t := range worker.TaskMap {
-		cpu += t.CpuRequest
-		memory += t.MemoryRequest
-	}
-
-	var nodeinfo NodeInfo = NodeInfo{
-		Addr:           worker.GetAddress(),
-		Cpu:            config.Val.NodeCpu,
-		Memory:         config.Val.NodeMemory,
-		CpuAllocted:    cpu,
-		MemoryAllocted: memory,
-	}
-	return nodeinfo
 }

@@ -33,10 +33,11 @@ func (p *Progress) IsFinished() bool {
 }
 
 type ActorHideStatus struct {
-	IsBusy     bool
-	Progress   Progress
-	LastMsg    *base.Message
-	Difficulty time.Duration
+	IsBusy      bool
+	NeedDestroy bool
+	Progress    Progress
+	LastMsg     *base.Message
+	Difficulty  time.Duration
 }
 
 func (actor *EngineActor) UpdateProgress(t time.Time, percent float32) {
@@ -78,9 +79,14 @@ func NewVirtualNode(engine *Engine, actors ...base.Actor) *VirtualNode {
 	vnode.updatefunc = _defaultUpdateFunc
 	vnode.actors = make(map[string]*EngineActor)
 	for _, actor := range actors {
-		vnode.actors[actor.GetAddress()] = &EngineActor{actor, ActorHideStatus{}}
+		vnode.AddActor(actor)
 	}
 	return &vnode
+}
+
+func (vnode *VirtualNode) AddActor(actor base.Actor) {
+
+	vnode.actors[actor.GetAddress()] = &EngineActor{actor, ActorHideStatus{}}
 }
 
 func (vnode *VirtualNode) Update() {
@@ -90,6 +96,15 @@ func (vnode *VirtualNode) Update() {
 	}
 
 	for _, actor := range vnode.actors {
+
+		switch v := actor.model.(type) {
+		case *timer:
+			simulateTimer(v, &actor.hide)
+			continue
+		case *cmdExecutor:
+			continue
+		}
+
 		if actor.hide.IsBusy {
 			actor.UpdateProgress(vnode.engine.GetWorldTime(), vnode.updatefunc(lastState, actor.hide))
 		} else if msg, err := vnode.engine.Network.Outs[actor.model.GetAddress()].Dequeue(); err == nil {
@@ -100,13 +115,35 @@ func (vnode *VirtualNode) Update() {
 
 			actor.hide.ToBusy(&msg, costTime)
 		}
-		actor.model.SimulateTasksUpdate() // 模拟任务进度更新。
+	}
+}
+
+type timer struct {
+	base.BasicActor
+	isRepeat bool
+	timeOut  time.Duration
+	callback func()
+}
+
+func (*timer) Update(base.Message) {}
+
+var DeltaT time.Duration
+
+func simulateTimer(t *timer, hide *ActorHideStatus) {
+	hide.Progress.Add(float32(DeltaT) / float32(t.timeOut))
+	if hide.Progress.IsFinished() {
+		if t.isRepeat {
+			hide.Progress = 0
+		} else {
+			hide.NeedDestroy = true
+		}
 	}
 }
 
 // MockOs 为组件提供模拟的系统调用
 type EngineOs struct {
 	addr   string
+	node   *VirtualNode
 	engine *Engine
 }
 
@@ -115,7 +152,45 @@ func (o *EngineOs) GetTime() time.Time {
 	return o.engine.GetWorldTime()
 }
 
-func (o *EngineOs) Run(f func()) {
+func (o *EngineOs) SetInterval(callback func(), t time.Duration) {
+	o.node.AddActor(&timer{
+		BasicActor: base.BasicActor{
+			Host: o.addr + "_onecetimer_" + fmt.Sprint(t) + common.GenerateUID(),
+		},
+		isRepeat: true,
+		timeOut:  t,
+		callback: callback,
+	})
+
+}
+
+func (o *EngineOs) SetTimeOut(callback func(), t time.Duration) {
+	o.node.AddActor(&timer{
+		BasicActor: base.BasicActor{
+			Host: o.addr + "_repeattimer_" + fmt.Sprint(t) + common.GenerateUID(),
+		},
+		isRepeat: false,
+		timeOut:  t,
+		callback: callback,
+	})
+}
+
+type cmdExecutor struct {
+	base.BasicActor
+	cmd      string
+	callback func(error)
+}
+
+func (*cmdExecutor) Update(base.Message) {}
+
+func (o *EngineOs) RunCmd(callback func(err error), cmd string) {
+	o.node.AddActor(&cmdExecutor{
+		BasicActor: base.BasicActor{
+			Host: o.addr + "_cmd_" + cmd,
+		},
+		cmd:      cmd,
+		callback: callback,
+	})
 }
 
 func (o *EngineOs) Send(m base.Message) error {
@@ -129,7 +204,6 @@ func (o *EngineOs) Send(m base.Message) error {
 
 // MockNetwork 模拟的网络组件
 type VirtualNetwork struct {
-	Os         base.OsApi
 	NetLatency int32
 	Waittings  common.Vec[base.Message]
 	Ins        map[string]*common.Vec[base.Message]
@@ -263,7 +337,6 @@ func InitEngine(cluster base.Cluster) *Engine {
 	}
 
 	e.Network = newVirtualNetwork()
-	e.Network.Os = &EngineOs{addr: "network", engine: &e}
 	e.UpdateGap = time.Second / time.Duration(config.Val.FPS)
 	for _, node := range e.Nodes {
 		for _, actor := range node.actors {
@@ -274,10 +347,11 @@ func InitEngine(cluster base.Cluster) *Engine {
 
 	for i := range e.Nodes {
 		for _, actor := range e.Nodes[i].actors {
-			os := EngineOs{}
-			os.addr = actor.model.GetAddress()
-			os.engine = &e
-
+			os := EngineOs{
+				addr:   actor.model.GetAddress(),
+				engine: &e,
+				node:   &e.Nodes[i],
+			}
 			os.Send(base.Message{
 				From: os.addr,
 				To:   os.addr,

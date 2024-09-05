@@ -6,7 +6,6 @@ import (
 
 	"simds-standalone/cluster/base"
 	"simds-standalone/cluster/lib"
-	"simds-standalone/config"
 )
 
 // StateStorage 节点，用于共享状态的存储
@@ -43,20 +42,20 @@ func (s *StateStorage) Update(msg base.Message) {
 
 	case "SignalBoot":
 		s.LastSendTime = s.Os.GetTime()
-		s.Os.Run(func() {
-			for {
-				time.Sleep(time.Duration(config.Val.StateUpdatePeriod) * time.Millisecond)
-				newMessage := base.Message{
-					From: s.GetAddress(),
-					To:   s.GetAddress(),
-					Head: "SignalUpdate",
-				}
-				err := s.Os.Send(newMessage)
-				if err != nil {
-					log.Println(err)
-				}
-			}
-		})
+//		s.Os.Run(func() {
+//			for {
+//				time.Sleep(time.Duration(config.Val.StateUpdatePeriod) * time.Millisecond)
+//				newMessage := base.Message{
+//					From: s.GetAddress(),
+//					To:   s.GetAddress(),
+//					Head: "SignalUpdate",
+//				}
+//				err := s.Os.Send(newMessage)
+//				if err != nil {
+//					log.Println(err)
+//				}
+//			}
+//		})
 
 	case "TaskRun":
 		task := msg.Body.(lib.TaskInfo)
@@ -126,16 +125,16 @@ func (s *StateStorage) Update(msg base.Message) {
 
 }
 
-func (s *StateStorage) SimulateTasksUpdate() {
-	if s.Os.GetTime().Sub(s.LastSendTime).Milliseconds() > int64(config.Val.StateUpdatePeriod) {
-		newMessage := base.Message{
-			From: s.GetAddress(),
-			To:   s.GetAddress(),
-			Head: "SignalUpdate",
-		}
-		err := s.Os.Send(newMessage)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
+//func (s *StateStorage) SimulateTasksUpdate() {
+//	if s.Os.GetTime().Sub(s.LastSendTime).Milliseconds() > int64(config.Val.StateUpdatePeriod) {
+//		newMessage := base.Message{
+//			From: s.GetAddress(),
+//			To:   s.GetAddress(),
+//			Head: "SignalUpdate",
+//		}
+//		err := s.Os.Send(newMessage)
+//		if err != nil {
+//			panic(err)
+//		}
+//	}
+//}

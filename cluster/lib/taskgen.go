@@ -2,7 +2,7 @@ package lib
 
 import (
 	"fmt"
-	"log"
+	//"log"
 	"strings"
 	"time"
 
@@ -160,7 +160,8 @@ func (taskgen *TaskGen) Update(msg base.Message) {
 		taskgen.InitTaskSrc(all)
 		taskgen.StartTime = taskgen.Os.GetTime()
 		taskgen.Status = "preheat"
-		taskgen.Os.Run(func() { taskgen._sendingTask() })
+		taskgen.Os.SetInterval(func() { taskgen._sendTasks() }, time.Millisecond)
+
 	case "TaskStart":
 		newtask := msg.Body.(TaskInfo)
 		if !strings.HasSuffix(newtask.Id, "preheat") {
@@ -172,36 +173,7 @@ func (taskgen *TaskGen) Update(msg base.Message) {
 	}
 }
 
-func (taskgen *TaskGen) _sendingTask() {
-	taskgenAddr := taskgen.GetAddress()
-
-	receiverNum := len(taskgen.Receivers)
-	log.Println("start sending task")
-
-	for taskgen.CurTaskId < len(taskgen.Src) {
-		for taskgen.Src[taskgen.CurTaskId].time > taskgen.Os.GetTime().Sub(taskgen.StartTime) {
-		}
-
-		newtask := taskgen.Src[taskgen.CurTaskId].task
-
-		newtask.User = taskgen.Host
-		receiverAddr := taskgen.Receivers[taskgen.CurTaskId%receiverNum]
-		newMessage := base.Message{
-			From: taskgenAddr,
-			To:   receiverAddr,
-			Head: "TaskDispense",
-			Body: newtask,
-		}
-		err := taskgen.Os.Send(newMessage)
-		if err != nil {
-			panic(err)
-		}
-
-		taskgen.CurTaskId++
-	}
-}
-
-func (taskgen *TaskGen) SimulateTasksUpdate() {
+func (taskgen *TaskGen) _sendTasks() {
 	taskgenAddr := taskgen.GetAddress()
 	receiverNum := len(taskgen.Receivers)
 	timeNow := taskgen.Os.GetTime().Sub(taskgen.StartTime)
@@ -211,7 +183,7 @@ func (taskgen *TaskGen) SimulateTasksUpdate() {
 		}
 
 		newtask := taskgen.Src[taskgen.CurTaskId].task
-		newtask.User = taskgen.Host
+		newtask.User = taskgen.GetAddress()
 		receiverAddr := taskgen.Receivers[taskgen.CurTaskId%receiverNum]
 		newMessage := base.Message{
 			From: taskgenAddr,
