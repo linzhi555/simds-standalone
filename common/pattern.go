@@ -35,6 +35,8 @@ func MatchPattern(p string, s string) bool {
 		default:
 			if p[state] == s[i] {
 				state++
+			}else{
+				return false
 			}
 		}
 

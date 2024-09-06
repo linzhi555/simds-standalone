@@ -2,8 +2,10 @@ package lib
 
 import (
 	"encoding/json"
-	"simds-standalone/cluster/base"
+	"log"
 	"time"
+
+	"simds-standalone/cluster/base"
 )
 
 func init() {
@@ -11,7 +13,7 @@ func init() {
 		var res TaskInfo
 		err := json.Unmarshal([]byte(s), &res)
 		if err != nil {
-			panic(err)
+			log.Panicln("try to unmarshal TaskInfo:", s, err)
 		}
 		return res
 	}

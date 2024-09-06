@@ -4,6 +4,7 @@ package base
 
 import (
 	"encoding/json"
+	"log"
 	"time"
 
 	"simds-standalone/common"
@@ -78,6 +79,7 @@ func FromJson(head string, body string) MessageBody {
 
 	for pattern, f := range InverseJsonTable {
 		if common.MatchPattern(pattern, head) {
+			log.Println(pattern, head)
 			return f(body)
 		}
 	}

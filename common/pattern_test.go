@@ -14,6 +14,9 @@ func TestMatternMatch(t *testing.T) {
 	testmatch(t, "*", "", true)
 	testmatch(t, "asd*", "asd", true)
 
+	testmatch(t, "Asd*", "VecAsd", false)
+	testmatch(t, "VecAsd*", "Asd", false)
+	testmatch(t, "NodeInfo*", "VecNodeInfoUpate", false)
 	testmatch(t, "sim*taskgen", "simds-taskgen3", false)
 	testmatch(t, "", "simds-taskgen3", false)
 }

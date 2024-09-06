@@ -2,6 +2,8 @@ package lib
 
 import (
 	"encoding/json"
+	"log"
+
 	"simds-standalone/cluster/base"
 )
 
@@ -10,7 +12,7 @@ func init() {
 		var res NodeInfo
 		err := json.Unmarshal([]byte(s), &res)
 		if err != nil {
-			panic(err)
+			log.Panicln("try to unmarshal NodeInfo:", s, err)
 		}
 		return res
 	}
