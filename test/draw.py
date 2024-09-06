@@ -6,8 +6,6 @@ import os
 FONT_SIZE = 20
 LEGEND_SIZE = 15
 LINE_WIDTH = 2.0
-FAIL_TASK_LATENCY = 5000
-INFINITY = 100000
 
 
 def savefig(outputPath, png: str):
@@ -38,18 +36,6 @@ def rate_curves(filename: str) -> list:
     return [t, amount]
 
 
-# def task_submit_rate_hist(filename: str) -> list:
-#     """输入日志输出任务提交请求柱状图"""
-#     records = []
-#     with open(filename, 'r') as logfile:
-#         line = logfile.readline()
-#         while line:
-#             records.append(int(re.split(",|\s", line)[0]))
-#             line = logfile.readline()
-#     taskstream = [i/1000 for i in records]
-#     return taskstream
-
-
 def task_latency_CDF_curves(filename: str) -> list:
     """任务延迟的累积分布函数 CDF"""
     records = []
@@ -58,8 +44,6 @@ def task_latency_CDF_curves(filename: str) -> list:
         next(plots)
         for row in plots:
             latency = pd.Timedelta(row[1]).total_seconds() * 1000
-            if latency > FAIL_TASK_LATENCY - 1:
-                latency = INFINITY
             records.append(latency)
     ticks = [(i + 1) / len(records) for i in range(0, len(records))]
     return [records, ticks]
@@ -80,11 +64,7 @@ def cluster_status_curves(filename: str) -> list:
             t.append(int(row[0]) / 1000)
             latency = pd.Timedelta(row[1]).total_seconds() * 1000
 
-            # task latency >= than FAIL_TASK_LATENCY ms is seen as failed
-            if latency > FAIL_TASK_LATENCY - 1:
-                max_latency.append(INFINITY)
-            else:
-                max_latency.append(latency)
+            max_latency.append(latency)
             avg_cpu.append(float(row[2]) * 100)
             avg_ram.append(float(row[3]) * 100)
             var_cpu.append(float(row[4]))
@@ -105,17 +85,6 @@ def draw_muilt_lantencyCurve(tests: list, outdir: str):
         latency = status[1]
         plt.plot(t, latency, lw=LINE_WIDTH, marker=marker.next(),
                  markevery=8, markersize=7, label=test[1])
-
-        if max(latency) > FAIL_TASK_LATENCY - 1:
-            plt.yscale("log", base=10)
-        failTaskT = []
-        for i in range(len(latency)):
-            if latency[i] > FAIL_TASK_LATENCY - 1:
-                failTaskT.append(t[i])
-        if len(failTaskT) > 0:
-            plt.plot(failTaskT, [max(latency) for _ in range(len(failTaskT))],
-                     'ro')
-
     plt.legend(fontsize=LEGEND_SIZE)
     plt.ylabel("Worst Task Lantency (ms)", fontsize=FONT_SIZE)
     plt.xlabel("Time (s)", fontsize=FONT_SIZE)
@@ -332,9 +301,6 @@ def indepent_draw():
     ax2.plot(t, avg_latency, lw=LINE_WIDTH, color='y', label="task latency")
     ax2.set_ylabel("Task Lantency Unit: ms", fontsize=FONT_SIZE)
     ax2.legend(fontsize=LEGEND_SIZE, loc="upper right")
-
-    if max(avg_latency) > FAIL_TASK_LATENCY - 1:
-        ax2.set_yscale("log", base=10)
 
     ax3 = fig.add_subplot(312)
     ax3.plot(t, var_cpu, lw=LINE_WIDTH, label="cpu variance")
