@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os/exec"
 	"time"
 
 	"google.golang.org/grpc"
@@ -105,7 +106,7 @@ func (s *SimletServer) doRouting(m base.Message) {
 	}
 
 	// create the conn when cache miss
-	if client.cliAlive == false {
+	if !client.cliAlive {
 		start := time.Now()
 		conn, err := grpc.Dial(client.addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
@@ -178,15 +179,32 @@ func (actor *ActorOs) GetTime() time.Time {
 	return time.Now()
 }
 
-func (o *ActorOs) Run(f func()) {
-	go f()
-}
-
-func (o *ActorOs) Send(msg base.Message) error {
+func (o *ActorOs) Send(msg base.Message) {
 	msg.Id = string(common.GenerateUID())
 	o.output <- msg
 	rules.CheckRulesThenExec(rules.SendRules, time.Now(), &msg)
-	//_logMsg("send", &msg)
+}
 
-	return nil
+func (o *ActorOs) SetInterval(callback func(), t time.Duration) {
+	go func() {
+		for {
+			time.Sleep(t)
+			callback()
+		}
+	}()
+}
+
+func (o *ActorOs) SetTimeOut(callback func(), t time.Duration) {
+	go func() {
+		time.Sleep(t)
+		callback()
+	}()
+}
+
+func (o *ActorOs) RunCmd(callback func(err error), cmdstr string) {
+	go func() {
+		cmd := exec.Command("bash", "-c", cmdstr)
+		err := cmd.Run()
+		callback(err)
+	}()
 }
