@@ -490,9 +490,9 @@ func (engine *Engine) DebugNet() NetDebugInfo {
 		addMsg(&res.Waitings, &engine.Network.Waittings[i])
 	}
 
-	for _, ins := range engine.Network.Ins {
-		for i := range *ins {
-			addMsg(&res.Sended, &(*ins)[i])
+	for _, outs := range engine.Network.Outs {
+		for i := range *outs {
+			addMsg(&res.Sended, &(*outs)[i])
 		}
 	}
 
