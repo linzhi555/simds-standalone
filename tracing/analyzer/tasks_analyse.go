@@ -31,8 +31,6 @@ var (
 	FINISH = "TaskFinish"
 )
 
-var FAIL = 999 * time.Hour
-
 var TASK_EVENT_LOG_HEAD = []string{"time", "type", "taskid", "actorid", "cpu", "memory"}
 
 type TaskEvent struct {

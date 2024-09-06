@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const INF = 999 * time.Hour
+
 type EventLines interface {
 	GetID(index int) string
 	Len() int
@@ -89,6 +91,16 @@ func AnalyzeStageDuration(events EventLines, event1, event2 string) StageCostLis
 			}
 		default:
 		}
+	}
+
+	for t1 := range events1map {
+		var temp struct {
+			Id   string
+			Cost time.Duration
+		}
+		temp.Id = t1
+		temp.Cost = INF
+		res = append(res, temp)
 	}
 
 	sort.Sort(res)
