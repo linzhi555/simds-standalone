@@ -43,25 +43,19 @@ func (s *CenterScheduler) Update(msg base.Message) {
 				receiver = s.Storage
 			}
 			task.Worker = dstWorker
-			err := s.Os.Send(base.Message{
+			s.Os.Send(base.Message{
 				From: s.GetAddress(),
 				To:   receiver,
 				Head: "TaskRun",
 				Body: task,
 			})
-			if err != nil {
-				panic(err)
-			}
 		} else {
-			err := s.Os.Send(base.Message{
+			s.Os.Send(base.Message{
 				From: s.GetAddress(),
 				To:   msg.From,
 				Head: "TaskScheduleFail",
 				Body: task,
 			})
-			if err != nil {
-				panic(err)
-			}
 		}
 	case "TaskFinish":
 		taskInfo := msg.Body.(TaskInfo)

@@ -3,8 +3,6 @@ package dcss
 import (
 	"fmt"
 	"math/rand"
-	"strconv"
-	"strings"
 
 	"simds-standalone/cluster/base"
 	"simds-standalone/cluster/lib"
@@ -19,7 +17,7 @@ func BuildDcssCluster() base.Cluster {
 	for i := 0; i < int(config.Val.NodeNum); i++ {
 		actorName := fmt.Sprintf("simds-node%d", i)
 		actor := NewDcssNode(actorName)
-		actor.setup()
+		actor.setup(i)
 		cluster.Join(base.NewNode(actor))
 		taskgen0.Receivers = append(taskgen0.Receivers, actorName)
 	}
@@ -27,7 +25,10 @@ func BuildDcssCluster() base.Cluster {
 	cluster.Join(base.NewNode(taskgen0))
 	return cluster
 }
-func (node *DcssNode) setup() {
+
+//TODO: setup should not be there, a little ugly
+
+func (node *DcssNode) setup(selfIndex int) {
 	// init local node info
 	node.LocalNode = &lib.NodeInfo{Addr: node.GetAddress(), Cpu: config.Val.NodeCpu, Memory: config.Val.NodeMemory, CpuAllocted: 0, MemoryAllocted: 0}
 	node.TaskMap = make(map[string]*lib.TaskInfo)
@@ -39,11 +40,6 @@ func (node *DcssNode) setup() {
 	neiborRandom := int(config.Val.DcssNeiborRandomP * (float32(config.Val.DcssNeibor)))
 
 	var neibors []string = make([]string, 0, neiborNum)
-
-	selfIndex, err := strconv.Atoi(strings.TrimLeft(node.Host, "simds-node"))
-	if err != nil {
-		panic(err)
-	}
 
 	for _, neiborIndex := range getNeigbor(allNodeNum, selfIndex, neiborNum, neiborRandom) {
 		newNeibor := fmt.Sprintf("simds-node%d", neiborIndex)

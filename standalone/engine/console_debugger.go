@@ -3,7 +3,6 @@ package engine
 // Console模式下进行运行集群
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"strings"
@@ -17,7 +16,7 @@ func (engine *Engine) RunInConsole() {
 	defer luaState.Close()
 
 	l, err := readline.NewEx(&readline.Config{
-		Prompt:          fmt.Sprintf("\033[32m>>> \033[0m"),
+		Prompt:          "\033[32m>>> \033[0m",
 		HistoryFile:     "/tmp/readline.tmp",
 		InterruptPrompt: "^C",
 		EOFPrompt:       "exit",

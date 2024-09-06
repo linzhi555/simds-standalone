@@ -17,8 +17,15 @@ import (
 
 // for engin to init tracing
 func InitTracing() {
-	common.AppendLineCsvFile(path.Join(config.Val.OutputDir, config.Val.NetEventsLogName), analyzer.NET_EVENT_LOG_HEAD)
-	common.AppendLineCsvFile(path.Join(config.Val.OutputDir, config.Val.TaskEventsLogName), analyzer.TASK_EVENT_LOG_HEAD)
+	err := common.AppendLineCsvFile(path.Join(config.Val.OutputDir, config.Val.NetEventsLogName), analyzer.NET_EVENT_LOG_HEAD)
+	if err != nil {
+		panic(err)
+	}
+	err = common.AppendLineCsvFile(path.Join(config.Val.OutputDir, config.Val.TaskEventsLogName), analyzer.TASK_EVENT_LOG_HEAD)
+	if err != nil {
+		panic(err)
+	}
+
 }
 
 type Rule struct {

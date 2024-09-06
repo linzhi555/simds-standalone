@@ -217,7 +217,10 @@ func (cli *K8sClient) CreatePodWithResourceWithContainers(name, lable, image str
 func (cli *K8sClient) DeletePod(name string) {
 	podClient := cli.clientset.CoreV1().Pods(cli.PodTemplate.Namespace)
 	var deleteTime int64 = 0
-	podClient.Delete(context.Background(), name, metav1.DeleteOptions{GracePeriodSeconds: &deleteTime})
+	err := podClient.Delete(context.Background(), name, metav1.DeleteOptions{GracePeriodSeconds: &deleteTime})
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (cli *K8sClient) CreateClusterIPService(name, lable string, inPort int) {
@@ -256,7 +259,10 @@ func (cli *K8sClient) CreateNodePortService(name, lable string, inPort, outPort 
 // delete the service by name
 func (cli *K8sClient) DeleteService(name string) {
 	podClient := cli.clientset.CoreV1().Services(cli.ServiceTemplate.Namespace)
-	podClient.Delete(context.Background(), name, metav1.DeleteOptions{})
+	err := podClient.Delete(context.Background(), name, metav1.DeleteOptions{})
+	if err != nil {
+		panic(err)
+	}
 }
 
 // exec a command in a pod
@@ -290,7 +296,7 @@ func (cli *K8sClient) Exec(podName, containerName string, command []string, stdi
 	}
 
 	var stderr bytes.Buffer
-	err = exec.Stream(remotecommand.StreamOptions{
+	err = exec.StreamWithContext(context.Background(), remotecommand.StreamOptions{
 		Stdin:  stdin,
 		Stdout: stdout,
 		Stderr: &stderr,

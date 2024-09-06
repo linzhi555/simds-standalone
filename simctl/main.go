@@ -74,7 +74,10 @@ func Deploy(cli *k8s.K8sClient) {
 			},
 		)
 
-		cli.WaitUtilAllRunning([]string{name})
+		err := cli.WaitUtilAllRunning([]string{name})
+		if err != nil {
+			panic(err)
+		}
 		ip, err := cli.GetPodIP(name)
 		if err != nil {
 			panic(err)

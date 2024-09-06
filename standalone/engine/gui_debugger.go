@@ -69,6 +69,9 @@ func (e *Engine) GuiDebugging() {
 
 	http.Handle("/", http.FileServer(http.Dir("./standalone/static"))) // 静态文件服务
 	http.HandleFunc("/run", handler)
-	go openBrowser("http://localhost:8079") // 在后台打开浏览器
-	http.ListenAndServe(":8079", nil)       // 启动服务器
+	go openBrowser("http://localhost:8079")  // 在后台打开浏览器
+	err := http.ListenAndServe(":8079", nil) // 启动服务器
+	if err != nil {
+		panic(err)
+	}
 }

@@ -231,13 +231,11 @@ func (o *EngineOs) RunCmd(callback func(err error), cmd string) {
 	o.node.AddActor(newCmdExecutor(o.addr, callback, cmd))
 }
 
-func (o *EngineOs) Send(m base.Message) error {
+func (o *EngineOs) Send(m base.Message) {
 	m.Id = string(common.GenerateUID())
 	o.engine.Network.Ins[o.addr].InQueueBack(m)
 
 	rules.CheckRulesThenExec(rules.SendRules, o.GetTime(), &m)
-
-	return nil
 }
 
 // MockNetwork 模拟的网络组件

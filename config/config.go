@@ -112,7 +112,7 @@ func LogString() string {
 // 输出分析后的最终配置结果
 func LogConfig(outputPath string) {
 	confInfo := LogString()
-	log.Printf(confInfo)
+	log.Println(confInfo)
 	f, err := os.OpenFile(outputPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)

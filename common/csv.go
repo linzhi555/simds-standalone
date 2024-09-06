@@ -143,10 +143,7 @@ func IsLegalFloat64(s string) bool {
 
 	_, err := strconv.ParseFloat(s, 64)
 
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func Int64_to_str(i int64) string {
@@ -168,8 +165,5 @@ func Str_to_int64(s string) int64 {
 func IsLegalInt64(s string) bool {
 	_, err := strconv.ParseInt(s, 10, 64)
 
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }

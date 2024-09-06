@@ -120,8 +120,6 @@ func informReceiverTaskStatus(worker *Worker, t *TaskInfo, content string) {
 		Head: content,
 		Body: *t,
 	}
-	err := worker.Os.Send(newMessage)
-	if err != nil {
-		panic(err)
-	}
+	worker.Os.Send(newMessage)
+
 }

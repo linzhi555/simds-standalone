@@ -54,35 +54,27 @@ func (s *StateStorage) Update(msg base.Message) {
 		task := msg.Body.(lib.TaskInfo)
 		if s.Workers[task.Worker].CanAllocate(task.CpuRequest, task.MemoryRequest) {
 			s.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
-			err := s.Os.Send(base.Message{
+			s.Os.Send(base.Message{
 				From: s.GetAddress(),
 				To:   task.Worker,
 				Head: "TaskRun",
 				Body: task,
 			})
-			if err != nil {
-				panic(err)
-			}
 
 		} else {
-			err := s.Os.Send(base.Message{
+			s.Os.Send(base.Message{
 				From: s.GetAddress(),
 				To:   msg.From,
 				Head: "VecNodeInfoUpdate",
 				Body: lib.VecNodeInfo{*s.Workers[task.Worker]},
 			})
-			if err != nil {
-				panic(err)
-			}
-			err = s.Os.Send(base.Message{
+
+			s.Os.Send(base.Message{
 				From: s.GetAddress(),
 				To:   msg.From,
 				Head: "TaskCommitFail",
 				Body: task,
 			})
-			if err != nil {
-				panic(err)
-			}
 
 		}
 	case "TaskFinish":
@@ -91,15 +83,12 @@ func (s *StateStorage) Update(msg base.Message) {
 	case "SignalUpdate":
 		s.LastSendTime = s.Os.GetTime()
 		for _, scheduler := range s.Schedulers {
-			err := s.Os.Send(base.Message{
+			s.Os.Send(base.Message{
 				From: s.GetAddress(),
 				To:   scheduler,
 				Head: "VecNodeInfoUpdate",
 				Body: s.StateCopy(),
 			})
-			if err != nil {
-				panic(err)
-			}
 		}
 	case "TaskCommitFail":
 		task := msg.Body.(lib.TaskInfo)
@@ -109,10 +98,7 @@ func (s *StateStorage) Update(msg base.Message) {
 			Head: "TaskDispense",
 			Body: task,
 		}
-		err := s.Os.Send(newMessage)
-		if err != nil {
-			panic(err)
-		}
+		s.Os.Send(newMessage)
 
 	}
 

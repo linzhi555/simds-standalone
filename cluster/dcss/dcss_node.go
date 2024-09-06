@@ -105,10 +105,7 @@ func (node *DcssNode) _delaySchedule(task lib.TaskInfo) {
 			Head: "TaskDispense",
 			Body: task,
 		}
-		err := node.Os.Send(newMessage)
-		if err != nil {
-			panic(err)
-		}
+		node.Os.Send(newMessage)
 	}, time.Millisecond*10)
 }
 
@@ -127,10 +124,7 @@ func (node *DcssNode) _dcssDivideTask(task lib.TaskInfo) {
 			Head: "TaskDivide",
 			Body: task,
 		}
-		err := node.Os.Send(newMessage)
-		if err != nil {
-			panic(err)
-		}
+		node.Os.Send(newMessage)
 	}
 	task.Status = "DivideStage2"
 	node.TaskMap[task.Id] = &task
@@ -149,10 +143,7 @@ func (node *DcssNode) _dispenseTask(task lib.TaskInfo) {
 		Head: "TaskDispense",
 		Body: task,
 	}
-	err := node.Os.Send(newMessage)
-	if err != nil {
-		panic(err)
-	}
+	node.Os.Send(newMessage)
 }
 
 func (node *DcssNode) dcssTaskDivideHandle(newMessage base.Message) {
@@ -168,10 +159,7 @@ func (node *DcssNode) dcssTaskDivideHandle(newMessage base.Message) {
 	} else {
 		messageReply.Head = "TaskDivideReject"
 	}
-	err := node.Os.Send(messageReply)
-	if err != nil {
-		panic(err)
-	}
+	node.Os.Send(messageReply)
 }
 
 func (node *DcssNode) dcssTaskDivideConfirmHandle(newMessage base.Message) {
@@ -180,26 +168,19 @@ func (node *DcssNode) dcssTaskDivideConfirmHandle(newMessage base.Message) {
 
 	if t.Status == "DivideStage2" {
 		t.Status = "DivideStage3"
-		err := node.Os.Send(base.Message{
+		node.Os.Send(base.Message{
 			From: newMessage.To,
 			To:   newMessage.From,
 			Head: "TaskDivideAllocate",
 			Body: *node.TaskMap[task.Id],
 		})
-		if err != nil {
-			panic(err)
-		}
 	} else if t.Status == "DivideStage3" {
-		err := node.Os.Send(base.Message{
+		node.Os.Send(base.Message{
 			From: newMessage.To,
 			To:   newMessage.From,
 			Head: "TaskDivideCancel",
 			Body: *node.TaskMap[task.Id],
 		})
-		if err != nil {
-			panic(err)
-		}
-
 	}
 }
 func (node *DcssNode) dcssTaskDivideAllocateHandle(newMessage base.Message) {

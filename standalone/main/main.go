@@ -47,10 +47,13 @@ func main() {
 		simulator.Run()
 		costTime := time.Since(start)
 
-		common.AppendLineCsvFile(
+		err := common.AppendLineCsvFile(
 			path.Join(config.Val.OutputDir, "costTime.log"),
 			[]string{fmt.Sprint(costTime)},
 		)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 }

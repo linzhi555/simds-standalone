@@ -198,7 +198,7 @@ func InitCluster(events TaskEventLine, latencies StageCostList) *Cluster {
 			continue
 		}
 
-		if _, ok := cluster.Nodes[event.ActorId]; ok == true {
+		if _, ok := cluster.Nodes[event.ActorId]; ok {
 			continue
 		}
 

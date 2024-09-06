@@ -23,9 +23,8 @@ type Node struct {
 
 func NewNode(actors ...Actor) Node {
 	var node Node
-	for _, actor := range actors {
-		node.Actors = append(node.Actors, actor)
-	}
+
+	node.Actors = append(node.Actors, actors...)
 	return node
 }
 
@@ -98,5 +97,5 @@ type Message struct {
 
 // NetInterface 用于处理 Message
 type NetInterface interface {
-	Send(Message) error
+	Send(Message)
 }
