@@ -120,12 +120,14 @@ func (engine *Engine) Run() {
 		engine.UpdateNtimes(step)
 
 		log.Printf(
-			"%.4f%% progress:( %d / %d) current speed:%v / %d frame  FPS:%.1f\n",
+			"%.4f%% progress:( %d / %d) current speed:%v / %d frame  FPS:%.1f\n NodeCost:%v NetCost:%v",
 			float32(engine.UpdateCount)/float32(frameNum)*100.0,
 			engine.UpdateCount,
 			int64(frameNum),
 			time.Since(start), step,
 			float64(step)/time.Since(start).Seconds(),
+			engine.NodeUpdateCost,
+			engine.NetUpdateCost,
 		)
 
 		if engine.UpdateCount == 25*step {
@@ -137,8 +139,15 @@ func (engine *Engine) Run() {
 
 // 对集群更新一次状态，推进一个单位时间
 func (engine *Engine) Update() {
+
+	start := time.Now()
 	engine.updateNodes()
+	engine.NodeUpdateCost += time.Since(start)
+
+	start = time.Now()
 	engine.Network.updateNetwork(engine.GetWorldTime())
+	engine.NetUpdateCost += time.Since(start)
+
 	engine.UpdateCount++
 }
 
