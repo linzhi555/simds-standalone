@@ -81,7 +81,6 @@ func InitEngine(cluster base.Cluster) *Engine {
 	// init actor os
 	for _, node := range e.nodes() {
 		for _, actor := range node.actors {
-
 			e.Network.Ins[actor.model.GetAddress()] = &common.Vec[base.Message]{}
 			e.Network.Outs[actor.model.GetAddress()] = &common.Vec[base.Message]{}
 

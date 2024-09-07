@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"simds-standalone/cluster/base"
+	"simds-standalone/common"
 	"simds-standalone/tracing/rules"
 )
 
@@ -15,7 +16,7 @@ type EngineActor struct {
 type VirtualNode struct {
 	engine     *Engine
 	updatefunc func([]ActorHideStatus, ActorHideStatus) float32
-	actors     map[string]*EngineActor
+	actors     common.Vec[EngineActor]
 }
 
 func _defaultUpdateFunc(_ []ActorHideStatus, self ActorHideStatus) float32 {
@@ -26,7 +27,7 @@ func NewVirtualNode(engine *Engine, actors ...base.Actor) *VirtualNode {
 	var vnode VirtualNode
 	vnode.engine = engine
 	vnode.updatefunc = _defaultUpdateFunc
-	vnode.actors = make(map[string]*EngineActor)
+	vnode.actors = make(common.Vec[EngineActor], 0, len(actors))
 	for _, actor := range actors {
 		vnode.AddActor(actor)
 	}
@@ -35,7 +36,7 @@ func NewVirtualNode(engine *Engine, actors ...base.Actor) *VirtualNode {
 
 func (vnode *VirtualNode) AddActor(actor base.Actor) {
 
-	vnode.actors[actor.GetAddress()] = &EngineActor{actor, ActorHideStatus{}}
+	vnode.actors.InQueueBack(EngineActor{actor, ActorHideStatus{}})
 }
 
 func (vnode *VirtualNode) Update() {
@@ -44,20 +45,15 @@ func (vnode *VirtualNode) Update() {
 		lastState = append(lastState, actor.hide)
 	}
 
-	for _, actor := range vnode.actors {
+	for i := 0; i < len(vnode.actors); i++ {
+		actor := &vnode.actors[i]
 
 		switch v := actor.model.(type) {
 		case *timer:
 			simulateTimer(v, &actor.hide)
-			if actor.hide.NeedDestroy {
-				delete(vnode.actors, v.Host)
-			}
 			continue
 		case *cmdExecutor:
 			simulateExecutor(v, &actor.hide)
-			if actor.hide.NeedDestroy {
-				delete(vnode.actors, v.Host)
-			}
 			continue
 		}
 
@@ -72,5 +68,15 @@ func (vnode *VirtualNode) Update() {
 
 			actor.hide.ToBusy(&msg, costTime)
 		}
+	}
+
+	needDeletes := []int{}
+	for i, actor := range vnode.actors {
+		if actor.hide.NeedDestroy {
+			needDeletes = append(needDeletes, i)
+		}
+	}
+	for i := len(needDeletes) - 1; i >= 0; i-- {
+		vnode.actors.Delete(needDeletes[i])
 	}
 }
