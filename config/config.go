@@ -40,8 +40,8 @@ var Val struct {
 	TaskMemory       int32
 	TaskLifeTime     int32
 
-	//only in center and shareState
-	SchedulerPerformance float32
+	//machine speed ratio
+	PerformanceRate float32
 
 	//dcss mode
 	DcssNeiborRandomP float32

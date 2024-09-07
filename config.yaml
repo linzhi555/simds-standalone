@@ -1,6 +1,6 @@
 FPS:  100000            #hom many frame per second
 GoProcs: 10
-NodeNum:      1000   # how many large the cluster
+NodeNum:      300   # how many large the cluster
 NetLatency:     1         # the average network latency, unit: milisecond 
 NodeCpu:        1000         # the node cpu capacity
 NodeMemory:     1000         # the node memory capacity
@@ -15,8 +15,8 @@ TaskMemory:     300          # the average task memory request
 TaskLifeTime:   330        # the average task lifeTime  , unit : milisecond
 
 
-#only in center and shareState 
-#SchedulerPerformance: 17000  # how many time Scheduler execute scheduling algorithm in 1s
+# the machine speed for deal message
+PerformanceRate: 1
 
 # only in dcss mode
 DcssNeibor:    4         #how many neibor of a node

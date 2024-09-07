@@ -5,6 +5,7 @@ import (
 
 	"simds-standalone/cluster/base"
 	"simds-standalone/common"
+	"simds-standalone/config"
 	"simds-standalone/tracing/rules"
 )
 
@@ -20,7 +21,7 @@ type VirtualNode struct {
 }
 
 func _defaultUpdateFunc(_ []ActorHideStatus, self ActorHideStatus) float32 {
-	return float32(DeltaT) / float32(self.Difficulty)
+	return config.Val.PerformanceRate * float32(DeltaT) / float32(self.Difficulty)
 }
 
 func NewVirtualNode(engine *Engine, actors ...base.Actor) *VirtualNode {
