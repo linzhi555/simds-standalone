@@ -72,6 +72,7 @@ function updateNodesTable(data) {
 function updateNetTable(data) {
     console.log(data.waittings)
     $("#netTable tbody").empty()
+
     if (Array.isArray(data.waittings)) {
         data.waittings.forEach(msg => {
             let newrow = `
@@ -84,7 +85,23 @@ function updateNetTable(data) {
             <td>  ${msg.leftTime} </td>
         </tr>
         `
-            console.log("!!!!!!q")
+            $("#netTable tbody").append(newrow)
+        })
+    }
+
+    console.log("sended is",data.sended)
+    if (Array.isArray(data.sended)) {
+        data.sended.forEach(msg => {
+            let newrow = `
+        <tr>
+            <td>  sended  </td>
+            <td>  ${msg.from} </td>
+            <td>  ${msg.to} </td>
+            <td>  ${msg.head} </td>
+            <td>  ${msg.body} </td>
+            <td>  ${msg.leftTime} </td>
+        </tr>
+        `
             $("#netTable tbody").append(newrow)
         })
     }

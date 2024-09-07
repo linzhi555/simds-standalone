@@ -2,6 +2,7 @@ package lib
 
 import (
 	"fmt"
+	"time"
 
 	"simds-standalone/cluster/base"
 	"simds-standalone/common"
@@ -32,7 +33,7 @@ func (s *CenterScheduler) Debug() {
 func (s *CenterScheduler) Update(msg base.Message) {
 	switch msg.Head {
 
-	case "TaskDispense", "TaskCommitFail":
+	case "TaskDispense", "TaskReSchedule":
 		task := msg.Body.(TaskInfo)
 		dstWorker, ok := schdulingAlgorithm(s, &task)
 		if ok {
@@ -50,13 +51,35 @@ func (s *CenterScheduler) Update(msg base.Message) {
 				Body: task,
 			})
 		} else {
-			s.Os.Send(base.Message{
-				From: s.GetAddress(),
-				To:   msg.From,
-				Head: "TaskScheduleFail",
-				Body: task,
-			})
+			task.ScheduleFailCount += 1
+			if task.ScheduleFailCount <= 200 {
+				s.Os.SetTimeOut(func() {
+					s.Os.Send(base.Message{
+						From: s.GetAddress(),
+						To:   s.GetAddress(),
+						Head: "TaskReSchedule",
+						Body: task,
+					})
+
+				}, time.Duration(task.ScheduleFailCount+5)*1*time.Millisecond)
+			}
 		}
+	case "TaskCommitFail":
+		return
+		task := msg.Body.(TaskInfo)
+		task.ScheduleFailCount += 1
+		if task.ScheduleFailCount <= 200 {
+			s.Os.SetTimeOut(func() {
+				s.Os.Send(base.Message{
+					From: s.GetAddress(),
+					To:   s.GetAddress(),
+					Head: "TaskReSchedule",
+					Body: task,
+				})
+
+			}, 10*time.Millisecond)
+		}
+
 	case "TaskFinish":
 		taskInfo := msg.Body.(TaskInfo)
 		s.Workers[msg.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)

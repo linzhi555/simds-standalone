@@ -493,6 +493,7 @@ func (engine *Engine) DebugNet() NetDebugInfo {
 	for _, outs := range engine.Network.Outs {
 		for i := range *outs {
 			addMsg(&res.Sended, &(*outs)[i])
+			fmt.Println((*outs)[i].Head)
 		}
 	}
 
