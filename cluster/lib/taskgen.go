@@ -11,15 +11,6 @@ import (
 	"simds-standalone/config"
 )
 
-type TaskGen struct {
-	base.BasicActor
-	Status    string
-	StartTime time.Time
-	CurTaskId int
-	Receivers []string
-	Src       []SrcNode
-}
-
 type SrcNode struct {
 	time time.Duration
 	task TaskInfo
@@ -46,21 +37,6 @@ func CutStream(old []SrcNode, until time.Duration) []SrcNode {
 		res = append(res, old[i])
 	}
 	return res
-}
-
-// NewTaskGen 创造空的TaskGen
-func NewTaskGen(hostname string) *TaskGen {
-
-	taskgen := &TaskGen{
-		BasicActor: base.BasicActor{Host: hostname},
-		CurTaskId:  0,
-	}
-
-	return taskgen
-}
-
-func (taskgen *TaskGen) InitTaskSrc(src []SrcNode) {
-	taskgen.Src = src
 }
 
 func testTaskStream() []SrcNode {
@@ -148,6 +124,30 @@ func onePeakTaskStream() []SrcNode {
 	return src
 }
 
+type TaskGen struct {
+	base.BasicActor
+	Status    string
+	StartTime time.Time
+	CurTaskId int
+	Receivers []string
+	Src       []SrcNode
+}
+
+// NewTaskGen 创造空的TaskGen
+func NewTaskGen(hostname string) *TaskGen {
+
+	taskgen := &TaskGen{
+		BasicActor: base.BasicActor{Host: hostname},
+		CurTaskId:  0,
+	}
+
+	return taskgen
+}
+
+func (taskgen *TaskGen) InitTaskSrc(src []SrcNode) {
+	taskgen.Src = src
+}
+
 func (n *TaskGen) Debug() {}
 
 func (taskgen *TaskGen) Update(msg base.Message) {
@@ -170,6 +170,8 @@ func (taskgen *TaskGen) Update(msg base.Message) {
 
 	case "TaskFinish":
 	case "TaskScheduleFail":
+	default:
+		panic(msg.Head)
 	}
 }
 

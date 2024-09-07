@@ -6,22 +6,22 @@ import (
 	"simds-standalone/config"
 )
 
-func simdsLua(simulator *Engine) *lua.LState {
+func simdsLua(engine *Engine) *lua.LState {
 	l := lua.NewState()
 	step := func(L *lua.LState) int {
 		lv := L.ToInt(1) /* get argument */
-		simulator.UpdateNtimes(uint64(lv))
+		engine.UpdateNtimes(uint64(lv))
 		return 1 /* number of results */
 	}
 
 	to := func(L *lua.LState) int {
 		lv := L.ToInt(1) /* get argument */
-		simulator.UpdateNtimes(uint64(lv) - simulator.UpdateCount)
+		engine.UpdateNtimes(uint64(lv) - engine.UpdateCount)
 		return 1 /* number of results */
 	}
 
 	time := func(L *lua.LState) int {
-		fmt.Printf("Simulator Time: %dms , UpdateFrames: %d, FPS: %d \n", engine.UpTime().Milliseconds(), simulator.UpdateCount, config.Val.FPS)
+		fmt.Printf("Simulator Time: %dms , UpdateFrames: %d, FPS: %d \n", engine.UpTime().Milliseconds(), engine.UpdateCount, config.Val.FPS)
 		return 1
 	}
 

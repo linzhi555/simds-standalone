@@ -11,7 +11,7 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
-var engine *Engine
+var debuggerEngine *Engine
 var interpreter *lua.LState
 
 func openBrowser(url string) {
@@ -50,10 +50,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		res.Error = err.Error()
 	} else {
 		res.Error = "null"
-		res.UpdateCount = fmt.Sprint(engine.UpdateCount)
-		res.UpTime = fmt.Sprint(engine.UpTime())
-		res.NodesState = engine.DebugNodes()
-		res.NetState = engine.DebugNet()
+		res.UpdateCount = fmt.Sprint(debuggerEngine.UpdateCount)
+		res.UpTime = fmt.Sprint(debuggerEngine.UpTime())
+		res.NodesState = debuggerEngine.DebugNodes()
+		res.NetState = debuggerEngine.DebugNet()
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -65,7 +65,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func (e *Engine) GuiDebugging() {
 	interpreter = simdsLua(e)
-	engine = e
+	debuggerEngine = e
 
 	http.Handle("/", http.FileServer(http.Dir("./standalone/static"))) // 静态文件服务
 	http.HandleFunc("/run", handler)
