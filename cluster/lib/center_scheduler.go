@@ -65,7 +65,6 @@ func (s *CenterScheduler) Update(msg base.Message) {
 			}
 		}
 	case "TaskCommitFail":
-		return
 		task := msg.Body.(TaskInfo)
 		task.ScheduleFailCount += 1
 		if task.ScheduleFailCount <= 200 {
