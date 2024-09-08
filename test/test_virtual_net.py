@@ -12,6 +12,6 @@ if __name__ == "__main__":
         "NetLatency",
         "NetLatency",
         [1, 2, 4, 8, 16],
-        ["1ms", "2ms", "4ms", "8ms", "16ms",],
+        parmsLables=["1ms", "2ms", "4ms", "8ms", "16ms",],
         drawOnly=args.drawOnly,
     )

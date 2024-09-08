@@ -120,7 +120,7 @@ func (engine *Engine) Run() {
 		engine.UpdateNtimes(step)
 
 		log.Printf(
-			"%.4f%% progress:( %d / %d) current speed:%v / %d frame  FPS:%.1f\n NodeCost:%v NetCost:%v",
+			"%.4f%% progress:( %d / %d) current speed:%v / %d frame  FPS:%.1f NodeCost:%v NetCost:%v \n",
 			float32(engine.UpdateCount)/float32(frameNum)*100.0,
 			engine.UpdateCount,
 			int64(frameNum),

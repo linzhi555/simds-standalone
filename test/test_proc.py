@@ -12,7 +12,7 @@ if __name__ == "__main__":
         "GoProcs",
         "GoProcs",
         [1, 2, 3, 4, 5],
-        [
+        parmsLables=[
             "1thread",
             "2thread",
             "3thread",

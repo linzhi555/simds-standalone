@@ -47,9 +47,14 @@ def test_compose(
     testname: str,
     paramsName: str,
     params: List,
-    parmsLables: List[str],
     drawOnly: bool = False,
+    parmsLables: List[str] = None,
 ):
+    if parmsLables is None:
+        parmsLables = []
+        for param in params:
+            parmsLables.append(str(param))
+
     if not drawOnly:
         _run_compose(config, clusters, testname, paramsName, params,
                      parmsLables)

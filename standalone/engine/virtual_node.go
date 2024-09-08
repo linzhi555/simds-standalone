@@ -41,7 +41,7 @@ func (vnode *VirtualNode) AddActor(actor base.Actor) {
 }
 
 func (vnode *VirtualNode) Update() {
-	var lastState []ActorHideStatus
+	lastState := make([]ActorHideStatus, 0, len(vnode.actors))
 	for _, actor := range vnode.actors {
 		lastState = append(lastState, actor.hide)
 	}

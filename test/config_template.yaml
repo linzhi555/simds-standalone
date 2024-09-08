@@ -1,13 +1,13 @@
-FPS:  10000            #hom many frame per second
-GoProcs: 3
-NodeNum:        2000  # how many large the cluster
+FPS:  100000            #hom many frame per second
+GoProcs: 5
+NodeNum:      300   # how many large the cluster
 NetLatency:     1         # the average network latency, unit: milisecond 
 NodeCpu:        1000         # the node cpu capacity
 NodeMemory:     1000         # the node memory capacity
 
 
 SimulateDuration:   40000          # how long the simulation last / unit : milisecond
-TaskMode: "trace"  # the mode of the tasks "onePeak" "noWave" "trace"
+TaskMode: "onePeak"  # the mode of the tasks "onePeak" "noWave" "trace"
 TraceFile: "./google_trace/tasks_stream.log"  # the mode of the tasks "rand_normal" "trace"
 TaskNumFactor:   5  # task/persecond = TaskNumFactor * NodeNum 
 TaskCpu:        300          # the average task cpu request
@@ -15,8 +15,8 @@ TaskMemory:     300          # the average task memory request
 TaskLifeTime:   330        # the average task lifeTime  , unit : milisecond
 
 
-#only in center and shareState 
-#SchedulerPerformance: 17000  # how many time Scheduler execute scheduling algorithm in 1s
+# the machine speed for deal message
+PerformanceRate: 1
 
 # only in dcss mode
 DcssNeibor:    8         #how many neibor of a node
@@ -30,12 +30,13 @@ DcssDividePolicy     : "random"  #
 StateUpdatePeriod:   100   # the period of scheduler get the newest cluster state, unit : milisecond
 
 ## deploy mode
+
 K8STemplatePath: "./simctl/template"
 
-#K8SConfig: "/home/lin/dev/admin.conf"
 #K8SConfig: "./kubeconfig/config"
-K8SConfig: "/home/lin/.kube/config"
-
-PushImageRepo: "registry.cn-beijing.aliyuncs.com/lin2631/simlet:latest" # where the simlet image push to
+#PushImageRepo: "registry.cn-beijing.aliyuncs.com/lin2631/simlet:latest" # where the simlet image push to
 #PullImageRepo: "registry-vpc.cn-beijing.aliyuncs.com/lin2631/simlet:latest" # where the kubelet pull the image to start container
-PullImageRepo: "registry.cn-beijing.aliyuncs.com/lin2631/simlet:latest" # where the kubelet pull the image to start container
+
+K8SConfig: "/home/lin/.kube/config"
+PullImageRepo: "registry.cn-beijing.aliyuncs.com/lin2631/simlet:latest"
+PushImageRepo: "registry.cn-beijing.aliyuncs.com/lin2631/simlet:latest"
