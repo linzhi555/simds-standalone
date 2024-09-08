@@ -155,7 +155,7 @@ func (taskgen *TaskGen) Update(msg base.Message) {
 	case "SignalBoot":
 		formal := testTaskStream()
 		preheat := preheatTaskStream() // before formal test, there is a preheat stream to warm up the system.
-		all := ConcateStream(preheat, formal, 5*time.Second)
+		all := ConcateStream(preheat, formal, 1*time.Second)
 
 		taskgen.InitTaskSrc(all)
 		taskgen.StartTime = taskgen.Os.GetTime()

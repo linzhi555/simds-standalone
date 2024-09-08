@@ -2,7 +2,7 @@ package lib
 
 import (
 	"fmt"
-	"time"
+	"log"
 
 	"simds-standalone/cluster/base"
 	"simds-standalone/common"
@@ -11,9 +11,9 @@ import (
 // Scheduler 组件
 type CenterScheduler struct {
 	base.BasicActor
-	TaskMap map[string]*TaskInfo
-	Workers map[string]*NodeInfo
-	Storage string
+	Workers       map[string]*NodeInfo
+	WaittingTasks common.Vec[TaskInfo]
+	Storage       string
 }
 
 // NewCenterScheduler 创造新的Scheduler
@@ -33,55 +33,59 @@ func (s *CenterScheduler) Debug() {
 func (s *CenterScheduler) Update(msg base.Message) {
 	switch msg.Head {
 
-	case "TaskDispense", "TaskReSchedule":
+	case "SignalBoot":
+
+	case "TaskDispense", "TaskCommitFail":
 		task := msg.Body.(TaskInfo)
-		dstWorker, ok := schdulingAlgorithm(s, &task)
-		if ok {
-			task.Worker = dstWorker
-			s.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
-			receiver := task.Worker
-			if s.Storage != "" {
-				receiver = s.Storage
-			}
-			task.Worker = dstWorker
+		s.WaittingTasks.InQueueBack(task)
+
+		// 如果队列有任务说明资源不足，就不发送调度信号，而是等待TaskFinish接收后再发送调度信号。
+		if s.WaittingTasks.Len() > 1 {
 			s.Os.Send(base.Message{
 				From: s.GetAddress(),
-				To:   receiver,
-				Head: "TaskRun",
-				Body: task,
+				To:   s.GetAddress(),
+				Head: "SignalSchedule",
+				Body: Signal("SignalSchedule"),
 			})
-		} else {
-			task.ScheduleFailCount += 1
-			if task.ScheduleFailCount <= 200 {
-				s.Os.SetTimeOut(func() {
-					s.Os.Send(base.Message{
-						From: s.GetAddress(),
-						To:   s.GetAddress(),
-						Head: "TaskReSchedule",
-						Body: task,
-					})
-
-				}, time.Duration(task.ScheduleFailCount+5)*1*time.Millisecond)
-			}
 		}
-	case "TaskCommitFail":
-		task := msg.Body.(TaskInfo)
-		task.ScheduleFailCount += 1
-		if task.ScheduleFailCount <= 200 {
-			s.Os.SetTimeOut(func() {
+
+	case "SignalSchedule":
+
+		for s.WaittingTasks.Len() > 0 {
+			task := &s.WaittingTasks[0]
+			dstWorker, ok := schdulingAlgorithm(s, task)
+			if ok {
+				task.Worker = dstWorker
+				s.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
+				receiver := task.Worker
+				if s.Storage != "" {
+					receiver = s.Storage
+				}
+				task.Worker = dstWorker
 				s.Os.Send(base.Message{
 					From: s.GetAddress(),
-					To:   s.GetAddress(),
-					Head: "TaskReSchedule",
-					Body: task,
+					To:   receiver,
+					Head: "TaskRun",
+					Body: *(task.Clone()),
 				})
-
-			}, 10*time.Millisecond)
+				s.WaittingTasks.Delete(0)
+			} else {
+				break
+			}
 		}
 
 	case "TaskFinish":
+
 		taskInfo := msg.Body.(TaskInfo)
 		s.Workers[msg.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)
+		if s.WaittingTasks.Len() > 0 {
+			s.Os.Send(base.Message{
+				From: s.GetAddress(),
+				To:   s.GetAddress(),
+				Head: "SignalSchedule",
+				Body: Signal("SignalSchedule"),
+			})
+		}
 
 	case "VecNodeInfoUpdate":
 		nodeinfoList := msg.Body.(VecNodeInfo)
@@ -89,7 +93,7 @@ func (s *CenterScheduler) Update(msg base.Message) {
 			s.Workers[ni.Addr] = ni.Clone()
 		}
 	default:
-
+		log.Panicln(msg)
 	}
 }
 

@@ -94,14 +94,13 @@ func (worker *Worker) dealRunTask(t TaskInfo) {
 	worker.TaskMap[t.Id] = &t
 	t.StartTime = worker.Os.GetTime()
 	t.LeftTime = t.LifeTime
-	t.Status = "start"
 
 	worker.Os.RunCmd(func(err error) {
 		worker.Os.Send(base.Message{
 			From: worker.GetAddress(),
 			To:   worker.GetAddress(),
 			Head: "TaskFinish",
-			Body: t,
+			Body: *(t.Clone()),
 		})
 	}, t.Cmd)
 
@@ -109,7 +108,7 @@ func (worker *Worker) dealRunTask(t TaskInfo) {
 		From: worker.Host,
 		To:   t.User,
 		Head: "TaskStart",
-		Body: t,
+		Body: *(t.Clone()),
 	})
 }
 
