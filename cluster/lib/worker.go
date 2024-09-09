@@ -113,12 +113,11 @@ func (worker *Worker) dealRunTask(t TaskInfo) {
 }
 
 func informReceiverTaskStatus(worker *Worker, t *TaskInfo, content string) {
-	newMessage := base.Message{
+	worker.Os.Send(base.Message{
 		From: worker.GetAddress(),
 		To:   worker.Manager,
 		Head: content,
-		Body: *t,
-	}
-	worker.Os.Send(newMessage)
+		Body: *(t.Clone()),
+	})
 
 }
