@@ -2,11 +2,12 @@ package engine
 
 import (
 	"fmt"
+	"time"
+
 	"simds-standalone/cluster/base"
 	"simds-standalone/common"
 	"simds-standalone/config"
 	"simds-standalone/tracing/rules"
-	"time"
 )
 
 // MockNetwork 模拟的网络组件
@@ -59,6 +60,7 @@ func (network *VirtualNetwork) updateNetwork(tNow time.Time) {
 			}
 			needDelete = true
 			out.InQueueBack(m)
+
 			rules.CheckRulesThenExec(rules.RecvRules, tNow, &m)
 		} else {
 			network.Waittings[i].LeftTime -= DeltaT

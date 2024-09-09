@@ -9,7 +9,33 @@ import (
 	"simds-standalone/tracing/rules"
 )
 
+type ActorHideStatus struct {
+	IsBusy      bool
+	NeedDestroy bool
+	Progress    Progress
+	LastMsg     *base.Message
+	Difficulty  time.Duration
+}
+
+func (actor *EngineActor) UpdateProgress(t time.Time, percent float32) {
+	actor.hide.Progress.Add(percent)
+	if actor.hide.Progress.IsFinished() {
+		rules.CheckRulesThenExec(rules.MsgFinishRules, t, actor.hide.LastMsg)
+		actor.hide.Progress = 0
+		actor.hide.Difficulty = 0
+		actor.hide.IsBusy = false
+	}
+}
+
+func (hide *ActorHideStatus) ToBusy(msg *base.Message, difficulty time.Duration) {
+	hide.IsBusy = true
+	hide.Progress = 0
+	hide.Difficulty = difficulty
+	hide.LastMsg = msg
+}
+
 type EngineActor struct {
+	os    EngineOs
 	model base.Actor
 	hide  ActorHideStatus
 }
@@ -36,8 +62,7 @@ func NewVirtualNode(engine *Engine, actors ...base.Actor) *VirtualNode {
 }
 
 func (vnode *VirtualNode) AddActor(actor base.Actor) {
-
-	vnode.actors.InQueueBack(EngineActor{actor, ActorHideStatus{}})
+	vnode.actors.InQueueBack(EngineActor{model: actor, hide: ActorHideStatus{}})
 }
 
 func (vnode *VirtualNode) Update() {
@@ -60,7 +85,7 @@ func (vnode *VirtualNode) Update() {
 
 		if actor.hide.IsBusy {
 			actor.UpdateProgress(vnode.engine.GetWorldTime(), vnode.updatefunc(lastState, actor.hide))
-		} else if msg, err := vnode.engine.Network.Outs[actor.model.GetAddress()].Dequeue(); err == nil {
+		} else if msg, err := actor.os.In.Dequeue(); err == nil {
 			t := time.Now()
 
 			actor.model.Update(msg)   // update the data status of the actor
@@ -68,6 +93,7 @@ func (vnode *VirtualNode) Update() {
 			rules.CheckRulesThenExec(rules.MsgDealRules, vnode.engine.GetWorldTime(), &msg)
 
 			actor.hide.ToBusy(&msg, costTime)
+			actor.UpdateProgress(vnode.engine.GetWorldTime(), vnode.updatefunc(lastState, actor.hide))
 		}
 	}
 

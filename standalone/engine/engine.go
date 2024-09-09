@@ -41,25 +41,25 @@ func (t *renderThread) goWorking() {
 }
 
 type Engine struct {
-	UpdateCount uint64
-
+	// 渲染线程控制
 	ctx      context.Context
 	stopFunc func()
 
-	NodeUpdateCost time.Duration
-	renders        []renderThread
+	// 核心状态
+	UpdateCount uint64
+	renders     []renderThread
+	Network     VirtualNetwork
 
-	NetUpdateCost time.Duration
-	Network       VirtualNetwork
+	// 模拟性能优化记录，与逻辑无关
+	NodeUpdateCost time.Duration
+	NetUpdateCost  time.Duration
 }
 
 func InitEngine(cluster base.Cluster) *Engine {
 	rules.InitTracing()
 
 	var e Engine
-
 	e.ctx, e.stopFunc = context.WithCancel(context.Background())
-
 	// init network
 	e.Network = newVirtualNetwork()
 
@@ -68,8 +68,8 @@ func InitEngine(cluster base.Cluster) *Engine {
 		var nodes []VirtualNode
 
 		for j := i; j < int32(len(cluster.Nodes)); j += config.Val.GoProcs {
-			node := *NewVirtualNode(&e, cluster.Nodes[j].Actors...)
-			nodes = append(nodes, node)
+			node := NewVirtualNode(&e, cluster.Nodes[j].Actors...)
+			nodes = append(nodes, *node)
 		}
 
 		e.renders = append(e.renders, renderThread{
@@ -78,28 +78,35 @@ func InitEngine(cluster base.Cluster) *Engine {
 		})
 	}
 
-	// init actor os
+	// connect the all the connect to the virtual network
 	for _, node := range e.nodes() {
-		for _, actor := range node.actors {
-			e.Network.Ins[actor.model.GetAddress()] = &common.Vec[base.Message]{}
-			e.Network.Outs[actor.model.GetAddress()] = &common.Vec[base.Message]{}
+		for i := range node.actors {
+			actor := &node.actors[i]
 
-			os := EngineOs{
+			actor.os = EngineOs{
 				addr:   actor.model.GetAddress(),
 				engine: &e,
 				node:   node,
+				In:     &common.Vec[base.Message]{},
+				Out:    &common.Vec[base.Message]{},
 			}
-			os.Send(base.Message{
-				From: os.addr,
-				To:   os.addr,
+
+			actor.model.SetOsApi(&actor.os)
+
+			//net work input is actor's output , output is actor's input
+			e.Network.Ins[actor.model.GetAddress()] = actor.os.Out
+			e.Network.Outs[actor.model.GetAddress()] = actor.os.In
+
+			actor.os.Send(base.Message{
+				From: actor.os.addr,
+				To:   actor.os.addr,
 				Head: "SignalBoot",
 				Body: lib.Signal("SignalBoot"),
 			})
-			actor.model.SetOsApi(&os)
 		}
 	}
 
-	// start render thread
+	// 开始渲染线程，这些渲染线程会在后台等待，通过信号进行工作。
 	for i := range e.renders {
 		e.renders[i].goWorking()
 	}
@@ -107,6 +114,7 @@ func InitEngine(cluster base.Cluster) *Engine {
 	return &e
 }
 
+// 让引擎自动模拟运行
 func (engine *Engine) Run() {
 	testDuration := (time.Duration(config.Val.SimulateDuration) * (time.Millisecond)).Seconds()
 
@@ -133,7 +141,6 @@ func (engine *Engine) Run() {
 		if engine.UpdateCount == 25*step {
 			common.MemProf()
 		}
-
 	}
 }
 

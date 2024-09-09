@@ -1,9 +1,7 @@
 package engine
 
 import (
-	"simds-standalone/cluster/base"
 	"simds-standalone/config"
-	"simds-standalone/tracing/rules"
 	"time"
 )
 
@@ -27,29 +25,4 @@ func (p *Progress) Add(percent float32) {
 
 func (p *Progress) IsFinished() bool {
 	return *p >= FullProgress
-}
-
-type ActorHideStatus struct {
-	IsBusy      bool
-	NeedDestroy bool
-	Progress    Progress
-	LastMsg     *base.Message
-	Difficulty  time.Duration
-}
-
-func (actor *EngineActor) UpdateProgress(t time.Time, percent float32) {
-	actor.hide.Progress.Add(percent)
-	if actor.hide.Progress.IsFinished() {
-		rules.CheckRulesThenExec(rules.MsgFinishRules, t, actor.hide.LastMsg)
-		actor.hide.Progress = 0
-		actor.hide.Difficulty = 0
-		actor.hide.IsBusy = false
-	}
-}
-
-func (hide *ActorHideStatus) ToBusy(msg *base.Message, difficulty time.Duration) {
-	hide.IsBusy = true
-	hide.Progress = 0
-	hide.Difficulty = difficulty
-	hide.LastMsg = msg
 }

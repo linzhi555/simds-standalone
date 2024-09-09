@@ -78,6 +78,8 @@ type EngineOs struct {
 	addr   string
 	node   *VirtualNode
 	engine *Engine
+	Out    *common.Vec[base.Message]
+	In     *common.Vec[base.Message]
 }
 
 // GetTime 提供模拟时间
@@ -94,7 +96,6 @@ func (o *EngineOs) SetInterval(callback func(), t time.Duration) {
 		timeOut:  t,
 		callback: callback,
 	})
-
 }
 
 func (o *EngineOs) SetTimeOut(callback func(), t time.Duration) {
@@ -114,7 +115,6 @@ func (o *EngineOs) RunCmd(callback func(err error), cmd string) {
 
 func (o *EngineOs) Send(m base.Message) {
 	m.Id = string(common.GenerateUID())
-	o.engine.Network.Ins[o.addr].InQueueBack(m)
-
+	o.Out.InQueueBack(m)
 	rules.CheckRulesThenExec(rules.SendRules, o.GetTime(), &m)
 }
