@@ -1,7 +1,7 @@
-FPS:  100000            #hom many frame per second
+FPS:  10000            #hom many frame per second
 GoProcs: 5
 NodeNum:      100   # how many large the cluster
-NetLatency:     1         # the average network latency, unit: milisecond 
+NetLatency:     1         # the average network latency, unit: milisecond
 NodeCpu:        1000         # the node cpu capacity
 NodeMemory:     1000        # the node memory capacity
 

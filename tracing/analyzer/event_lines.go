@@ -72,6 +72,15 @@ func (l StageCostList) Output(outdir string, name string) {
 	}
 }
 
+func (l StageCostList) RemoveFails() StageCostList {
+	for i := 0; i < l.Len(); i++ {
+		if l[i].Cost == INF {
+			return l[0:i]
+		}
+	}
+	return l
+}
+
 func AnalyzeStageDuration(events EventLines, event1, event2 string) StageCostList {
 	events1map := make(map[string]time.Time)
 

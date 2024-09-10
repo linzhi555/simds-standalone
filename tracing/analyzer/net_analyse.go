@@ -13,25 +13,36 @@ import (
 	"time"
 )
 
+var _stage string
+
+func _start(stage string) {
+	_stage = stage
+	log.Printf("	 %s...\n", _stage)
+}
+func _finish() {
+	log.Printf("	 %s finished\n", _stage)
+}
+
 func AnalyseNet(logfile string, outdir string) {
 
-	log.Println("	 loding message events...")
+	_start("loding message events")
 	events := parseNetEventCSV(logfile)
-	log.Println("	 loading message events finished")
+	_finish()
 
-	log.Println("	 analyze all cluster message rate...")
+	_start("analyze net message latency")
+	//AnalyzeStageDuration(events, "send", "recv").RemoveFails().Output(outdir, "_netLantency")
+	AnalyzeStageDuration(events, "send", "recv").RemoveFails().Output(outdir, "_netLantency")
+	_finish()
+
+	_start("analyze all cluster message rate")
 	AnalyzeEventRate(events, "recv", 100).Output(outdir, "_allNet")
-	log.Println("	 analyze all cluster message rate finished")
+	_finish()
 
-	log.Println("	 analyze net message latency...")
-	AnalyzeStageDuration(events, "send", "recv").Output(outdir, "_netLantency")
-	log.Println("	 analyze net message latency finished")
-
-	log.Println("	 analyze busiesthost net events...")
+	_start("analyze busiesthost net events")
 	busiestHost, busiestHostEvents := busiestHost(events)
-	log.Println("    the most busiest host is ", hostTable[busiestHost])
+	log.Println("     the most busiest host is ", hostTable[busiestHost])
 	AnalyzeEventRate(busiestHostEvents, "recv", 100).Output(outdir, "_busiestHostNet")
-	log.Println("	 analyze net message latency finished")
+	_finish()
 }
 
 var NET_EVENT_LOG_HEAD = []string{"time", "Id", "direction", "type", "from", "to"}
@@ -92,6 +103,12 @@ func parseNetEventCSV(csvPath string) NetEventLine {
 	}
 	defer fs.Close()
 	r := csv.NewReader(fs)
+
+	_, err = r.Read() // csv head
+	if err != nil {
+		panic("fail to read" + err.Error())
+	}
+
 	for i := 0; ; i++ {
 		row, err := r.Read()
 		if err != nil && err != io.EOF {
@@ -100,11 +117,7 @@ func parseNetEventCSV(csvPath string) NetEventLine {
 		if err == io.EOF {
 			break
 		}
-		if i == 0 {
-			continue
-		} else {
-			_append(&res, row)
-		}
+		_append(&res, row)
 	}
 	sort.Sort(NetEventLine(res))
 
@@ -151,6 +164,13 @@ func head2uint(name string) uint16 {
 }
 
 func _append(l *[]NetEvent, row []string) {
+
+	// do use the self send message
+	if row[_NFrom] == row[_NTo] {
+		fmt.Println(row)
+		return
+	}
+
 	t, err := common.ParseTime(row[_NTime])
 	if err != nil {
 		panic(err)
@@ -158,7 +178,7 @@ func _append(l *[]NetEvent, row []string) {
 
 	*l = append(*l, NetEvent{
 		Time: t,
-		Id:   common.ReadUID(row[_NTime]),
+		Id:   common.ReadUID(row[_NId]),
 		IsSend: func(direct string) bool {
 			if direct == "send" {
 				return true
@@ -172,7 +192,6 @@ func _append(l *[]NetEvent, row []string) {
 		From: hostname2uint(row[_NFrom]),
 		To:   hostname2uint(row[_NTo]),
 	})
-
 }
 
 func busiestHost(events NetEventLine) (uint16, NetEventLine) {
