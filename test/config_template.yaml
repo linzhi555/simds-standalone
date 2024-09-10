@@ -9,7 +9,7 @@ NodeMemory:     1000         # the node memory capacity
 SimulateDuration:   40000          # how long the simulation last / unit : milisecond
 TaskMode: "onePeak"  # the mode of the tasks "onePeak" "noWave" "trace"
 TraceFile: "./google_trace/tasks_stream.log"  # the mode of the tasks "rand_normal" "trace"
-TaskNumFactor:   5  # task/persecond = TaskNumFactor * NodeNum 
+TaskNumFactor:   6  # task/persecond = TaskNumFactor * NodeNum 
 TaskCpu:        300          # the average task cpu request
 TaskMemory:     300          # the average task memory request
 TaskLifeTime:   330        # the average task lifeTime  , unit : milisecond

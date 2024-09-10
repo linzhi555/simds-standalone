@@ -34,6 +34,10 @@ shareCluster = Cluster("share", "Shared State",
 
 dcssCluster = Cluster("dcss", "dcss ", "make test Cluster=Dcss")
 
+centerK8sCluster = Cluster("centerk8s", "centerk8s ",
+                           "make k8sTest Cluster=Center")
+
+
 dcssK8sCluster = Cluster("dcssk8s", "dcssk8s ",
                          "make k8sTest Cluster=Dcss")
 

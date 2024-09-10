@@ -4,12 +4,13 @@ import args
 if __name__ == "__main__":
     config = simtest.load_config()
 
-    config["TaskMode"] = "trace"
+    config["TaskMode"] = "onePeak"
+
     simtest.test_compose(
         config,
-        [simtest.centerCluster, simtest.shareCluster, simtest.dcssCluster,],
-        "MultiCluster",
+        [simtest.centerCluster, simtest.centerK8sCluster],
+        "centerK8s",
         "NodeNum",
-        [100, 200],
+        [10, 40, 100],
         drawOnly=args.drawOnly,
     )

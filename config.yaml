@@ -1,12 +1,12 @@
-FPS:  100000            #hom many frame per second
+FPS:  40000            #hom many frame per second
 GoProcs: 5
-NodeNum:      500   # how many large the cluster
+NodeNum:      800   # how many large the cluster
 NetLatency:     1         # the average network latency, unit: milisecond 
 NodeCpu:        1000         # the node cpu capacity
-NodeMemory:     1000         # the node memory capacity
+NodeMemory:     1000        # the node memory capacity
 
 
-SimulateDuration:   20000          # how long the simulation last / unit : milisecond
+SimulateDuration:   40000          # how long the simulation last / unit : milisecond
 TaskMode: "onePeak"  # the mode of the tasks "onePeak" "noWave" "trace"
 TraceFile: "./google_trace/tasks_stream.log"  # the mode of the tasks "rand_normal" "trace"
 TaskNumFactor:   5  # task/persecond = TaskNumFactor * NodeNum 
@@ -16,7 +16,7 @@ TaskLifeTime:   330        # the average task lifeTime  , unit : milisecond
 
 
 # the machine speed for deal message
-PerformanceRate: 1
+PerformanceRate: 0.8
 
 # only in dcss mode
 DcssNeibor:    8         #how many neibor of a node

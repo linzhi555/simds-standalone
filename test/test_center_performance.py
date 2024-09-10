@@ -5,13 +5,15 @@ if __name__ == "__main__":
     config = simtest.load_config()
 
     config["TaskMode"] = "onePeak"
-    config["NodeNum"] = 500
+    config["NodeNum"] = 800
+    config["TaskNumFactor"] = 5
 
     simtest.test_compose(
         config,
         [simtest.centerCluster],
-        "centeralizedPerformance",
+        "centralizedPerformance",
         "PerformanceRate",
-        [1, 0.8, 0.6, 0.5, 0.4],
+        [0.65, 0.7, 0.75, 0.8, 1],
+
         drawOnly=args.drawOnly,
     )
