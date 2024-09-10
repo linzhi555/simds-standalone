@@ -55,11 +55,17 @@ func (l StageCostList) Output(outdir string, name string) {
 	high_90_per := l[l.Len()*9/10].Cost
 	high_99_per := l[l.Len()*99/100].Cost
 
-	err = common.AppendLineCsvFile(outPutMetricPath, []string{"average", "90%high", "99%high"})
+	err = common.AppendLineCsvFile(outPutMetricPath, []string{"average", "90%high", "99%high", "sampleNum", "sum"})
 	if err != nil {
 		panic(err)
 	}
-	err = common.AppendLineCsvFile(outPutMetricPath, []string{fmt.Sprint(average), fmt.Sprint(high_90_per), fmt.Sprint(high_99_per)})
+	err = common.AppendLineCsvFile(outPutMetricPath, []string{
+		fmt.Sprint(average),
+		fmt.Sprint(high_90_per),
+		fmt.Sprint(high_99_per),
+		fmt.Sprint(l.Len()),
+		fmt.Sprint(sum)},
+	)
 
 	if err != nil {
 		panic(err)

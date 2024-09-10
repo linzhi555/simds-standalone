@@ -15,17 +15,19 @@ import (
 	"simds-standalone/tracing/analyzer"
 )
 
+var netLogPath = path.Join(config.Val.OutputDir, config.Val.NetEventsLogName)
+var taskLogPath = path.Join(config.Val.OutputDir, config.Val.TaskEventsLogName)
+
 // for engin to init tracing
 func InitTracing() {
-	err := common.AppendLineCsvFile(path.Join(config.Val.OutputDir, config.Val.NetEventsLogName), analyzer.NET_EVENT_LOG_HEAD)
+	err := common.AppendLineCsvFile(netLogPath, analyzer.NET_EVENT_LOG_HEAD)
 	if err != nil {
 		panic(err)
 	}
-	err = common.AppendLineCsvFile(path.Join(config.Val.OutputDir, config.Val.TaskEventsLogName), analyzer.TASK_EVENT_LOG_HEAD)
+	err = common.AppendLineCsvFile(taskLogPath, analyzer.TASK_EVENT_LOG_HEAD)
 	if err != nil {
 		panic(err)
 	}
-
 }
 
 type Rule struct {
@@ -65,21 +67,21 @@ var RecvRules []Rule = []Rule{
 		MessageType: "*",
 		FromActorID: "*",
 		ToActorID:   "*",
-		Handle:      NetRecvEventRecord,
+		Handle:      netRecvEventRecord,
 	},
 
 	{
 		MessageType: "TaskStart",
 		FromActorID: "*",
 		ToActorID:   "simds-taskgen*",
-		Handle:      TaskEventRecord,
+		Handle:      taskEventRecord,
 	},
 
 	{
 		MessageType: "TaskFinish",
 		FromActorID: "*",
 		ToActorID:   "simds-taskgen*",
-		Handle:      TaskEventRecord,
+		Handle:      taskEventRecord,
 	},
 }
 
@@ -89,14 +91,14 @@ var SendRules []Rule = []Rule{
 		MessageType: "*",
 		FromActorID: "*",
 		ToActorID:   "*",
-		Handle:      NetSendEventRecord,
+		Handle:      netSendEventRecord,
 	},
 
 	{
 		MessageType: "TaskDispense",
 		FromActorID: "simds-taskgen*",
 		ToActorID:   "*",
-		Handle:      TaskEventRecord,
+		Handle:      taskEventRecord,
 	},
 }
 
@@ -106,14 +108,14 @@ var MsgDealRules []Rule = []Rule{}
 // apply the tracing rule when some actor finishe deal message
 var MsgFinishRules []Rule = []Rule{}
 
-func TaskEventRecord(t time.Time, msg *base.Message) {
+func taskEventRecord(t time.Time, msg *base.Message) {
 	task := msg.Body.(lib.TaskInfo)
 	if strings.HasSuffix(task.Id, "preheat") {
 		return
 	}
 
 	err := common.AppendLineCsvFile(
-		path.Join(config.Val.OutputDir, config.Val.TaskEventsLogName),
+		taskLogPath,
 		[]string{
 			common.FormatTime(t),
 			msg.Head,
@@ -126,14 +128,13 @@ func TaskEventRecord(t time.Time, msg *base.Message) {
 	if err != nil {
 		panic(err)
 	}
-
 }
 
-func NetSendEventRecord(t time.Time, msg *base.Message) {
+func netSendEventRecord(t time.Time, msg *base.Message) {
 	_netEventRecord(t, msg, "send")
 }
 
-func NetRecvEventRecord(t time.Time, msg *base.Message) {
+func netRecvEventRecord(t time.Time, msg *base.Message) {
 	_netEventRecord(t, msg, "recv")
 }
 
@@ -146,7 +147,7 @@ func _netEventRecord(t time.Time, msg *base.Message, eventype string) {
 	}
 
 	err := common.AppendLineCsvFile(
-		path.Join(config.Val.OutputDir, config.Val.NetEventsLogName),
+		netLogPath,
 		[]string{
 			common.FormatTime(t),
 			msg.Id,
@@ -159,5 +160,4 @@ func _netEventRecord(t time.Time, msg *base.Message, eventype string) {
 	if err != nil {
 		panic(err)
 	}
-
 }

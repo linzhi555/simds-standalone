@@ -17,8 +17,8 @@ import (
 // Config 全局的配置,在main开始前初始化
 var Val struct {
 	//output
-	TaskEventsLogName string
-	NetEventsLogName  string
+	TaskEventsLogName   string
+	NetEventsLogName    string
 
 	FPS        int32
 	GoProcs    int32

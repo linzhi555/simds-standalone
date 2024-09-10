@@ -25,7 +25,7 @@ func AnalyseTasks(taskLogFile string, outdir string) {
 	InitCluster(events, latencies).ReplayEvents().Output(outdir, "_clusterStatus")
 }
 
-var (
+const (
 	SUBMIT = "TaskDispense"
 	START  = "TaskStart"
 	FINISH = "TaskFinish"
