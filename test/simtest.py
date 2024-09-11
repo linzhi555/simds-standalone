@@ -7,9 +7,9 @@ import draw
 pyFileDir = os.path.dirname(os.path.realpath(__file__))
 
 
-def load_config() -> dict:
+def load_config(filepath: str = "config_template.yaml") -> dict:
     config = {}
-    with open(os.path.join(pyFileDir, "config_template.yaml"), "r") as stream:
+    with open(os.path.join(pyFileDir, filepath), "r") as stream:
         try:
             config = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
@@ -26,23 +26,22 @@ class Cluster:
         self.specialConfig = specialConfig
 
 
-centerCluster = Cluster("center", "Centralized",
-                        "make test Cluster=Center")
+centerCluster = Cluster("center", "central", "make test Cluster=Center")
 
-shareCluster = Cluster("share", "Shared State",
-                       "make test Cluster=ShareState")
+shareCluster = Cluster("share", "share", "make test Cluster=ShareState")
 
-dcssCluster = Cluster("dcss", "dcss ", "make test Cluster=Dcss")
+dcssCluster = Cluster("dcss", "dcss", "make test Cluster=Dcss")
 
-centerK8sCluster = Cluster("centerk8s", "centerk8s ",
+
+centerK8sCluster = Cluster("centerk8s", "centeral deploy ",
                            "make k8sTest Cluster=Center")
 
 
-dcssK8sCluster = Cluster("dcssk8s", "dcssk8s ",
-                         "make k8sTest Cluster=Dcss")
-
-shareK8sCluster = Cluster("sharek8s", "sharek8s",
+shareK8sCluster = Cluster("sharek8s", "share deploy",
                           "make k8sTest Cluster=ShareState")
+
+dcssK8sCluster = Cluster("dcssk8s", "dcss deploy ",
+                         "make k8sTest Cluster=Dcss")
 
 
 def test_compose(
@@ -60,8 +59,9 @@ def test_compose(
             parmsLables.append(str(param))
 
     if not drawOnly:
-        _run_compose(config, clusters, testname, paramsName, params,
-                     parmsLables)
+        _run_compose(config, clusters, testname,
+                     paramsName, params, parmsLables)
+
     _draw_compose(clusters, testname, params, parmsLables)
 
 
@@ -75,11 +75,16 @@ def _run_compose(
 ):
     for param, label in zip(params, parmsLables):
         for cluster in clusters:
+            targetOut = os.path.join(pyFileDir, "target", testname,
+                                     "{}_{}".format(cluster.name, label))
+            if os.path.isdir(targetOut):
+                print(targetOut, "already existed, so skip this test")
+                continue
+
             configCopy = config.copy()
             configCopy[paramsName] = param
             configOut = os.path.join(pyFileDir, "config.yaml")
-            targetOut = os.path.join(pyFileDir, "target", testname,
-                                     "{}_{}".format(cluster.name, label))
+
             if cluster.specialConfig is not None:
                 for k, v in cluster.specialConfig.items():
                     configCopy[k] = v
@@ -112,8 +117,9 @@ def _draw_compose(
         for cluster in clusters:
             targetOut = os.path.join(pyFileDir, "target", testname,
                                      "{}_{}".format(cluster.name, label))
-            tests.append([targetOut, "{} {} ".format(cluster.describ, label)])
-        _draw_one_folder(tests, outfolder)
+            tests.append([targetOut, "{}".format(cluster.describ)])
+        _draw_one_compares(tests, outfolder)
+
     for cluster in clusters:
         outfolder = os.path.join(prefix, cluster.name)
         os.system("mkdir -p {outfolder}".format(outfolder=outfolder))
@@ -122,14 +128,14 @@ def _draw_compose(
         for _, label in zip(params, parmsLables):
             targetOut = os.path.join(pyFileDir, "target", testname,
                                      "{}_{}".format(cluster.name, label))
-            tests.append([targetOut, "{} {} ".format(cluster.describ, label)])
-        _draw_one_folder(tests, outfolder)
+            tests.append([targetOut, "{} ".format(label)])
+        _draw_one_compares(tests, outfolder)
 
     print("draw finished:", testname, params)
     print("result dir:", prefix)
 
 
-def _draw_one_folder(tests, outfolder):
+def _draw_one_compares(tests, outfolder):
     # draw.draw_task_submission_rate(tests, outfolder)
     draw.draw_muilt_lantencyCurve(tests, outfolder)
     draw.draw_muilt_avg_resource(tests, outfolder)

@@ -1,5 +1,4 @@
 import simtest
-import args
 
 if __name__ == "__main__":
     config = simtest.load_config()
@@ -19,5 +18,4 @@ if __name__ == "__main__":
             "4thread",
             "5thread",
         ],
-        drawOnly=args.drawOnly,
     )

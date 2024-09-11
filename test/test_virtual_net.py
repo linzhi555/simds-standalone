@@ -1,5 +1,4 @@
 import simtest
-import args
 
 if __name__ == "__main__":
     config = simtest.load_config()
@@ -13,5 +12,4 @@ if __name__ == "__main__":
         "NetLatency",
         [1, 2, 4, 8, 16],
         parmsLables=["1ms", "2ms", "4ms", "8ms", "16ms",],
-        drawOnly=args.drawOnly,
     )

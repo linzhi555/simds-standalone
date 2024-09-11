@@ -1,5 +1,4 @@
 import simtest
-import args
 
 if __name__ == "__main__":
     config = simtest.load_config()
@@ -10,6 +9,5 @@ if __name__ == "__main__":
         [simtest.centerCluster, simtest.shareCluster, simtest.dcssCluster,],
         "MultiCluster",
         "NodeNum",
-        [100, 200],
-        drawOnly=args.drawOnly,
+        [100, 200, 400, 800],
     )
