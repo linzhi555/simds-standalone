@@ -11,7 +11,6 @@ import (
 
 	"simds-standalone/cluster"
 	"simds-standalone/cluster/base"
-	"simds-standalone/common"
 	"simds-standalone/config"
 	"simds-standalone/simctl/k8s"
 )
@@ -68,7 +67,7 @@ func Deploy(cli *k8s.K8sClient) {
 			[]string{"sh",
 				"-c",
 				fmt.Sprintf(
-					"/simlet --Cluster %s --NodeName %s  >simlet.log 2>simlet_err.log; sleep 20000",
+					"/simlet --Cluster %s --NodeName %s  >simlet.log 2>simlet_err.log; sleep 36000",
 					config.Val.Cluster, name,
 				),
 			},
@@ -87,21 +86,33 @@ func Deploy(cli *k8s.K8sClient) {
 	}
 }
 
-const threadNum = 1
-
 func CollectResult(cli *k8s.K8sClient) {
-	mergeCsvOfMultiplePods(cli, cli.GetPodsWithPrefix("simds-taskgen"), config.Val.TaskEventsLogName, path.Join(config.Val.OutputDir, config.Val.TaskEventsLogName))
-	mergeCsvOfMultiplePods(cli, cli.GetPodsWithPrefix("simds"), config.Val.NetEventsLogName, path.Join(config.Val.OutputDir, config.Val.NetEventsLogName))
+	// 下载任务日志文件，只存在在taskgen类型的pod中
+	collectAndMerge(cli,
+		cli.GetPodsWithPrefix("simds-taskgen"),
+		config.Val.TaskEventsLogName,
+		path.Join(config.Val.OutputDir, config.Val.TaskEventsLogName),
+	)
+
+	// 下载网络运输日志文件，在所有类型的节点中
+	collectAndMerge(cli,
+		cli.GetPodsWithPrefix("simds"),
+		config.Val.NetEventsLogName,
+		path.Join(config.Val.OutputDir, config.Val.NetEventsLogName),
+	)
 }
 
-func mergeCsvOfMultiplePods(cli *k8s.K8sClient, pods []string, logfile string, outfile string) {
+const downloadThreads = 1
+
+// 下载所有pod的csv文件,汇集到一个文件中
+func collectAndMerge(cli *k8s.K8sClient, pods []string, logfile string, outfile string) {
 	var num = len(pods)
 	var bufferCh = make(chan *bytes.Buffer, num)
 
-	for i := 0; i < threadNum; i++ {
+	for i := 0; i < downloadThreads; i++ {
 		go func(threadId int) {
 			for j := 0; j < num; j++ {
-				if j%threadNum == threadId {
+				if j%downloadThreads == threadId {
 					var b bytes.Buffer
 					err := cli.Download(pods[j], "c1", logfile, &b)
 					if err != nil {
@@ -115,23 +126,50 @@ func mergeCsvOfMultiplePods(cli *k8s.K8sClient, pods []string, logfile string, o
 		}(i)
 	}
 
+	newfile, err := os.Create(outfile)
+	if err != nil {
+		panic(err)
+	}
+	defer newfile.Close()
+
+	successNum := 0
+	errorNum := 0
 	// merge csv
-
-	var AllTable [][]string
-	var TableTop []string
-
 	for i := 0; i < num; i++ {
 		log.Println("parallel down load file to ", outfile, " ", i, "/", num)
 		b := <-bufferCh
-		if b != nil {
-			table, top := common.BytesCsvToList(b)
-			AllTable = append(AllTable, table...)
-			if TableTop == nil {
-				TableTop = top
+		if b == nil {
+			errorNum += 1
+			log.Println("has a fail in download one pod file ")
+			continue
+		}
+
+		//only one table top is needed
+		if successNum > 0 {
+			_, err := b.ReadString('\n')
+			if err != nil {
+				panic(err)
 			}
 		}
+
+		_, err = b.WriteTo(newfile)
+		if err != nil {
+			panic(err)
+		}
+		successNum++
 	}
-	common.ListToCsv(AllTable, TableTop, outfile)
+
+	log.Printf("download finished fail/all = %d / %d \n", errorNum, num)
+}
+
+func StopAll(cli *k8s.K8sClient) {
+	pods := cli.GetPodsWithPrefix("simds")
+	for _, pod := range pods {
+		_, err := cli.Exec(pod, "c1", []string{"sh", "-c", "pkill simlet"}, nil, nil)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func main() {
@@ -157,5 +195,6 @@ func main() {
 	PushImage()
 	Deploy(cli)
 	time.Sleep(2 * time.Duration(config.Val.SimulateDuration) * time.Millisecond)
+	StopAll(cli)
 	CollectResult(cli)
 }

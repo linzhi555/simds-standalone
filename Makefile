@@ -1,4 +1,4 @@
-.PHONY:centerTest dcssTest analyse fmt testCompose
+.PHONY: test debug preDeal k8sTest analyse fmt k8sClean
 
 Cluster=Center
 Config=./config.yaml
