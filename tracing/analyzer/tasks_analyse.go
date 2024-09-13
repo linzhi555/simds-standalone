@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strings"
 	"time"
 
 	"simds-standalone/cluster/lib"
@@ -67,9 +68,14 @@ func (l TaskEventLine) GetHappenTime(i int) time.Time { return l[i].Time }
 
 // read the TaskEvent csv file
 func ReadTaskEventCsv(csvfilePath string) TaskEventLine {
-
-	table, _ := common.CsvToList(csvfilePath)
-
+	table, _, err := common.CsvToList(csvfilePath)
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "partial error:") {
+			log.Println(err)
+		} else {
+			panic(err)
+		}
+	}
 	var eventLine []*TaskEvent
 	for _, line := range table {
 		eventLine = append(eventLine, strings2TaskEvent(line))

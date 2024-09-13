@@ -1,9 +1,7 @@
 package analyzer
 
 import (
-	"encoding/csv"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"runtime"
@@ -102,25 +100,12 @@ func parseNetEventCSV(csvPath string) NetEventLine {
 		log.Fatal("can not open ", csvPath)
 	}
 	defer fs.Close()
-	r := csv.NewReader(fs)
 
-	_, err = r.Read() // csv head
-	if err != nil {
-		panic("fail to read" + err.Error())
-	}
-
-	for i := 0; ; i++ {
-		row, err := r.Read()
-		if err != nil && err != io.EOF {
-			panic("fail to read" + err.Error())
-		}
-		if err == io.EOF {
-			break
-		}
+	common.IterateCsv(fs, nil, func(row []string) {
 		_append(&res, row)
-	}
-	sort.Sort(NetEventLine(res))
+	})
 
+	sort.Sort(NetEventLine(res))
 	reverseTable(hostCache, hostTable)
 	reverseTable(headCache, headTable)
 

@@ -22,7 +22,11 @@ func readTraceTaskStream(traceFile string, resourceRate float64, endTime int32) 
 
 	src := make([]SrcNode, 0)
 
-	table, _ := common.CsvToList(traceFile)
+	table, _ ,err:= common.CsvToList(traceFile)
+	if err != nil{
+		panic(err)
+	}
+
 	for i := range table {
 		lifeTime := time.Duration(common.Str_to_int64(table[i][2])) * time.Microsecond
 		newTask := TaskInfo{
