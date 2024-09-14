@@ -101,9 +101,17 @@ func parseNetEventCSV(csvPath string) NetEventLine {
 	}
 	defer fs.Close()
 
-	common.IterateCsv(fs, nil, func(row []string) {
+	err = common.IterateCsv(fs, nil, func(row []string) {
 		_append(&res, row)
 	})
+
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "partial error:") {
+			log.Println(err)
+		} else {
+			panic(err)
+		}
+	}
 
 	sort.Sort(NetEventLine(res))
 	reverseTable(hostCache, hostTable)

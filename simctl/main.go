@@ -114,7 +114,7 @@ func collectAndMerge(cli *k8s.K8sClient, pods []string, logfile string, outfile 
 			for j := 0; j < num; j++ {
 				if j%downloadThreads == threadId {
 					var b bytes.Buffer
-					err := cli.Download(pods[j], "c1", logfile, &b)
+					err := cli.DownloadTextFile(pods[j], "c1", logfile, &b)
 					if err != nil {
 						log.Println(err)
 						bufferCh <- nil
@@ -165,7 +165,7 @@ func collectAndMerge(cli *k8s.K8sClient, pods []string, logfile string, outfile 
 func StopAll(cli *k8s.K8sClient) {
 	pods := cli.GetPodsWithPrefix("simds")
 	for _, pod := range pods {
-		_, err := cli.Exec(pod, "c1", []string{"sh", "-c", "pkill simlet"}, nil, nil)
+		err := cli.Exec(pod, "c1", []string{"sh", "-c", "pkill simlet"}, os.Stdout)
 		if err != nil {
 			panic(err)
 		}

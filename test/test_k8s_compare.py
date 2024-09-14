@@ -14,18 +14,19 @@ if __name__ == "__main__":
         [1.0],
     )
 
-    simtest.test_compose(
-        config,
-        [simtest.shareCluster, simtest.shareK8sCluster],
-        "shareK8s",
-        "PerformanceRate",
-        [1.0],
-    )
 
     simtest.test_compose(
         config,
         [simtest.dcssCluster, simtest.dcssK8sCluster],
         "dcssK8s",
+        "PerformanceRate",
+        [1.0],
+    )
+    
+    simtest.test_compose(
+        config,
+        [simtest.shareCluster, simtest.shareK8sCluster],
+        "shareK8s",
         "PerformanceRate",
         [1.0],
     )

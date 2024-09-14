@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,9 +18,9 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -266,71 +268,88 @@ func (cli *K8sClient) DeleteService(name string) {
 }
 
 // exec a command in a pod
-func (cli *K8sClient) Exec(podName, containerName string, command []string, stdin io.Reader, stdout io.Writer) ([]byte, error) {
-
+func (cli *K8sClient) Exec(podName, containerName string, command []string, stdout io.Writer) error {
 	clientset, config := cli.clientset, cli.config
 
-	req := clientset.CoreV1().RESTClient().Post().
+	errBuf := &bytes.Buffer{}
+	request := clientset.CoreV1().RESTClient().
+		Post().
+		Namespace(cli.GetNamespace()).
 		Resource("pods").
 		Name(podName).
-		Namespace(cli.PodTemplate.Namespace).
-		SubResource("exec")
-	scheme := runtime.NewScheme()
-	if err := apiv1.AddToScheme(scheme); err != nil {
-		return nil, fmt.Errorf("error adding to scheme: %v", err)
-	}
+		SubResource("exec").
+		VersionedParams(&v1.PodExecOptions{
+			Command: command,
+			Stdin:   false,
+			Stdout:  stdout != nil,
+			Stderr:  true,
+			TTY:     true,
+		}, scheme.ParameterCodec)
 
-	parameterCodec := runtime.NewParameterCodec(scheme)
-	req.VersionedParams(&apiv1.PodExecOptions{
-		Command:   command,
-		Container: containerName,
-		Stdin:     stdin != nil,
-		Stdout:    stdout != nil,
-		Stderr:    true,
-		TTY:       false,
-	}, parameterCodec)
-
-	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+	exec, err := remotecommand.NewSPDYExecutor(config, "POST", request.URL())
 	if err != nil {
-		return nil, fmt.Errorf("error while creating Executor: %v", err)
+		return err
 	}
-
-	var stderr bytes.Buffer
 	err = exec.StreamWithContext(context.Background(), remotecommand.StreamOptions{
-		Stdin:  stdin,
 		Stdout: stdout,
-		Stderr: &stderr,
-		Tty:    false,
+		Stderr: errBuf,
 	})
+
 	if err != nil {
-		return stderr.Bytes(), fmt.Errorf("error in Stream: %v", err)
+		return errors.New("error when exec cmd:\n" + err.Error() + "\nAnd stderr is:\n" + errBuf.String())
 	}
 
-	return nil, nil
-
+	return nil
 }
 
 // download a file from one pod
-func (cli *K8sClient) Download(podName, containerName, pathToCopy string, writer io.Writer) error {
+func (cli *K8sClient) DownloadTextFile(podName, containerName, pathToCopy string, writer io.Writer) error {
+	lines := int64(0)
+	countLinesCmd := []string{"sh", "-c", "wc -l < " + pathToCopy}
 
-	command := []string{"cat", pathToCopy}
+	buf := &bytes.Buffer{}
+	err := cli.Exec(podName, containerName, countLinesCmd, buf)
+	if err != nil {
+		return errors.New("get file lins number fail:" + err.Error())
+	}
+	scanner := bufio.NewScanner(buf)
+	scanner.Split(bufio.ScanLines)
+	scanner.Scan()
+	linestr := scanner.Text()
+	lines, err = strconv.ParseInt(linestr, 10, 32)
 
-	attempts := 3
-	attempt := 0
-	for attempt < attempts {
-		attempt++
-
-		stderr, err := cli.Exec(podName, containerName, command, nil, writer)
-		if attempt == attempts {
-			if len(stderr) != 0 {
-				return fmt.Errorf("STDERR: " + (string)(stderr))
-			}
-			if err != nil {
-				return err
-			}
+	if lines < 10000 {
+		command := []string{"cat", pathToCopy}
+		if err != nil {
+			return err
 		}
-		if err == nil {
-			return nil
+		buf := &bytes.Buffer{}
+		err := cli.Exec(podName, containerName, command, buf)
+		if err != nil {
+			return err
+		}
+
+		_, err = buf.WriteTo(writer)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	sep := 10
+	for i := 0; i < sep; i++ {
+		start := int(lines) * i / sep
+		end := int(lines) * (i + 1) / sep
+		buf := &bytes.Buffer{}
+		command := []string{"sh", "-c", fmt.Sprintf("awk 'NR>%d && NR<=%d' %s", start, end, pathToCopy)}
+		err := cli.Exec(podName, containerName, command, buf)
+		if err != nil {
+			return err
+		}
+
+		_, err = buf.WriteTo(writer)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -420,5 +439,4 @@ func (cli *K8sClient) WaitUtilAllRunning(waitPods []string) error {
 		}
 	}
 	return nil
-
 }

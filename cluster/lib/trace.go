@@ -22,8 +22,8 @@ func readTraceTaskStream(traceFile string, resourceRate float64, endTime int32) 
 
 	src := make([]SrcNode, 0)
 
-	table, _ ,err:= common.CsvToList(traceFile)
-	if err != nil{
+	table, _, err := common.CsvToList(traceFile)
+	if err != nil {
 		panic(err)
 	}
 
