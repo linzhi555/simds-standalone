@@ -17,53 +17,111 @@ type EventLines interface {
 	GetHappenTime(index int) time.Time
 }
 
-type StageCostList []struct {
-	Id   string
-	Cost time.Duration
+type CostRecord struct {
+	Time_ms int
+	Id      string
+	Cost    time.Duration
 }
 
-func (l StageCostList) Len() int      { return len(l) }
-func (l StageCostList) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
-func (l StageCostList) Less(i, j int) bool {
-	return l[i].Cost.Nanoseconds() < l[j].Cost.Nanoseconds()
+type CostList []CostRecord
+
+func (l CostList) SortByOccurTime() {
+	sort.Slice(l, func(i, j int) bool {
+		return l[i].Time_ms < l[j].Time_ms
+	})
 }
 
-func (l StageCostList) Output(outdir string, name string) {
-	outPutLogPath := path.Join(outdir, name+"Curve.log")
-	outPutMetricPath := path.Join(outdir, name+"Metric.log")
+func (l CostList) SortByCost() {
+	sort.Slice(l, func(i, j int) bool {
+		return l[i].Cost < l[j].Cost
+	})
+}
 
-	common.RemoveIfExisted(outPutLogPath)
-	common.RemoveIfExisted(outPutMetricPath)
+func (l CostList) Output(outdir string, name string) {
 
-	err := common.AppendLineCsvFile(outPutLogPath, []string{"id", name})
+	//time curve
+	timePath := path.Join(outdir, name+"TimeCurve.log")
+	common.RemoveIfExisted(timePath)
+
+	err := common.AppendLineCsvFile(timePath, []string{"time_ms", "id", name})
 	if err != nil {
 		panic(err)
 	}
 
-	for _, line := range l {
-		err := common.AppendLineCsvFile(outPutLogPath, []string{fmt.Sprint(line.Id), fmt.Sprint(line.Cost)})
+	l.SortByOccurTime()
+
+	var records CostList
+	var lastRecordMs int = l[0].Time_ms
+	for _, item := range l {
+		if (item.Time_ms - lastRecordMs) > 100 {
+			maxlatency := time.Duration(0)
+			var maxlatencyItem CostRecord
+
+			for _, record := range records {
+				if record.Cost > maxlatency {
+					maxlatencyItem = record
+				}
+			}
+
+			err := common.AppendLineCsvFile(timePath, []string{
+				fmt.Sprint(maxlatencyItem.Time_ms),
+				fmt.Sprint(maxlatencyItem.Id),
+				fmt.Sprint(maxlatencyItem.Cost)},
+			)
+
+			if err != nil {
+				panic(err)
+			}
+			lastRecordMs = item.Time_ms // begin next records
+			records = CostList{}        //clear
+		} else {
+			records = append(records, item)
+		}
+
+	}
+
+	// cdf log
+	cdfPath := path.Join(outdir, name+"CDF.log")
+	common.RemoveIfExisted(cdfPath)
+	l.SortByCost()
+	err = common.AppendLineCsvFile(cdfPath, []string{"percent", "id", name})
+	if err != nil {
+		panic(err)
+	}
+
+	for i := 0; i < len(l); i += max(len(l)/100, 1) {
+		item := l[i]
+		err := common.AppendLineCsvFile(cdfPath, []string{
+			fmt.Sprintf("%.2f", float32(i+1)*100/float32(len(l))),
+			fmt.Sprint(item.Id),
+			fmt.Sprint(item.Cost)},
+		)
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	var sum time.Duration = 0
-	for _, line := range l {
-		sum += line.Cost
-	}
-	average := time.Duration(int64(sum) / int64(l.Len()))
-	high_90_per := l[l.Len()*9/10].Cost
-	high_99_per := l[l.Len()*99/100].Cost
+	// metrig log
+	metricPath := path.Join(outdir, name+"Metric.log")
+	common.RemoveIfExisted(metricPath)
 
-	err = common.AppendLineCsvFile(outPutMetricPath, []string{"average", "90%high", "99%high", "sampleNum", "sum"})
+	var sum time.Duration = 0
+	for _, item := range l {
+		sum += item.Cost
+	}
+	average := time.Duration(int64(sum) / int64(len(l)))
+	high_90_per := l[len(l)*9/10].Cost
+	high_99_per := l[len(l)*99/100].Cost
+
+	err = common.AppendLineCsvFile(metricPath, []string{"average", "P90", "P99", "sampleNum", "sum"})
 	if err != nil {
 		panic(err)
 	}
-	err = common.AppendLineCsvFile(outPutMetricPath, []string{
+	err = common.AppendLineCsvFile(metricPath, []string{
 		fmt.Sprint(average),
 		fmt.Sprint(high_90_per),
 		fmt.Sprint(high_99_per),
-		fmt.Sprint(l.Len()),
+		fmt.Sprint(len(l)),
 		fmt.Sprint(sum)},
 	)
 
@@ -72,8 +130,8 @@ func (l StageCostList) Output(outdir string, name string) {
 	}
 }
 
-func (l StageCostList) RemoveFails() StageCostList {
-	for i := 0; i < l.Len(); i++ {
+func (l CostList) RemoveFails() CostList {
+	for i := 0; i < len(l); i++ {
 		if l[i].Cost == INF {
 			return l[0:i]
 		}
@@ -81,25 +139,23 @@ func (l StageCostList) RemoveFails() StageCostList {
 	return l
 }
 
-func AnalyzeStageDuration(events EventLines, event1, event2 string) StageCostList {
+func AnalyzeStageDuration(events EventLines, event1, event2 string) CostList {
 	events1map := make(map[string]time.Time)
 
-	var res StageCostList
+	start := events.GetHappenTime(0)
+	var res CostList
 	for i := 0; i < events.Len(); i++ {
 		switch events.GetType(i) {
 		case event1:
 			events1map[events.GetID(i)] = events.GetHappenTime(i)
 		case event2:
-			var temp struct {
-				Id   string
-				Cost time.Duration
-			}
-
-			id := events.GetID(i)
+			var temp CostRecord
 			t2 := events.GetHappenTime(i)
+			id := events.GetID(i)
 			temp.Id = id
 
 			if t1, ok := events1map[id]; ok {
+				temp.Time_ms = int(t1.Sub(start).Milliseconds())
 				temp.Cost = t2.Sub(t1)
 				res = append(res, temp)
 				delete(events1map, id)
@@ -108,17 +164,15 @@ func AnalyzeStageDuration(events EventLines, event1, event2 string) StageCostLis
 		}
 	}
 
-	for t1 := range events1map {
-		var temp struct {
-			Id   string
-			Cost time.Duration
-		}
-		temp.Id = t1
+	for id, t1 := range events1map {
+		var temp CostRecord
+		temp.Time_ms = int(t1.Sub(start).Milliseconds())
+		temp.Id = id
 		temp.Cost = INF
 		res = append(res, temp)
 	}
 
-	sort.Sort(res)
+	res.SortByCost()
 	return res
 }
 
@@ -135,7 +189,6 @@ func (l RateList) Highest() int {
 		}
 	}
 	return maxamout
-
 }
 
 func (l RateList) Output(outdir string, name string) {

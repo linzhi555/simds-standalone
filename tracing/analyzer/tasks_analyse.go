@@ -21,9 +21,9 @@ func AnalyseTasks(taskLogFile string, outdir string) {
 	AnalyzeEventRate(events, SUBMIT, 100).Output(outdir, "_taskSubmit")
 	AnalyzeStageDuration(events, START, FINISH).Output(outdir, "_lifeTime")
 	latencies := AnalyzeStageDuration(events, SUBMIT, START)
-	latencies.Output(outdir, "_latency")
+	latencies.Output(outdir, "_taskLatency")
 
-	InitCluster(events, latencies).ReplayEvents().Output(outdir, "_clusterStatus")
+	InitCluster(events).ReplayEvents().Output(outdir, "_clusterStatus")
 }
 
 const (
@@ -150,13 +150,12 @@ func (m *ClusterMetric) Strings() []string {
 }
 
 type ClusterStatus struct {
-	Time        time.Time
-	TaskLatency time.Duration
-	Metric      ClusterMetric
+	Time   time.Time
+	Metric ClusterMetric
 }
 
 func (status *ClusterStatus) Strings(startTime time.Time) []string {
-	return append([]string{fmt.Sprint(status.Time.Sub(startTime).Milliseconds()), fmt.Sprint(status.TaskLatency)}, status.Metric.Strings()...)
+	return append([]string{fmt.Sprint(status.Time.Sub(startTime).Milliseconds())}, status.Metric.Strings()...)
 }
 
 type ClusterStatusLine []ClusterStatus
@@ -170,7 +169,7 @@ func (l ClusterStatusLine) Output(outputDir string, filename string) {
 		}
 
 	}
-	err := common.AppendLineCsvFile(outputlogfile, []string{"time_ms", "taskLatency", "cpuAvg", "ramAvg", "memVar", "memVar"})
+	err := common.AppendLineCsvFile(outputlogfile, []string{"time_ms", "cpuAvg", "ramAvg", "memVar", "memVar"})
 	if err != nil {
 		panic(err)
 	}
@@ -184,17 +183,15 @@ func (l ClusterStatusLine) Output(outputDir string, filename string) {
 }
 
 type Cluster struct {
-	AllEvents       TaskEventLine
-	TaskLatencyList StageCostList
-	Nodes           map[string]*lib.NodeInfo
+	AllEvents TaskEventLine
+	Nodes     map[string]*lib.NodeInfo
 }
 
 // create a new cluster according the taskevent logs.
 // if the ip appears in the logs then create this node.
-func InitCluster(events TaskEventLine, latencies StageCostList) *Cluster {
+func InitCluster(events TaskEventLine) *Cluster {
 	var cluster Cluster
 	cluster.AllEvents = events
-	cluster.TaskLatencyList = latencies
 	cluster.Nodes = make(map[string]*lib.NodeInfo)
 
 	for _, event := range events {
@@ -219,37 +216,17 @@ func InitCluster(events TaskEventLine, latencies StageCostList) *Cluster {
 
 func (c *Cluster) ReplayEvents() (statusLine ClusterStatusLine) {
 	lastRecordTime := c.AllEvents[0].Time
-	taskAfterLastRecord := []string{}
-
-	taskLatencyMap := map[string]time.Duration{}
-	for _, record := range c.TaskLatencyList {
-		taskLatencyMap[record.Id] = record.Cost
-	}
 
 	for _, e := range c.AllEvents {
 		switch e.Type {
-		case SUBMIT:
-			taskAfterLastRecord = append(taskAfterLastRecord, e.TaskId)
+
 		case START:
 			c.Nodes[e.ActorId].AddAllocated(e.Cpu, e.Memory)
 		case FINISH:
 			c.Nodes[e.ActorId].SubAllocated(e.Cpu, e.Memory)
 		}
 		if e.Time.Sub(lastRecordTime) >= time.Millisecond*100 {
-			latencyMax := time.Duration(0)
-			tasksNum := int64(len(taskAfterLastRecord))
-
-			if tasksNum != 0 {
-				for _, task := range taskAfterLastRecord {
-					latency := taskLatencyMap[task]
-					if latency > latencyMax {
-						latencyMax = latency
-					}
-				}
-			}
-
-			statusLine = append(statusLine, ClusterStatus{e.Time, latencyMax, c.calMetrics()})
-			taskAfterLastRecord = []string{}
+			statusLine = append(statusLine, ClusterStatus{e.Time, c.calMetrics()})
 			lastRecordTime = e.Time
 		}
 	}

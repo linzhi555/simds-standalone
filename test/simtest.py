@@ -113,32 +113,23 @@ def _draw_compose(
         outfolder = os.path.join(prefix, label)
         os.system("mkdir -p {outfolder}".format(outfolder=outfolder))
 
-        tests = []
+        tests = draw.testDataList()
         for cluster in clusters:
-            targetOut = os.path.join(pyFileDir, "target", testname,
-                                     "{}_{}".format(cluster.name, label))
-            tests.append([targetOut, "{}".format(cluster.describ)])
-        _draw_one_compares(tests, outfolder)
+            dataFolder = os.path.join(pyFileDir, "target", testname,
+                                      "{}_{}".format(cluster.name, label))
+            tests.add_data(dataFolder, "{}".format(cluster.describ))
+        draw.all(tests, outfolder)
 
     for cluster in clusters:
         outfolder = os.path.join(prefix, cluster.name)
         os.system("mkdir -p {outfolder}".format(outfolder=outfolder))
 
-        tests = []
+        tests = draw.testDataList()
         for _, label in zip(params, parmsLables):
-            targetOut = os.path.join(pyFileDir, "target", testname,
-                                     "{}_{}".format(cluster.name, label))
-            tests.append([targetOut, "{} ".format(label)])
-        _draw_one_compares(tests, outfolder)
+            dataFolder = os.path.join(pyFileDir, "target", testname,
+                                      "{}_{}".format(cluster.name, label))
+            tests.add_data(dataFolder, "{}".format(label))
+        draw.all(tests, outfolder)
 
     print("draw finished:", testname, params)
     print("result dir:", prefix)
-
-
-def _draw_one_compares(tests, outfolder):
-    # draw.draw_task_submission_rate(tests, outfolder)
-    draw.draw_muilt_lantencyCurve(tests, outfolder)
-    draw.draw_muilt_avg_resource(tests, outfolder)
-    draw.draw_muilt_var_resource(tests, outfolder)
-    draw.draw_muilt_net_busy(tests, outfolder)
-    draw.draw_task_latency_CDF(tests, outfolder)
