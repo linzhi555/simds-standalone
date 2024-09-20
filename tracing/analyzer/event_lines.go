@@ -43,7 +43,7 @@ func (l CostList) Output(outdir string, name string) {
 	timePath := path.Join(outdir, name+"TimeCurve.log")
 	common.RemoveIfExisted(timePath)
 
-	err := common.AppendLineCsvFile(timePath, []string{"time_ms", "id", name})
+	err := common.AppendLineCsvFile(timePath, []string{"time_ms", "id", "cost_us"})
 	if err != nil {
 		panic(err)
 	}
@@ -77,7 +77,6 @@ func (l CostList) Output(outdir string, name string) {
 		} else {
 			records = append(records, item)
 		}
-
 	}
 
 	// cdf log
@@ -92,7 +91,7 @@ func (l CostList) Output(outdir string, name string) {
 	for i := 0; i < len(l); i += max(len(l)/100, 1) {
 		item := l[i]
 		err := common.AppendLineCsvFile(cdfPath, []string{
-			fmt.Sprintf("%.2f", float32(i+1)*100/float32(len(l))),
+			fmt.Sprintf("%.4f", float32(i+1)/float32(len(l))),
 			fmt.Sprint(item.Id),
 			fmt.Sprint(item.Cost)},
 		)

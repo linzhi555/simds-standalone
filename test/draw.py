@@ -16,6 +16,12 @@ def _savefig(outputPath, png: str):
     plt.savefig(os.path.join(outputPath, png))
 
 
+def _parseTimeStr(s: str) -> float:
+    """parse "1us" "100ms" "3s" to x micro secod (float)"""
+
+    return pd.Timedelta(s).total_seconds() * 1000
+
+
 class markerGenerator():
     def __init__(self):
         self.count = 0
@@ -48,7 +54,7 @@ def _cost_CDF_curves(filename: str) -> tuple:
         plots = csv.reader(csvfile, delimiter=',')
         next(plots)
         for row in plots:
-            cost = pd.Timedelta(row[2]).total_seconds() * 1000
+            cost = _parseTimeStr(row[2])
             costs.append(cost)
             percents.append(float(row[0]))
     return costs, percents
@@ -63,7 +69,7 @@ def _cost_time_curves(filename: str) -> tuple:
         next(plots)
         for row in plots:
             t.append(int(row[0])/1000)
-            costs.append(pd.Timedelta(row[2]).total_seconds() * 1000)
+            costs.append(_parseTimeStr(row[2]))
     return t, costs
 
 
@@ -79,7 +85,6 @@ def _cluster_status_curves(filename: str) -> tuple:
         next(plots)
         for row in plots:
             t.append(int(row[0]) / 1000)
-
             avg_cpu.append(float(row[1]) * 100)
             avg_ram.append(float(row[2]) * 100)
             var_cpu.append(float(row[3]))
@@ -244,32 +249,34 @@ def draw_muilt_net_busy(tests: list, outdir: str):
     _savefig(outdir, './net_busy_compare_most_busy.png')
 
 
-def draw_task_latency_CDF(tests: list, outdir: str):
+def draw_CDF(tests: list, xlabel: str, infile: str, outdir: str, outname: str):
     """画多个实验的任务延迟的累积概率分布函数"""
     marker = markerGenerator()
     plt.clf()
     for t in tests:
         costs, percents = _cost_CDF_curves(
-            os.path.join(t[0], "_taskLatencyCDF.log"))
+            os.path.join(t[0], infile))
         plt.plot(costs, percents, lw=LINE_WIDTH, label=t[1],
                  marker=marker.next(), markevery=0.2, markersize=7)
+        if outname == "net_lantency":
+            print(list(zip(costs, percents)))
 
     plt.legend(fontsize=LEGEND_SIZE, loc="lower left")
 
     plt.ylabel("Cumulative Probability", fontsize=FONT_SIZE)
-    plt.xlabel("Task Latency(ms)", fontsize=FONT_SIZE)
+    plt.xlabel(xlabel, fontsize=FONT_SIZE)
 
-    plt.xscale("log", base=10)
+    # plt.xscale("log", base=10)
     plt.grid(True)
     plt.subplots_adjust(left=0.18, right=0.93, bottom=0.15, top=0.95)
 
     plt.yticks(fontsize=FONT_SIZE*0.8)
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.ylim(0.95, 1.002)
-    _savefig(outdir, './latency_CDF_compare.png')
+    _savefig(outdir, './{}_CDF_compare.png'.format(outname))
 
     plt.ylim(0.0, 1.1)
-    _savefig(outdir, './latency_CDF_compare_full.png')
+    _savefig(outdir, './{}_CDF_compare_full.png'.format(outname))
 
 
 class testDataList:
@@ -285,7 +292,12 @@ def all(datalist: testDataList, outfolder: str):
     draw_muilt_avg_resource(datalist.tests, outfolder)
     draw_muilt_var_resource(datalist.tests, outfolder)
     draw_muilt_net_busy(datalist.tests, outfolder)
-    draw_task_latency_CDF(datalist.tests, outfolder)
+
+    draw_CDF(datalist.tests, "Task Latency(ms)",
+             "_taskLatencyCDF.log", outfolder, "task_lantency")
+
+    draw_CDF(datalist.tests, "Net Latency(ms)",
+             "_netLatencyCDF.log", outfolder, "net_lantency")
 
 
 if __name__ == "__main__":

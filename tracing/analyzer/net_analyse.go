@@ -29,7 +29,7 @@ func AnalyseNet(logfile string, outdir string) {
 
 	_start("analyze net message latency")
 	//AnalyzeStageDuration(events, "send", "recv").RemoveFails().Output(outdir, "_netLantency")
-	AnalyzeStageDuration(events, "send", "recv").RemoveFails().Output(outdir, "_netLantency")
+	AnalyzeStageDuration(events, "send", "recv").RemoveFails().Output(outdir, "_netLatency")
 	_finish()
 
 	_start("analyze all cluster message rate")
