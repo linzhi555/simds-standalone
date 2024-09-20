@@ -160,7 +160,6 @@ func _append(l *[]NetEvent, row []string) {
 
 	// do use the self send message
 	if row[_NFrom] == row[_NTo] {
-		fmt.Println(row)
 		return
 	}
 

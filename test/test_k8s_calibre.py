@@ -4,20 +4,13 @@ if __name__ == "__main__":
     config = simtest.load_config()
 
     config["TaskMode"] = "onePeak"
-    config["NodeNum"] = 100
+    config["NodeNum"] = 30
 
-    simtest.test_compose(
-        config,
-        [simtest.centerCluster, simtest.centerK8sCluster],
-        "centerK8s",
-        "PerformanceRate",
-        [1.0],
-    )
-
+    config["NetLatency"] = "1"
     simtest.test_compose(
         config,
         [simtest.dcssCluster, simtest.dcssK8sCluster],
-        "dcssK8s",
+        "dcssK8s_calibre",
         "PerformanceRate",
-        [1.0],
+        [0.3],
     )

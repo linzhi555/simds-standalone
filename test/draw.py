@@ -92,33 +92,30 @@ def _cluster_status_curves(filename: str) -> tuple:
     return t, avg_cpu, avg_ram, var_cpu, var_ram
 
 
-# ------------------------------------------------------------------
-# -------------------------begin public-----------------------------
-# ------------------------------------------------------------------
-
-def draw_muilt_lantencyCurve(tests: list, outdir: str):
-    """画多个实验的任务调度延迟曲线对比图"""
+def draw_time_curve(tests: list, ylabel: str,
+                    infile: str, outdir: str, outname: str):
+    """画延迟时间曲线类型类型的对比图"""
     marker = markerGenerator()
     plt.clf()
 
     for test in tests:
         t, latency = _cost_time_curves(
-            os.path.join(test[0], "./_taskLatencyTimeCurve.log"))
+            os.path.join(test[0], infile))
 
         plt.plot(t, latency, lw=LINE_WIDTH, marker=marker.next(),
                  markevery=8, markersize=7, label=test[1])
     plt.legend(fontsize=LEGEND_SIZE)
-    plt.ylabel("Worst Task Lantency (ms)", fontsize=FONT_SIZE)
+    plt.ylabel(ylabel, fontsize=FONT_SIZE)
     plt.xlabel("Time (s)", fontsize=FONT_SIZE)
 
     plt.yticks(fontsize=FONT_SIZE*0.8)
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
     plt.subplots_adjust(left=0.19, right=0.93, bottom=0.15, top=0.95)
-    _savefig(outdir, './lantency_compare.png')
+    _savefig(outdir, './{}_time_curve.png'.format(outname))
 
     plt.yscale("log", base=10)
-    _savefig(outdir, './lantency_compare_log.png')
+    _savefig(outdir, './{}_time_curve_log.png'.format(outname))
 
 
 def draw_muilt_avg_resource(tests: list, outdir: str):
@@ -258,8 +255,6 @@ def draw_CDF(tests: list, xlabel: str, infile: str, outdir: str, outname: str):
             os.path.join(t[0], infile))
         plt.plot(costs, percents, lw=LINE_WIDTH, label=t[1],
                  marker=marker.next(), markevery=0.2, markersize=7)
-        if outname == "net_lantency":
-            print(list(zip(costs, percents)))
 
     plt.legend(fontsize=LEGEND_SIZE, loc="lower left")
 
@@ -279,6 +274,11 @@ def draw_CDF(tests: list, xlabel: str, infile: str, outdir: str, outname: str):
     _savefig(outdir, './{}_CDF_compare_full.png'.format(outname))
 
 
+# ------------------------------------------------------------------
+# -------------------------begin public-----------------------------
+# ------------------------------------------------------------------
+
+
 class testDataList:
     def __init__(self):
         self.tests = []
@@ -288,16 +288,21 @@ class testDataList:
 
 
 def all(datalist: testDataList, outfolder: str):
-    draw_muilt_lantencyCurve(datalist.tests, outfolder)
     draw_muilt_avg_resource(datalist.tests, outfolder)
     draw_muilt_var_resource(datalist.tests, outfolder)
     draw_muilt_net_busy(datalist.tests, outfolder)
 
+    draw_time_curve(datalist.tests, "Worst Task Lantency (ms)",
+                    "_taskLatencyTimeCurve.log", outfolder, "task_latency")
+
+    draw_time_curve(datalist.tests, "Worst Net Lantency (ms)",
+                    "_netLatencyTimeCurve.log", outfolder, "net_lntency")
+
     draw_CDF(datalist.tests, "Task Latency(ms)",
-             "_taskLatencyCDF.log", outfolder, "task_lantency")
+             "_taskLatencyCDF.log", outfolder, "task_latency")
 
     draw_CDF(datalist.tests, "Net Latency(ms)",
-             "_netLatencyCDF.log", outfolder, "net_lantency")
+             "_netLatencyCDF.log", outfolder, "net_latency")
 
 
 if __name__ == "__main__":
