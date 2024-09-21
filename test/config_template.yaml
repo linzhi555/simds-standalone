@@ -1,12 +1,18 @@
+# for software simulation engine
 FPS:  100000            #hom many frame per second
 GoProcs: 5
-NodeNum:      300   # how many large the cluster
-NetLatency:     1         # the average network latency, unit: milisecond 
-NodeCpu:        1000         # the node cpu capacity
-NodeMemory:     1000         # the node memory capacity
-
-
 SimulateDuration:   40000          # how long the simulation last / unit : milisecond
+
+# workers
+NodeNum:      100   # how many large the cluster
+NodeCpu:        1000         # the node cpu capacity
+NodeMemory:     1000        # the node memory capacity
+
+# networker
+NetLatency:   1         # the average network latency, unit: milisecond
+NetLatencyVar: 1         # the network latency variance factor(not true variance,default is 1)
+
+# task generator
 TaskMode: "onePeak"  # the mode of the tasks "onePeak" "noWave" "trace"
 TraceFile: "./google_trace/tasks_stream.log"  # the mode of the tasks "rand_normal" "trace"
 TaskNumFactor:   6  # task/persecond = TaskNumFactor * NodeNum 

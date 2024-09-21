@@ -6,7 +6,8 @@ if __name__ == "__main__":
     config["TaskMode"] = "onePeak"
     config["NodeNum"] = 30
 
-    config["NetLatency"] = "1"
+    config["NetLatency"] = "0.7"
+    config["NetLatencyVar"] = "1.22"
     simtest.test_compose(
         config,
         [simtest.dcssCluster, simtest.dcssK8sCluster],

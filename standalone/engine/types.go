@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"log"
 	"simds-standalone/config"
 	"time"
 )
@@ -10,6 +11,10 @@ var ZEROTIME time.Time = time.Now()
 
 // 每次更新代表的时间长度
 var DeltaT time.Duration = time.Second / time.Duration(config.Val.FPS)
+
+func init() {
+	log.Print("DelatT :", int64(DeltaT), "ns")
+}
 
 type Progress uint32
 

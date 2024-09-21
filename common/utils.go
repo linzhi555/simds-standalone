@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"reflect"
 	"strings"
@@ -36,4 +37,22 @@ func RandIntWithRange(avg int32, randRange float32) int32 {
 	diff := int32(float32(avg) * randRange)
 	min := avg - diff
 	return min + int32(rand.Intn(int(2*diff+1)))
+}
+
+func RandInt64WithRange(avg int64, randRange float64) int64 {
+	diff := int64(float64(avg) * randRange)
+	min := avg - diff
+	return min + int64(rand.Int63n(int64(2*diff+1)))
+}
+
+// return a expontial rand float , result is between[0, +inf)
+// expontial distributis's PDF is F(x) = 1-e^(-1*lamda*x),
+// average is 1/lamda, variance is 1 / (lamda)^2
+// wikipedia: https://en.wikipedia.org/wiki/Exponential_distribution
+func ExponentialRand(avg float64) float64 {
+	x := rand.Float64()
+
+	oneDivideLamda := float64(avg) // oneDivideLamda means "1 / lamda"
+
+	return -1 * oneDivideLamda * math.Log(1-x)
 }

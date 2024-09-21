@@ -12,18 +12,20 @@ import (
 
 // MockNetwork 模拟的网络组件
 type VirtualNetwork struct {
-	NetLatency int32
-	Waittings  common.Vec[base.Message]
-	Ins        map[string]*common.Vec[base.Message]
-	Outs       map[string]*common.Vec[base.Message]
+	NetLatency  time.Duration
+	NetVariance float32
+	Waittings   common.Vec[base.Message]
+	Ins         map[string]*common.Vec[base.Message]
+	Outs        map[string]*common.Vec[base.Message]
 }
 
 func newVirtualNetwork() VirtualNetwork {
 	return VirtualNetwork{
-		NetLatency: config.Val.NetLatency,
-		Waittings:  common.Vec[base.Message]{},
-		Ins:        make(map[string]*common.Vec[base.Message]),
-		Outs:       make(map[string]*common.Vec[base.Message]),
+		NetLatency:  time.Duration(config.Val.NetLatency*1000000) * time.Nanosecond,
+		NetVariance: config.Val.NetLatencyVar,
+		Waittings:   common.Vec[base.Message]{},
+		Ins:         make(map[string]*common.Vec[base.Message]),
+		Outs:        make(map[string]*common.Vec[base.Message]),
 	}
 }
 
@@ -39,8 +41,14 @@ func (network *VirtualNetwork) updateNetwork(tNow time.Time) {
 			if newM.To == newM.From {
 				newM.LeftTime = 100 * time.Microsecond
 			} else {
-				newM.LeftTime = time.Duration(common.RandIntWithRange(network.NetLatency*1000, 0.3)) * time.Microsecond
-				//newM.LeftTime = time.Duration(network.NetLatency) * 10 * time.Millisecond
+				variance := float64(network.NetVariance)
+
+				newM.LeftTime = time.Duration(
+					float64(network.NetLatency)*(1.0-variance) +
+						common.ExponentialRand(float64(network.NetLatency)*variance),
+				)
+
+				//newM.LeftTime = network.NetLatency
 			}
 
 			network.Waittings.InQueueBack(newM)
@@ -61,6 +69,7 @@ func (network *VirtualNetwork) updateNetwork(tNow time.Time) {
 			deletes = append(deletes, i)
 			rules.CheckRulesThenExec(rules.RecvRules, tNow, m)
 		} else {
+			//network.Waittings[i].LeftTime -= time.Duration(common.ExponentialRand(float64(DeltaT))*rand.Float64()*2)
 			network.Waittings[i].LeftTime -= DeltaT
 		}
 

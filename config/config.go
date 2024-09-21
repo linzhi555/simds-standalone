@@ -26,11 +26,13 @@ var Val struct {
 	Debug      bool
 	OutputDir  string
 	Cluster    string
-	NodeNum    int32
-	NetLatency int32
 
+	NodeNum    int32
 	NodeCpu    int32
 	NodeMemory int32
+
+	NetLatency    float32 // net latency: Unit ms
+	NetLatencyVar float32 // net latency: Unit ms
 
 	SimulateDuration int32 // how long the simulate is,Unit :ms
 	TaskMode         string

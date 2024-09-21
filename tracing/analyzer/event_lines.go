@@ -88,7 +88,7 @@ func (l CostList) Output(outdir string, name string) {
 		panic(err)
 	}
 
-	for i := 0; i < len(l); i += max(len(l)/100, 1) {
+	for i := 0; i < len(l); i += max(len(l)/10000, 1) {
 		item := l[i]
 		err := common.AppendLineCsvFile(cdfPath, []string{
 			fmt.Sprintf("%.4f", float32(i+1)/float32(len(l))),
