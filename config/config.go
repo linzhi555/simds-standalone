@@ -16,49 +16,52 @@ import (
 
 // Config 全局的配置,在main开始前初始化
 var Val struct {
-	//output
+	// baic
+	SimulateDuration int32 // how long the simulate is,Unit :ms
+	FPS              int32
+	GoProcs          int32
+	ConfigPath       string
+	Debug            bool
+	OutputDir        string
+	Cluster          string
+
+	//log
 	TaskEventsLogName string
 	NetEventsLogName  string
 
-	FPS        int32
-	GoProcs    int32
-	ConfigPath string
-	Debug      bool
-	OutputDir  string
-	Cluster    string
-
+	// worker
 	NodeNum    int32
 	NodeCpu    int32
 	NodeMemory int32
 
+	// net enviroment
 	NetLatency    float32 // net latency: Unit ms
 	NetLatencyVar float32 // net latency: Unit ms
 
-	SimulateDuration int32 // how long the simulate is,Unit :ms
-	TaskMode         string
-	TraceFile        string
-	TaskNumFactor    float32
-	TaskCpu          int32
-	TaskMemory       int32
-	TaskLifeTime     int32
+	// task generator
+	TaskMode      string
+	TraceFile     string
+	TaskNumFactor float32
+	TaskCpu       int32
+	TaskMemory    int32
+	TaskLifeTime  int32
 
-	//machine speed ratio
+	// sceduler
+	ScheduleFunc string
+
+	// machine speed ratio
 	PerformanceRate float32
 
-	//dcss mode
+	// dcss mode
 	DcssNeiborRandomP float32
 	DcssNeibor        int32
 	DcssDividePolicy  string
 
-	// sparrow
-	//SparrowSchedulerNumFactor float32
-
-	//ShareState the nodeinfo update information
+	// ShareState
 	StateUpdatePeriod int32
 
 	// in deploy mode
-	CleanMode bool
-	//K8sServicePort  int
+	CleanMode       bool
 	K8SConfig       string
 	K8STemplatePath string
 	NodeName        string

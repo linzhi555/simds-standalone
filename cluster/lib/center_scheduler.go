@@ -7,22 +7,39 @@ import (
 
 	"simds-standalone/cluster/base"
 	"simds-standalone/common"
+	"simds-standalone/config"
 )
+
+type scheduleFunc func(workers map[string]*NodeInfo, task *TaskInfo) (string, bool)
 
 // Scheduler 组件
 type CenterScheduler struct {
 	base.BasicActor
 	Workers       map[string]*NodeInfo
 	WaittingTasks common.Vec[TaskInfo]
-	Storage       string
+	Algorithm     scheduleFunc
+	Storage       string // cluster StateStorage, only used in sharestate cluster
 }
 
 // NewCenterScheduler 创造新的Scheduler
 func NewCenterScheduler(hostname string) *CenterScheduler {
-	return &CenterScheduler{
+	scheduler := CenterScheduler{
 		BasicActor: base.BasicActor{Host: hostname},
 		Workers:    make(map[string]*NodeInfo),
 	}
+
+	switch config.Val.ScheduleFunc {
+	case "firstFit":
+		scheduler.Algorithm = firstFit
+	case "lowestCPU":
+		scheduler.Algorithm = lowestCPU
+
+	default:
+		panic("please give me the right schedule func to initilaze the scheduler")
+
+	}
+
+	return &scheduler
 }
 
 func (s *CenterScheduler) Debug() {
@@ -45,7 +62,7 @@ func (s *CenterScheduler) Update(msg base.Message) {
 
 		for s.WaittingTasks.Len() > 0 {
 			task := &s.WaittingTasks[0]
-			dstWorker, ok := schdulingAlgorithm(s, task)
+			dstWorker, ok := s.Algorithm(s.Workers, task)
 			if ok {
 				task.Worker = dstWorker
 				s.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
@@ -96,26 +113,63 @@ func (s *CenterScheduler) _setNextSchdulerTimer() {
 	}, 10*time.Millisecond)
 }
 
-// schdulingAlgorithm 简单的首次适应调度算法，找到第一个合适调度的节点,找不到 ok返回false
-func schdulingAlgorithm(scheduler *CenterScheduler, task *TaskInfo) (dstAddr string, ok bool) {
-	dstAddr = ""
+// firstFit 简单的首次适应调度算法，
+// 找到了返回 目标worker,true
+// 找不到返回 "",false
+func firstFit(workers map[string]*NodeInfo, task *TaskInfo) (string, bool) {
+	result := ""
 
-	keys := make([]string, 0, len(scheduler.Workers))
-	for k := range scheduler.Workers {
-		keys = append(keys, k)
+	ids := make([]string, 0, len(workers))
+	for k := range workers {
+		ids = append(ids, k)
 	}
-	common.ShuffleStringSlice(keys)
-	for _, workerAddr := range keys {
-		nodeinfo := scheduler.Workers[workerAddr]
+
+	common.ShuffleStringSlice(ids)
+	for _, id := range ids {
+		nodeinfo := workers[id]
 		if nodeinfo.CanAllocate(task.CpuRequest, task.MemoryRequest) {
-			dstAddr = workerAddr
+			result = id
+			break
 		}
 	}
 
-	if dstAddr == "" {
-
-		return dstAddr, false
+	if result == "" {
+		return result, false
 	}
 
-	return dstAddr, true
+	return result, true
+}
+
+// 寻找CPU最低最空闲的的节点，
+// 找到了返回 目标worker,true
+// 找不到返回 "",false
+func lowestCPU(workers map[string]*NodeInfo, task *TaskInfo) (string, bool) {
+	result := ""
+
+	ids := make([]string, 0, len(workers))
+	for k := range workers {
+		ids = append(ids, k)
+	}
+
+	common.ShuffleStringSlice(ids)
+
+	lowestCPUWorker := ""
+	lowestCPURercent := float32(1.0)
+
+	for _, id := range ids {
+		nodeinfo := workers[id]
+		if nodeinfo.CanAllocate(task.CpuRequest, task.MemoryRequest) {
+			workcpuPer := nodeinfo.CpuPercent()
+			if workcpuPer < lowestCPURercent {
+				lowestCPURercent = workcpuPer
+				lowestCPUWorker = id
+			}
+		}
+	}
+
+	if lowestCPUWorker == "" {
+		return result, false
+	}
+
+	return lowestCPUWorker, true
 }

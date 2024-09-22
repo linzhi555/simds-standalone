@@ -20,6 +20,8 @@ TaskCpu:        300          # the average task cpu request
 TaskMemory:     300          # the average task memory request
 TaskLifeTime:   330        # the average task lifeTime  , unit : milisecond
 
+# sceduler
+ScheduleFunc: "lowestCPU"
 
 # the machine speed for deal message
 PerformanceRate: 1
