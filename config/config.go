@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Config 全局的配置,在main开始前初始化
+// Gloabl Config 全局的配置, inited before doing everything
 var Val struct {
 	// baic
 	SimulateDuration int32 // how long the simulate is,Unit :ms
@@ -59,6 +59,8 @@ var Val struct {
 
 	// ShareState
 	StateUpdatePeriod int32
+	ShareSchdulerNum  int32
+	StorageNum        int32
 
 	// in deploy mode
 	CleanMode       bool
@@ -69,6 +71,8 @@ var Val struct {
 	PullImageRepo   string
 }
 
+// use 'viper' to manage all config source, every config source has priority
+// for viper, command argumet > config.yaml > default
 func init() {
 
 	// default config
@@ -76,14 +80,13 @@ func init() {
 	viper.SetDefault("NetEventsLogName", "network_event.log")
 	viper.SetDefault("FPS", 10000)
 	viper.SetDefault("GoProcs", runtime.NumCPU())
-	//viper.SetDefault("K8sServicePort", 31000)
 
 	// import the command line argumet
 	configFile := pflag.StringP("configFile", "c", "./config.yaml", "the config file path")
-	pflag.String("Cluster", "", "which type cluster to run,for example Dcss,Center,ShareState...")
+	pflag.String("Cluster", "", "which type cluster to run,for example Dcss | Center | ShareState ...")
 	pflag.Bool("Debug", false, "run the cluster in debug mode")
 	pflag.String("OutputDir", ".", "where to output the result files")
-	pflag.String("NodeName", "", "the node name")
+	pflag.String("NodeName", "", "the node name of the k8s container, used to init first actor")
 	pflag.Bool("CleanMode", false, "clean the containers")
 	pflag.Parse()
 

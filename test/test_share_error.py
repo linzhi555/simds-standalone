@@ -4,12 +4,14 @@ if __name__ == "__main__":
     config = simtest.load_config()
 
     config["TaskMode"] = "onePeak"
-    config["NodeNum"] = 30
+    config["NodeNum"] = 20
+    config["NetLatency"] = "0.7"
 
     simtest.test_compose(
         config,
+        # [simtest.shareCluster, simtest.shareK8sCluster],
         [simtest.shareCluster, simtest.shareK8sCluster],
-        "shareK8s",
-        "PerformanceRate",
-        [1.0],
+        "shareError",
+        "StateUpdatePeriod",
+        [10, 20, 30, 40],
     )

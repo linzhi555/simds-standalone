@@ -36,9 +36,10 @@ DcssDividePolicy     : "random"  #
 
 # only in share state cluster
 StateUpdatePeriod:   100   # the period of scheduler get the newest cluster state, unit : milisecond
+ShareSchdulerNum: 3
+StorageNum: 3
 
 ## deploy mode
-
 K8STemplatePath: "./simctl/template"
 
 ##K8SConfig: "./kubeconfig/config"

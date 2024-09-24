@@ -12,20 +12,25 @@ import (
 
 type scheduleFunc func(workers map[string]*NodeInfo, task *TaskInfo) (string, bool)
 
-// Scheduler 组件
+// Common Scheduler Acotr
 type CenterScheduler struct {
 	base.BasicActor
-	Workers       map[string]*NodeInfo
+	Workers       map[string]*NodeInfo // the worker's resource info
 	WaittingTasks common.Vec[TaskInfo]
 	Algorithm     scheduleFunc
-	Storage       string // cluster StateStorage, only used in sharestate cluster
+
+	// the worker's Manager
+	// normally the Worker is managed by himself
+	// in some case .the worker is managed by third person, such as in sharestate cluster
+	WorkerManager map[string]string
 }
 
 // NewCenterScheduler 创造新的Scheduler
 func NewCenterScheduler(hostname string) *CenterScheduler {
 	scheduler := CenterScheduler{
-		BasicActor: base.BasicActor{Host: hostname},
-		Workers:    make(map[string]*NodeInfo),
+		BasicActor:    base.BasicActor{Host: hostname},
+		Workers:       make(map[string]*NodeInfo),
+		WorkerManager: make(map[string]string),
 	}
 
 	switch config.Val.ScheduleFunc {
@@ -66,10 +71,7 @@ func (s *CenterScheduler) Update(msg base.Message) {
 			if ok {
 				task.Worker = dstWorker
 				s.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
-				receiver := task.Worker
-				if s.Storage != "" {
-					receiver = s.Storage
-				}
+				receiver := s.WorkerManager[task.Worker]
 				task.Worker = dstWorker
 				s.Os.Send(base.Message{
 					From: s.GetAddress(),
@@ -93,6 +95,7 @@ func (s *CenterScheduler) Update(msg base.Message) {
 		nodeinfoList := msg.Body.(VecNodeInfo)
 		for _, ni := range nodeinfoList {
 			s.Workers[ni.Addr] = ni.Clone()
+			s.WorkerManager[ni.Addr] = msg.From
 		}
 
 	default:

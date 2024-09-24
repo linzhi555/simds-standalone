@@ -12,8 +12,6 @@ import (
 // StateStorage 节点，用于共享状态的存储
 type StateStorage struct {
 	base.BasicActor
-	LastSendTime time.Time
-	Started      bool
 	Schedulers   []string
 	Workers      map[string]*lib.NodeInfo
 }
@@ -81,7 +79,6 @@ func (s *StateStorage) Update(msg base.Message) {
 		taskInfo := msg.Body.(lib.TaskInfo)
 		s.Workers[msg.From].SubAllocated(taskInfo.CpuRequest, taskInfo.MemoryRequest)
 	case "SignalUpdate":
-		s.LastSendTime = s.Os.GetTime()
 		for _, scheduler := range s.Schedulers {
 			s.Os.Send(base.Message{
 				From: s.GetAddress(),
@@ -103,17 +100,3 @@ func (s *StateStorage) Update(msg base.Message) {
 	}
 
 }
-
-//func (s *StateStorage) SimulateTasksUpdate() {
-//	if s.Os.GetTime().Sub(s.LastSendTime).Milliseconds() > int64(config.Val.StateUpdatePeriod) {
-//		newMessage := base.Message{
-//			From: s.GetAddress(),
-//			To:   s.GetAddress(),
-//			Head: "SignalUpdate",
-//		}
-//		err := s.Os.Send(newMessage)
-//		if err != nil {
-//			panic(err)
-//		}
-//	}
-//}
