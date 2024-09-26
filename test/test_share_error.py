@@ -5,8 +5,8 @@ if __name__ == "__main__":
 
     config["TaskMode"] = "onePeak"
     config["NodeNum"] = 20
-    config["NetLatency"] = "0.7"
-
+    config["NetLatency"] = 0.7
+    config["PerformanceRate"] = 0.3
     simtest.test_compose(
         config,
         # [simtest.shareCluster, simtest.shareK8sCluster],

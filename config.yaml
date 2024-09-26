@@ -4,7 +4,7 @@ GoProcs: 5
 SimulateDuration:   40000          # how long the simulation last / unit : milisecond
 
 # workers
-NodeNum:      100   # how many large the cluster
+NodeNum:      20   # how many large the cluster
 NodeCpu:        1000         # the node cpu capacity
 NodeMemory:     1000        # the node memory capacity
 
@@ -21,7 +21,7 @@ TaskMemory:     300          # the average task memory request
 TaskLifeTime:   330        # the average task lifeTime  , unit : milisecond
 
 # sceduler
-ScheduleFunc: "lowestCPU"
+ScheduleFunc: "firstFit"
 
 # the machine speed for deal message
 PerformanceRate: 1

@@ -71,7 +71,10 @@ func (s *CenterScheduler) Update(msg base.Message) {
 			if ok {
 				task.Worker = dstWorker
 				s.Workers[task.Worker].AddAllocated(task.CpuRequest, task.MemoryRequest)
-				receiver := s.WorkerManager[task.Worker]
+				receiver, ok := s.WorkerManager[task.Worker]
+				if !ok {
+					receiver = task.Worker
+				}
 				task.Worker = dstWorker
 				s.Os.Send(base.Message{
 					From: s.GetAddress(),

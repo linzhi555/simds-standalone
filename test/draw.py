@@ -129,7 +129,7 @@ def draw_muilt_avg_resource(tests: list, outdir: str):
         t, avg_cpu, avg_ram, var_cpu, var_ram = _cluster_status_curves(
             os.path.join(test[0], "_clusterStatus.log"))
 
-        plt.plot(t, avg_cpu, lw=LINE_WIDTH, label=t[1],
+        plt.plot(t, avg_cpu, lw=LINE_WIDTH, label=test[1],
                  marker=marker.next(), markevery=8, markersize=7)
 
     plt.legend(fontsize=LEGEND_SIZE)
@@ -150,7 +150,7 @@ def draw_muilt_avg_resource(tests: list, outdir: str):
         t, avg_cpu, avg_ram, var_cpu, var_ram = _cluster_status_curves(
             os.path.join(test[0], "_clusterStatus.log"))
 
-        plt.plot(t, avg_ram, lw=LINE_WIDTH, label=t[1],
+        plt.plot(t, avg_ram, lw=LINE_WIDTH, label=test[1],
                  marker=marker.next(), markevery=8, markersize=7)
 
     plt.legend(fontsize=LEGEND_SIZE)
