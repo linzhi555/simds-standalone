@@ -63,6 +63,13 @@ def calibre(
 
     testdatas = draw.testDataList()
 
+    # 进行一次k8s实验，实验结果作为软件模拟器的校准目标
+    targetOut = os.path.join(pyFileDir, "target", testname,
+                             "{}".format(k8sCluster.name))
+    _run_single_test(k8sCluster, config, targetOut)
+    testdatas.add_data(targetOut, "{}".format(k8sCluster.describ))
+
+    # 进行不同参数的软件模拟实验，看哪个参数更接近校准目标
     for param, label in zip(params, parmsLables):
         targetOut = os.path.join(pyFileDir, "target", testname,
                                  "{}_{}".format(simCluster.name, label))
@@ -72,11 +79,6 @@ def calibre(
         _run_single_test(simCluster, configCopy, targetOut)
         testdatas.add_data(targetOut, "{}_{}".format(
             simCluster.describ, label))
-
-    targetOut = os.path.join(pyFileDir, "target", testname,
-                             "{}".format(k8sCluster.name))
-    _run_single_test(k8sCluster, configCopy, targetOut)
-    testdatas.add_data(targetOut, "{}".format(k8sCluster.describ))
 
     outfolder = os.path.join(pyFileDir, "target", "all", testname,)
     os.system("mkdir -p {}".format(outfolder))

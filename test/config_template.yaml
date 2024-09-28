@@ -43,10 +43,10 @@ StorageNum: 3
 
 K8STemplatePath: "./simctl/template"
 
-##K8SConfig: "./kubeconfig/config"
-##PushImageRepo: "registry.cn-beijing.aliyuncs.com/lin2631/simlet:latest" # where the simlet image push to
-##PullImageRepo: "registry-vpc.cn-beijing.aliyuncs.com/lin2631/simlet:latest" # where the kubelet pull the image to start container
+K8SConfig: "./kubeconfig/config"
+PushImageRepo: "registry.cn-beijing.aliyuncs.com/lin2631/simlet:latest" # where the simlet image push to
+PullImageRepo: "registry-vpc.cn-beijing.aliyuncs.com/lin2631/simlet:latest" # where the kubelet pull the image to start container
 
-K8SConfig: "/home/lin/.kube/config"
-PullImageRepo: "registry.cn-beijing.aliyuncs.com/lin2631/simlet:latest"
-PushImageRepo: "registry.cn-beijing.aliyuncs.com/lin2631/simlet:latest"
+#K8SConfig: "/home/lin/.kube/config"
+#PullImageRepo: "registry.cn-beijing.aliyuncs.com/lin2631/simlet:latest"
+#PushImageRepo: "registry.cn-beijing.aliyuncs.com/lin2631/simlet:latest"
