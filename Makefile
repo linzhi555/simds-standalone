@@ -1,38 +1,36 @@
-.PHONY:centerTest dcssTest analyse fmt testCompose
+.PHONY: test debug preDeal k8sTest analyse fmt k8sClean
 
+Cluster=Center
 Config=./config.yaml
 timeNow:=$(shell date '+%m_%d_%H_%M_%S')
 TargetFolder:=./target/$(timeNow)
+RootPath=$(CURDIR)
 
-Cluster=Center
 test: preDeal
 	@mkdir -p $(TargetFolder)
-	go run . -c $(Config) --OutputDir $(TargetFolder) --Cluster $(Cluster) > /dev/null
+	go run ./standalone/main -c $(Config) --OutputDir $(TargetFolder) --Cluster $(Cluster) > $(TargetFolder)/stdout.log
 	@make analyse TargetFolder=$(TargetFolder)
 
-centerTest: 
-	make test Cluster=Center
-
-dcssTest:
-	make test Cluster=Dcss
-
-shareTest:
-	make test Cluster=ShareState
+debug: preDeal
+	@mkdir -p $(TargetFolder)
+	go run ./standalone/main -c $(Config) --OutputDir $(TargetFolder) --Cluster $(Cluster) --Debug
+	@make analyse TargetFolder=$(TargetFolder)
 
 preDeal:
 	if [ -d $(TargetFolder) ];then echo "target folder is not empty";exit 1;fi
 	@mkdir -p $(TargetFolder)
 
 analyse:
-	go run ./analyse  --OutputDir $(TargetFolder) -c $(Config)
-	cp ./py/draw.py $(TargetFolder)
-	cd $(TargetFolder) && python3 draw.py 
-	#rm $(TargetFolder)/components.log
-
-ComposeFolder = ./test_compose
-testCompose:
-	bash ./test_compose.sh $(ComposeFolder)
+	go run ./tracing/main  --OutputDir $(TargetFolder) -c $(Config)
+	cd $(TargetFolder) && python3 $(RootPath)/test/draw.py
 
 fmt:
 	gofmt -l -w .
 	golangci-lint run
+
+k8sTest:preDeal
+	@mkdir -p $(TargetFolder)
+	go run ./simctl -c $(Config) --OutputDir $(TargetFolder) --Cluster $(Cluster) 
+	@make analyse TargetFolder=$(TargetFolder)
+k8sClean:
+	go run ./simctl --CleanMode

@@ -1,12 +1,46 @@
 package common
 
 import (
+	"bufio"
 	"encoding/csv"
+	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"strconv"
 )
+
+// CountLines 函数用于返回指定文件的行数
+func CountLines(filename string) (int, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	lineCount := 0
+
+	for scanner.Scan() {
+		lineCount++
+	}
+
+	if err := scanner.Err(); err != nil {
+		return 0, err
+	}
+
+	return lineCount, nil
+}
+
+func RemoveIfExisted(file string) {
+	if IsFileExist(file) {
+		err := os.Remove(file)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
 
 func IsFileExist(filename string) bool {
 	var exist = true
@@ -39,32 +73,75 @@ func AppendLineCsvFile(path string, line []string) error {
 	return nil
 }
 
-func CsvToList(path string) (table [][]string, tabletop []string) {
+// maybe return patial csv read error
+func CsvToList(path string) (table [][]string, tabletop []string, err error) {
 	fs, err := os.Open(path)
 	if err != nil {
-		log.Println("can not open ", path)
-		panic(err)
+		return nil, nil, err
 	}
 	defer fs.Close()
-	r := csv.NewReader(fs)
-	table = make([][]string, 0)
+	return BytesCsvToList(fs)
+}
+
+func IterateCsv(input io.Reader, f1 func(tabletop []string), f2 func(row []string)) error {
+	r := csv.NewReader(input)
+
+	errorLines := []int{}
+	allnum := 0
+	var tabletop []string
+
 	for i := 0; ; i++ {
 		row, err := r.Read()
+		allnum++
 		if err != nil && err != io.EOF {
-			panic("fail to read" + err.Error())
+			errorLines = append(errorLines, i)
+			continue
 		}
 		if err == io.EOF {
 			break
 		}
 		if i == 0 {
 			tabletop = row
+			if f1 != nil {
+				f1(tabletop)
+			}
 		} else {
-			table = append(table, row)
+			if f2 != nil {
+				f2(row)
+			}
 		}
 	}
 
-	return table, tabletop
+	if len(errorLines) > 0 {
+		if tabletop == nil {
+			return errors.New("read csv error")
+		}
+
+		errinfo := fmt.Sprintf("partial error: error / all = %d / %d   \n", len(errorLines), allnum)
+		for i := 0; i < 100 && i < len(errorLines); i++ {
+			errinfo += fmt.Sprintf("%d th error line: %d\n", i, errorLines[i])
+		}
+		return errors.New(errinfo)
+	} else {
+		return nil
+	}
 }
+
+func BytesCsvToList(input io.Reader) (table [][]string, tabletop []string, err error) {
+	table = make([][]string, 0)
+
+	err = IterateCsv(input,
+		func(t []string) {
+			tabletop = t
+		},
+		func(row []string) {
+			table = append(table, row)
+		},
+	)
+
+	return table, tabletop, err
+}
+
 func ListToCsv(table [][]string, tabletop []string, outpath string) {
 	//将表头加入到slice前
 
@@ -107,10 +184,7 @@ func IsLegalFloat64(s string) bool {
 
 	_, err := strconv.ParseFloat(s, 64)
 
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func Int64_to_str(i int64) string {
@@ -132,8 +206,5 @@ func Str_to_int64(s string) int64 {
 func IsLegalInt64(s string) bool {
 	_, err := strconv.ParseInt(s, 10, 64)
 
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }

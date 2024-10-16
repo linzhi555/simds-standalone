@@ -1,0 +1,52 @@
+# for software simulation engine
+FPS:  100000            #hom many frame per second
+GoProcs: 5
+SimulateDuration:   40000          # how long the simulation last / unit : milisecond
+
+# workers
+NodeNum:      100   # how many large the cluster
+NodeCpu:        1000         # the node cpu capacity
+NodeMemory:     1000        # the node memory capacity
+
+# networker
+NetLatency:   1         # the average network latency, unit: milisecond
+NetLatencyVar: 1         # the network latency variance factor(not true variance,default is 1)
+
+# task generator
+TaskMode: "onePeak"  # the mode of the tasks "onePeak" "noWave" "trace"
+TraceFile: "./google_trace/tasks_stream.log"  # the mode of the tasks "rand_normal" "trace"
+TaskNumFactor:   5  # task/persecond = TaskNumFactor * NodeNum 
+TaskCpu:        300          # the average task cpu request
+TaskMemory:     300          # the average task memory request
+TaskLifeTime:   330        # the average task lifeTime  , unit : milisecond
+
+# sceduler
+ScheduleFunc: "lowestCPU"
+
+# the machine speed for deal message
+PerformanceRate: 1
+
+# only in dcss mode
+DcssNeibor:    8         #how many neibor of a node
+DcssNeiborRandomP:      0.5      #how many random neibor of a node
+DcssDividePolicy     : "random"  #
+
+# sparrow mode schedulerNum = SparrowSchedulerNumFactor * NodeNum
+#SparrowSchedulerNumFactor:  0.0300
+
+# only in share state cluster
+StateUpdatePeriod:   100   # the period of scheduler get the newest cluster state, unit : milisecond
+ShareSchdulerNum: 3
+StorageNum: 3
+
+## deploy mode
+
+K8STemplatePath: "./simctl/template"
+
+K8SConfig: "./kubeconfig/config"
+PushImageRepo: "registry.cn-beijing.aliyuncs.com/lin2631/simlet:latest" # where the simlet image push to
+PullImageRepo: "registry-vpc.cn-beijing.aliyuncs.com/lin2631/simlet:latest" # where the kubelet pull the image to start container
+
+#K8SConfig: "/home/lin/.kube/config"
+#PullImageRepo: "registry.cn-beijing.aliyuncs.com/lin2631/simlet:latest"
+#PushImageRepo: "registry.cn-beijing.aliyuncs.com/lin2631/simlet:latest"

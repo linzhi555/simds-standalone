@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>simds Debugger</title>
+    <link href="./deps/bootstrap.min.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div class="container mt-3">
+
+        <p class="font-weight-bold">
+            <span> 模拟器迭代次数:</span>
+            <span id="updateCount" class="text-success"></span>
+            <span>模拟器运行时长:</span>
+            <span id="upTime" class="text-success"></span>
+        </p>
+
+        <div class="input-group">
+            <input class="form-control" type="text" id="inputBox" placeholder="please input command" />
+
+            <div class="input-group-append">
+                <button id="submit" class="btn btn-primary">执行命令</button>
+            </div>
+        </div>
+
+        <div class="mt-2">
+            <p id="outputText"></p>
+        </div>
+
+        <div class="mt-2">
+            <button id="toggleDisplay" class="btn btn-primary">切换节点状态/网络状态</button>
+        </div>
+
+
+        <div class="mt-3 font-weight-bold">
+            筛选节点ActorID: <input type="text" id="filter" placeholder="filter ActorID">
+        </div>
+
+        <div id="nodesTable" class="mt-2">
+            <p class="font-weight-bold">节点状态</p>
+            <table class="table table-striped" id="actorTable">
+                <thead>
+                    <tr>
+                        <th>ActorID</th>
+                        <th>所属节点</th>
+                        <th>是否处理消息中</th>
+                        <th>消息处理时间</th>
+                        <th>进度</th>
+                        <th>正在处理的消息</th>
+                        <th>上一条处理的消息</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="netTable">
+            <p class="font-weight-bold">网络状态</p>
+            <table class="table table-striped" id="netTable">
+                <thead>
+                    <tr>
+                        <th>状态</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Head</th>
+                        <th>Body</th>
+                        <th>剩余时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="./deps/jquery-3.6.0.min.js"></script>
+    <script src="./index.js"></script>
+</body>
+
+</html>

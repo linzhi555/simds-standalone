@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace: default
+  labels:
+    app: test
+spec:
+  restartPolicy: Never
+  containers:
+  - image: nginx:1.14.2
+    name: c1
+    command: 
+    - /bin/bash
+    imagePullPolicy: Always
+      #    securityContext:
+      #      privileged: true
+    resources:
+      requests:
+        cpu: "0.01"
+        memory: "50Mi"
+      limits:
+        cpu: "2"
+        memory: "10000Mi"
+  imagePullSecrets:
+    - name: regcred
