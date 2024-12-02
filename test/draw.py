@@ -139,7 +139,7 @@ def draw_muilt_avg_resource(tests: list, outdir: str):
     plt.yticks(fontsize=FONT_SIZE*0.8)
     plt.xticks(fontsize=FONT_SIZE*0.8)
     plt.grid(True)
-    plt.subplots_adjust(left=0.13, right=0.93, top=0.95)
+    plt.subplots_adjust(left=0.13, right=0.93, top=0.95, bottom=0.15)
     _savefig(outdir, './cpu_load_compare.png')
 
     # for drawing memory ulitzation
