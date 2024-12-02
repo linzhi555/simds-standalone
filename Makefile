@@ -1,4 +1,4 @@
-.PHONY: test debug preDeal k8sTest analyse fmt k8sClean
+.PHONY: test debug preDeal k8sTest analyse fmt k8sClean genTraceStream
 
 Cluster=Center
 Config=./config.yaml
@@ -34,3 +34,6 @@ k8sTest:preDeal
 	@make analyse TargetFolder=$(TargetFolder)
 k8sClean:
 	go run ./simctl --CleanMode
+
+genTraceStream:
+	cd google_trace && go run . -c ../config.yaml

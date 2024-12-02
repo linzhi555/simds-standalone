@@ -7,3 +7,5 @@ py/__pycache__
 simds-standalone
 kubeconfig/*
 _test.sh
+
+!google_trace/raw.log

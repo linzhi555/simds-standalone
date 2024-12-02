@@ -13,7 +13,7 @@ NetLatency:   1         # the average network latency, unit: milisecond
 NetLatencyVar: 1         # the network latency variance factor(not true variance,default is 1)
 
 # task generator
-TaskMode: "onePeak"  # the mode of the tasks "onePeak" "noWave" "trace"
+TaskMode: "trace"  # the mode of the tasks "onePeak" "noWave" "trace"
 TraceFile: "./google_trace/tasks_stream.log"  # the mode of the tasks "rand_normal" "trace"
 TaskNumFactor:   6  # task/persecond = TaskNumFactor * NodeNum
 TaskCpu:        300          # the average task cpu request
