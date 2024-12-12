@@ -97,7 +97,6 @@ func (node *DcssNode) dcssTaskDispenseHandle(newMessage base.Message) {
 func (node *DcssNode) _delaySchedule(task lib.TaskInfo) {
 	task.Status = "delaySchedule"
 	task.LeftTime = time.Millisecond * 10
-	node.RunningTask[task.Id] = &task
 	node.Os.SetTimeOut(func() {
 		newMessage := base.Message{
 			From: node.GetAddress(),
