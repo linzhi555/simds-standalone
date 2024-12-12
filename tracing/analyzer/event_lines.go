@@ -2,10 +2,12 @@ package analyzer
 
 import (
 	"fmt"
+	"log"
 	"path"
-	"simds-standalone/common"
 	"sort"
 	"time"
+
+	"simds-standalone/common"
 )
 
 const INF = 999 * time.Hour
@@ -38,6 +40,9 @@ func (l CostList) SortByCost() {
 }
 
 func (l CostList) Output(outdir string, name string) {
+	if len(l) == 0 {
+		log.Fatalln("costList is empty when do outputs", outdir, name)
+	}
 
 	//time curve
 	timePath := path.Join(outdir, name+"TimeCurve.log")
@@ -100,7 +105,7 @@ func (l CostList) Output(outdir string, name string) {
 		}
 	}
 
-	// metrig log
+	// metric log
 	metricPath := path.Join(outdir, name+"Metric.log")
 	common.RemoveIfExisted(metricPath)
 
